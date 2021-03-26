@@ -7,5 +7,6 @@ module.exports = {
  // options...
  runtimeCompiler: true,
 
- publicPath: '/vue-paint/'
+ publicPath: '/vue-paint/',
+ productionSourceMap: false
 }

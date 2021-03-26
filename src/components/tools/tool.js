@@ -6,9 +6,10 @@
 
 export default class Tool {
   constructor (paper, event, state) {
+    event = event || false
     this.state   = state
     this.paper = paper
-    this.startPoint  = this.round(event.point);
+    this.startPoint  = event ? this.round(event.point) : false;
     this.mousedown = false;
   }
 
@@ -21,6 +22,25 @@ export default class Tool {
   delete() {
     this.primitive.remove()
     delete this;
+  }
+
+  move(direction) {
+    let _point;
+    switch (direction) {
+      case 'left':
+        _point = new this.paper.Point(-this.state.gridsize, 0);
+        break;
+      case 'right':
+        _point = new this.paper.Point(this.state.gridsize, 0);
+        break;
+      case 'up':
+        _point = new this.paper.Point(0, -this.state.gridsize);
+        break;
+      case 'down':
+        _point = new this.paper.Point(0, this.state.gridsize);
+        break;
+    }
+    this.primitive.translate(_point);
   }
 
   unselect() {
@@ -99,8 +119,8 @@ export default class Tool {
         console.log('rot')
         this.primitive.rotation = Math.round((event.point.x - mouseDownPoint.x) / this.state.anglestep) * this.state.anglestep;
         break;
-      case 'Scale':
-        console.log('scale')
+      case 'Resize':
+        console.log('Resize')
         this.onPaint(event)
         this.primitive.selected = true;
         break;    
@@ -120,8 +140,8 @@ export default class Tool {
         console.log('f rot')
         this.state.setTransformation('Move');
         break;
-      case 'Scale':
-        console.log('f scale')
+      case 'Resize':
+        console.log('f Resize')
         this.onFinishPaint(event)
         this.state.setTransformation('Move');
         break;    
@@ -136,6 +156,7 @@ export default class Tool {
 
   /* Called to draw */
   draw (event) {
+    event = event || {point: this.startPoint};
     if (this.primitive) {
       this.primitive.remove()
     }

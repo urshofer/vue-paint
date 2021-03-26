@@ -16,7 +16,7 @@ export default class State {
         this.selected   = [];
 
         // Register Transformation Modes
-        this.allowedTransformations = ['Move', 'Scale', 'Rotate'];
+        this.allowedTransformations = ['Move', 'Resize', 'Rotate'];
         this.transformation = 'Move';
 
         // Register Tools
@@ -36,6 +36,19 @@ export default class State {
             this.selected = [];
         }
     }
+
+    moveSelection(direction, clone) {
+        if (this.selected.length > 0) {
+            this.selected.forEach(s => {
+                if (clone) {
+                    let _clone = new this.tools[s.constructor.name](s.paper, false, s.state)
+                    _clone.startPoint = s.startPoint;
+                }
+                s.move(direction);
+            })
+        }
+    }
+
 
     setActive(toolname) {
         if (this.tools[toolname] && this.active != this.tools[toolname]) {
@@ -101,7 +114,6 @@ export default class State {
             this.transformation = t;
         }
     }
-
 
     applyStyle() {
         if (this.selected.length > 0) {

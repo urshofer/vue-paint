@@ -28,8 +28,14 @@
       <div id="context">
         <transition name="flipin">
           <div v-if="state.selected.length > 0">
-            <a @click="state.deleteSelection()">Delete [&larr;]</a>
-            <a v-for="t in transformations" v-bind:key="`transformation-${t}`" :class="{'active': state.getTransformation()==t}" @click="state.setTransformation(t)">{{t}} [{{t[0]}}]</a>
+            <a @click="state.deleteSelection()">Delete  <span>🔙</span></a>
+            <a v-for="t in transformations" v-bind:key="`transformation-${t[0]}`" :class="{'active': state.getTransformation()==t[0]}" @click="state.setTransformation(t[0])">{{t[0]}} <span>{{t[1]}}</span></a>
+            <div>
+              <a class="small" @click="state.moveSelection('left')"><span>&larr;</span></a>
+              <a class="small" @click="state.moveSelection('up')"><span>&uarr;</span></a>
+              <a class="small" @click="state.moveSelection('down')"><span>&darr;</span></a>
+              <a class="small" @click="state.moveSelection('right')"><span>&rarr;</span></a>
+            </div>
           </div>
         </transition>
       </div>
@@ -64,7 +70,11 @@ export default {
       tools: ['Square', 'Circle', 'Line', 'Star'],
 
       // Transformations
-      transformations: ['Move', 'Rotate', 'Scale']
+      transformations: [
+        ['Move', 'm'], 
+        ['Rotate', 'r'], 
+        ['Resize', 's']
+      ]
 
     }
   },
@@ -123,18 +133,16 @@ export default {
           this.state.deleteSelection()
           return false;
       }
-      if (event.key == 'r') {
-          this.state.setTransformation('Rotate');
-          return false;
+      if (event.key == 'up' || event.key == 'down' || event.key == 'left' || event.key == 'right') {
+        this.state.moveSelection(event.key, event.modifiers.shift)
+        return false;
       }
-      if (event.key == 'm') {
-          this.state.setTransformation('Move');
+      this.transformations.forEach(t => {
+        if (event.key == t[1]) {
+          this.state.setTransformation(t[0]);
           return false;
-      }
-      if (event.key == 's') {
-          this.state.setTransformation('Scale');
-          return false;
-      }
+        }
+      })
     }   
   }
 }
@@ -188,6 +196,11 @@ export default {
     width: 10%;
     height: 100%;
     background: #CCC;
+    & > div {
+      & > div {
+        
+      }
+    }
   }
 
   label, a {
@@ -206,7 +219,31 @@ export default {
       border: 2px solid white;
     }
   }
+  
+  a span {
+    font-size: 60%;
+    padding: 2px 3px 3px 3px;
+    float: right;
+    width: 2rem;
+    text-align: center;
+    box-shadow: 2px 2px 2px rgba(0,0,0,0.2);
+    background: #FFF;
+  }
 
+  a.small {
+    display: inline-block;
+    width: 25%;
+    padding: 0.5em;
+    box-sizing: border-box;
+    span {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+      padding: 0.25em 0 0.5em;
+
+    }
+  }
   .flipin-enter-active, .flipin-leave-active {
           opacity: 1;
           transition: opacity 0.5s;
