@@ -4,6 +4,8 @@
  * @type {import('@vue/cli-service').ProjectOptions}
  */
 module.exports = {
-  // options...
-  runtimeCompiler: true
+ // options...
+ runtimeCompiler: true,
+
+ publicPath: '/vue-paint/'
 }
