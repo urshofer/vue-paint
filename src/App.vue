@@ -31,7 +31,7 @@ export default {
       this.svg = data.svg
       this.json = data.json
 			saveAs(new Blob([this.svg], {type: "image/svg+xml;charset=" + document.characterSet}), 'painter.svg');
-			saveAs(new Blob([this.json], {type: "application/json;charset=" + document.characterSet}), 'painter.json');
+			//saveAs(new Blob([this.json], {type: "application/json;charset=" + document.characterSet}), 'painter.json');
 
     }
   }
