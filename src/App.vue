@@ -28,6 +28,7 @@ export default {
   },
   methods: {
     onSave(data) {
+      console.log(data);
       this.svg = data.svg
       this.json = data.json
 			saveAs(new Blob([this.svg], {type: "image/svg+xml;charset=" + document.characterSet}), 'painter.svg');

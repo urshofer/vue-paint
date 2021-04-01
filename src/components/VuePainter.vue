@@ -218,9 +218,8 @@ export default {
   },
   methods: {
     save() {
-      console.log(this);
       let _JSON = this.state.exportStack();
-      let _SVG = this.paper.project.exportSVG({asString: true});
+      let _SVG  = this.paper.project.exportSVG({asString: true});
       this.$emit('save', {json: _JSON, svg: _SVG});
     }
   }
