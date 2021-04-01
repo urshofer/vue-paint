@@ -12,6 +12,7 @@ export default class Tool {
     this.mousedown = false;
     this.painted = false;
     this.dragging = false;
+    this.draggingLastPoint = false;
     this.options = {}
     if (primitive) {
       this.init(primitive)
@@ -83,6 +84,9 @@ export default class Tool {
 
   setDragging(d) {
     this.dragging = d;
+    if (d === false) {
+      this.draggingLastPoint = false;
+    }
   }
 
   unselect() {
@@ -177,8 +181,11 @@ export default class Tool {
 
   /* Called if moved */
   onDrag (point, mouseDownPoint) {
-    console.log('drag start', point)    
+    console.log('drag start')    
     this.setDragging(true);
+    if (this.draggingLastPoint === false) {
+      this.draggingLastPoint = point
+    }
     switch (this.state.getTransformation()) {
       case 'Rotate':
         console.log('rot')
@@ -186,8 +193,14 @@ export default class Tool {
         break;
       case 'Resize':
         console.log('Resize')
-        this.onPaint(point)
-        this.primitive.selected = true;
+        try {
+          let _x = point.x - this.draggingLastPoint.x;
+          let _y = point.y - this.draggingLastPoint.y;
+          console.log(_x,_y);
+          this.primitive.size = this.primitive.size.add(new this.paper.Size(_x, _y));
+        } catch (err) {
+          console.warn(err);
+        }
         break;    
       case 'Move':
         if (this.primitive.selected && this.originalPos) {
@@ -196,6 +209,7 @@ export default class Tool {
         }
         break;           
     }
+    this.draggingLastPoint = point;
   }
 
   /* Called if move ended */
@@ -210,7 +224,6 @@ export default class Tool {
         break;
       case 'Resize':
         console.log('f Resize')
-        this.onFinishPaint(point)
         this.state.setTransformation('Move');
         break;    
       case 'Move':
