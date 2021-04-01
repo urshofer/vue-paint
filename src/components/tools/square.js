@@ -1,12 +1,25 @@
 import Tool from './tool.js'
 export default class Square extends Tool {
-  constructor (paper, event, state) {
-    super(paper, event, state)
-    this.draw(event)
+  constructor (paper, startPoint, state, primitive) {
+    super(paper, startPoint, state, primitive)
+    this.registerOptions(
+      [
+        {
+          property: "radius",
+          description: "Radius",
+          type    : "int",
+          value   : 0,
+          min     : 0,
+          max     : 100,
+          step    : 10
+        }
+      ]
+    )
   }
 
-  createPrimitive(event) {
-    let _toPoint  = this.round(event.point)
+
+  createPrimitive(point) {
+    let _toPoint  = this.round(point)
     if (this.paper.Key.isDown('shift')) {
       _toPoint.y = this.startPoint.y + _toPoint.x - this.startPoint.x
     }

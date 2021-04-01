@@ -5,12 +5,38 @@
  */
 
 export default class Tool {
-  constructor (paper, event, state) {
-    event = event || false
+  constructor (paper, startPoint, state, primitive) {
     this.state   = state
     this.paper = paper
-    this.startPoint  = event ? this.round(event.point) : false;
+    this.startPoint  = startPoint || false;
     this.mousedown = false;
+    this.painted = false;
+    this.dragging = false;
+    this.options = {}
+    if (primitive) {
+      this.init(primitive)
+    }
+    else {
+      this.draw(startPoint)
+    }
+  }
+
+  registerOptions(options) {
+    this.options = options;
+  }
+
+  getOptions() {
+    return this.options;
+  }
+
+  setOption(name, value) {
+    console.log(name, value, this.primitive)
+    this.options.forEach(o => {
+      if (o.property == name) {
+        this.primitive[name] = value;
+        o.value = value;
+      }
+    })
   }
 
   round(point) {
@@ -20,6 +46,7 @@ export default class Tool {
   }
 
   delete() {
+    this.state.deleteStack(this);
     this.primitive.remove()
     delete this;
   }
@@ -43,8 +70,55 @@ export default class Tool {
     this.primitive.translate(_point);
   }
 
+  shift(direction) {
+    switch (direction) {
+      case 'front':
+        this.primitive.bringToFront()
+        break;
+      case 'back':
+        this.primitive.sendToBack()
+        break;
+    }
+  }  
+
+  setDragging(d) {
+    this.dragging = d;
+  }
+
   unselect() {
-    return this.primitive.selected = false;
+    this.primitive.selected = false;
+    this.state.selected = this.state.selected.filter((e) => { 
+      return e != this;
+    });
+    return false;
+  }
+
+  select() {
+    this.primitive.selected = true;
+    this.state.context = this;
+    if (this.state.selected.find((e)=>{e==this}) == undefined) {
+      this.state.selected.push(this); 
+    }
+    return true;
+  }
+
+  toggleSelect() {
+
+    let _selected = this.primitive.selected
+
+    /* Unselect objects if shift is not pressed */
+    if (!this.paper.Key.isDown('shift')) {
+      this.state.unselectAll();
+    }
+
+    /* Toggle own Selection and add  */
+    if (_selected) {
+      this.unselect()
+    }
+    else {
+      this.select()
+    }
+    return this.primitive.selected;
   }
 
   attachEvents() {
@@ -66,31 +140,18 @@ export default class Tool {
     console.log('init', event)
     this.mousedown = event;
     this.originalPos = this.primitive.position;
+    this.setDragging(false);
   }
 
   onMouseUp (event) {
-    if (this.state.dragged === true) {
-      console.log('end drag', event)
-    }
-    else {
+    console.log('mouseup', this)
+    if (this.painted === true && !this.dragging) {
       console.log('click', event)
       try {
-        this.primitive.selected = !this.primitive.selected;
-        
-        /* Unselect selected object */
-        if (!this.paper.Key.isDown('shift') && this.state.selected.length > 0) {
-          this.state.selected.forEach(s => {
-            s.primitive.selected = false;
-          })
-          this.state.selected = [];
-        }
-
-        if (this.primitive.selected) {
-          this.state.selected.push(this);
-        }
+        this.toggleSelect();
       }
       catch (err) {
-        console.warn('Click: no primitive available')
+        console.warn(err, 'Click: no primitive available')
       }
     }
     this.mousedown = false;
@@ -103,65 +164,78 @@ export default class Tool {
   //}
 
   /* Called on init */
-  onPaint (event) {
-    this.draw (event)
+  onPaint (point) {
+    this.draw (point)
   }
 
-  onFinishPaint (event) {
-    console.log('finish paint', event)
+  onFinishPaint () {
+    console.log('finish paint')
     this.originalPos = this.primitive.position;
+    this.painted = true;
+    this.state.addStack(this);
   }
 
   /* Called if moved */
-  onDrag (event, mouseDownPoint) {
+  onDrag (point, mouseDownPoint) {
+    console.log('drag start', point)    
+    this.setDragging(true);
     switch (this.state.getTransformation()) {
       case 'Rotate':
         console.log('rot')
-        this.primitive.rotation = Math.round((event.point.x - mouseDownPoint.x) / this.state.anglestep) * this.state.anglestep;
+        this.primitive.rotation = point.x - mouseDownPoint.x;
         break;
       case 'Resize':
         console.log('Resize')
-        this.onPaint(event)
+        this.onPaint(point)
         this.primitive.selected = true;
         break;    
       case 'Move':
         if (this.primitive.selected && this.originalPos) {
-          this.primitive.position.x = this.originalPos.x + (event.point.x - mouseDownPoint.x);
-          this.primitive.position.y = this.originalPos.y + (event.point.y - mouseDownPoint.y);
+          this.primitive.position.x = this.originalPos.x + (point.x - mouseDownPoint.x);
+          this.primitive.position.y = this.originalPos.y + (point.y - mouseDownPoint.y);
         }
         break;           
     }
   }
 
   /* Called if move ended */
-  onFinishDrag (event, mouseDownPoint) {
+  onFinishDrag (point, mouseDownPoint) {
+    console.log('drag finish', point)
+    this.setDragging(false);
     switch (this.state.getTransformation()) {
       case 'Rotate':
         console.log('f rot')
+        this.primitive.rotation = Math.round((point.x - mouseDownPoint.x) / this.state.anglestep) * this.state.anglestep;
         this.state.setTransformation('Move');
         break;
       case 'Resize':
         console.log('f Resize')
-        this.onFinishPaint(event)
+        this.onFinishPaint(point)
         this.state.setTransformation('Move');
         break;    
       case 'Move':
-        console.log('drag finish', event)
-        this.primitive.position.x = this.originalPos.x + (Math.round((event.point.x - mouseDownPoint.x) / this.state.gridsize) * this.state.gridsize);
-        this.primitive.position.y = this.originalPos.y + (Math.round((event.point.y - mouseDownPoint.y) / this.state.gridsize) * this.state.gridsize);
+        this.primitive.position.x = this.originalPos.x + (Math.round((point.x - mouseDownPoint.x) / this.state.gridsize) * this.state.gridsize);
+        this.primitive.position.y = this.originalPos.y + (Math.round((point.y - mouseDownPoint.y) / this.state.gridsize) * this.state.gridsize);
         this.originalPos = this.primitive.position;
         break;           
     }
   }
 
   /* Called to draw */
-  draw (event) {
-    event = event || {point: this.startPoint};
+  draw (point) {
+    point = point || this.startPoint;
     if (this.primitive) {
       this.primitive.remove()
     }
-    this.primitive = this.createPrimitive(event);
+    this.primitive = this.createPrimitive(point);
     this.applyStyle()
+    this.attachEvents()
+  }
+
+  /* Init from Primitive */
+  init (primitive) {
+    this.primitive = primitive;
+    this.onFinishPaint();
     this.attachEvents()
   }
 

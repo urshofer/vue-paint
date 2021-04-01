@@ -4,16 +4,21 @@ import Line   from './tools/line.js'
 import Star   from './tools/star.js'
 
 export default class State {
-    constructor () {
+    constructor (options) {
+        options = options || {};
         this.active     = null;
         this.actveByName = "";
         this.strokeWidth  = 2;
         this.strokeColor  = 'red';
         this.fillColor  = 'black';
         this.alpha      = 1;
-        this.gridsize   = 25;
-        this.anglestep = 30;
+        this.gridsize   = options.gridsize || 25;
+        this.anglestep  = options.anglestep || 30;
         this.selected   = [];
+        this.initPoint = null;
+        this.context = false;
+        this.copy   = [];
+        this.stack  = [];
 
         // Register Transformation Modes
         this.allowedTransformations = ['Move', 'Resize', 'Rotate'];
@@ -28,6 +33,63 @@ export default class State {
         }
     }
 
+    addStack(e) {
+        if (this.stack.find((_e)=>{e==_e}) == undefined) {
+            this.stack.push(e); 
+        }
+    }
+
+    deleteStack(e) {
+        this.stack = this.stack.filter((_e) => { 
+            return e != _e;
+        });
+    }
+
+    exportStack() {
+        let _json = [];
+        this.stack.forEach(e => {
+            _json.push({
+                'prototype': e.constructor.name,
+                'data'     : e.primitive.exportJSON({asString: false})
+            })
+        })
+        return JSON.stringify(_json);
+    }
+
+    onMouseDown(point) {
+        this.initPoint = point;
+        this.dragged = false;
+  
+    }
+
+    onDrag(point) {
+        this.dragged = true;
+        this.selected.forEach(s => {s.onDrag(point, this.initPoint)})
+    }
+    
+    onFinishDrag(point) {
+        this.selected.forEach(s => {s.onFinishDrag(point, this.initPoint)})
+        this.dragged = false
+    }
+
+    hasSelection() {
+        return this.selected.length > 0;
+    }
+
+    hasClipboard() {
+        return this.copy.length > 0;
+    }
+
+    unselectAll() {
+        if (this.selected.length > 0) {
+            this.selected.forEach(s => {
+                s.unselect();
+            })
+            this.selected = [];
+            this.context = false;
+        }
+    }
+
     deleteSelection() {
         if (this.selected.length > 0) {
             this.selected.forEach(s => {
@@ -37,21 +99,48 @@ export default class State {
         }
     }
 
-    moveSelection(direction, clone) {
+    moveSelection(direction) {
         if (this.selected.length > 0) {
             this.selected.forEach(s => {
-                if (clone) {
-                    let _clone = new this.tools[s.constructor.name](s.paper, false, s.state)
-                    _clone.startPoint = s.startPoint;
-                }
                 s.move(direction);
             })
         }
     }
 
+    shiftSelection(direction) {
+        if (this.selected.length > 0) {
+            this.selected.forEach(s => {
+                s.shift(direction);
+            })
+        }
+    }
+
+    copySelection() {
+        this.copy = this.selected;
+    }
+
+    clearSelection() {
+        this.copy = [];
+    }
+
+    pasteSelection() {
+        if (this.copy.length > 0) {
+            this.unselectAll();
+            this.copy.forEach(s => {
+                console.log(this);
+                let _clone = new this.tools[s.constructor.name](s.paper, s.startPoint, this, s.primitive.clone());
+                _clone.move('right');
+                _clone.move('down');
+                _clone.shift('front');
+                _clone.select();
+            });
+            this.copySelection();
+        }
+        
+    }
 
     setActive(toolname) {
-        if (this.tools[toolname] && this.active != this.tools[toolname]) {
+        if (this.tools[toolname]) {
             this.active = this.tools[toolname];
             this.actveByName = toolname;
         }
@@ -61,12 +150,19 @@ export default class State {
         }
     }
 
-    getActive() {
+    isActive() {
         return this.active ? true : false;
     }
 
     getActiveName() {
         return this.actveByName;
+    }
+
+    getContext() {
+        if (this.context && this.selected.length == 1) {
+            return this.context;
+        }
+        else return false;
     }
 
     getStrokeColor() {
