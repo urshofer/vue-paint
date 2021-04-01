@@ -224,6 +224,8 @@ export default class Tool {
         break;
       case 'Resize':
         console.log('f Resize')
+        this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize) * this.state.gridsize;
+        this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize) * this.state.gridsize;
         this.state.setTransformation('Move');
         break;    
       case 'Move':
