@@ -186,18 +186,17 @@ export default class Tool {
     if (this.draggingLastPoint === false) {
       this.draggingLastPoint = point
     }
+    let _deltaX = point.x - this.draggingLastPoint.x;
+    let _deltaY = point.y - this.draggingLastPoint.y;
     switch (this.state.getTransformation()) {
       case 'Rotate':
         console.log('rot')
-        this.primitive.rotation = point.x - mouseDownPoint.x;
+        this.primitive.rotation += _deltaX;
         break;
       case 'Resize':
         console.log('Resize')
         try {
-          let _x = point.x - this.draggingLastPoint.x;
-          let _y = point.y - this.draggingLastPoint.y;
-          console.log(_x,_y);
-          this.primitive.size = this.primitive.size.add(new this.paper.Size(_x, _y));
+          this.primitive.size = this.primitive.size.add(new this.paper.Size(_deltaX, _deltaY));
         } catch (err) {
           console.warn(err);
         }
@@ -214,23 +213,20 @@ export default class Tool {
 
   /* Called if move ended */
   onFinishDrag (point, mouseDownPoint) {
-    console.log('drag finish', point)
+    console.log('drag finish', point, mouseDownPoint)
     this.setDragging(false);
     switch (this.state.getTransformation()) {
       case 'Rotate':
-        console.log('f rot')
-        this.primitive.rotation = Math.round((point.x - mouseDownPoint.x) / this.state.anglestep) * this.state.anglestep;
+        this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
         this.state.setTransformation('Move');
         break;
       case 'Resize':
-        console.log('f Resize')
-        this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize) * this.state.gridsize;
-        this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize) * this.state.gridsize;
+        this.primitive.size.width = Math.round(this.primitive.size.width / (this.state.gridsize * 2)) * (this.state.gridsize * 2);
+        this.primitive.size.height = Math.round(this.primitive.size.height / (this.state.gridsize * 2)) * (this.state.gridsize * 2);
         this.state.setTransformation('Move');
         break;    
       case 'Move':
-        this.primitive.position.x = this.originalPos.x + (Math.round((point.x - mouseDownPoint.x) / this.state.gridsize) * this.state.gridsize);
-        this.primitive.position.y = this.originalPos.y + (Math.round((point.y - mouseDownPoint.y) / this.state.gridsize) * this.state.gridsize);
+        this.primitive.position = this.round(this.primitive.position);
         this.originalPos = this.primitive.position;
         break;           
     }

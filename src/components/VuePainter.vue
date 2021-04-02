@@ -9,7 +9,8 @@
         </div>
         <div>
           <h1>FILE</h1>
-          <a @click="save()">SAVE</a>
+          <a @click="saveJSON()">Save</a>
+          <a @click="exportSVG()">Export SVG</a>
         </div>
         <div>
           <h1>PRESET</h1>
@@ -217,11 +218,13 @@ export default {
 
   },
   methods: {
-    save() {
-      let _JSON = this.state.exportStack();
-      let _SVG  = this.paper.project.exportSVG({asString: true});
-      this.$emit('save', {json: _JSON, svg: _SVG});
+    saveJSON() {
+      this.$emit('save', this.state.exportStack());
+    },
+    exportSVG() {
+      this.$emit('export', this.paper.project.exportSVG({asString: true}));
     }
+
   }
 }
 </script>

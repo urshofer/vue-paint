@@ -1,11 +1,11 @@
 <template>
   <div id="app">
     <div class="painter">
-      <VuePainter v-bind:data="data" v-on:save="onSave"/>
+      <VuePainter v-bind:data="data" v-on:save="onSave" v-on:export="onExport"/>
     </div>
     <div class="debug" v-on:click="svg = json = ''">
-      {{json}}
-      {{svg}}
+      DEBUG: <span>{{json}}</span>
+      <span>{{svg}}</span>
     </div>
   </div>
 </template>
@@ -27,38 +27,58 @@ export default {
     }
   },
   methods: {
-    onSave(data) {
-      console.log(data);
-      this.svg = data.svg
-      this.json = data.json
+    onSave(json) {
+      this.json = json
+			saveAs(new Blob([this.json], {type: "application/json;charset=" + document.characterSet}), 'painter.json');
+    },
+    onExport(svg) {
+      this.svg = svg
 			saveAs(new Blob([this.svg], {type: "image/svg+xml;charset=" + document.characterSet}), 'painter.svg');
-			//saveAs(new Blob([this.json], {type: "application/json;charset=" + document.characterSet}), 'painter.json');
-
-    }
+    }    
   }
 
 }
 </script>
 
-<style>
+<style lang="scss">
 #app {
   font-family: Courier, Helvetica, Arial, sans-serif;
   color: #000;
+  overflow: hidden;
+  height: 100%;
+  display: block;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
 }
 .painter {
   position: absolute;
   left: 0px;
   top: 0px;
   width: 100%;
-  height: 80%;
+  height: 96%;
 }
 .debug {
   position: absolute;
   left: 0px;
-  bottom: 0px;
+  top: 100%;
   width: 100%;
-  height: 20%;
+  height: 40%;
   background: #000;
+  box-shadow: 0px 0px 5px #CCC;
   color: #FFF;
+  transition: all 0.5s;
+  font-size: 65%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  transform: translateY(-10%);
+  span {
+    border-bottom: 1px solid;
+    display: block;
+  }
+  &:hover {
+    transform: translateY(-100%);
+  }
 }
 </style>
