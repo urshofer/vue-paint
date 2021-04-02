@@ -15,7 +15,6 @@ export default class State {
         this.gridsize   = options.gridsize || 25;
         this.anglestep  = options.anglestep || 30;
         this.selected   = [];
-        this.initPoint = null;
         this.context = false;
         this.copy   = [];
         this.stack  = [];
@@ -56,19 +55,17 @@ export default class State {
         return JSON.stringify(_json);
     }
 
-    onMouseDown(point) {
-        this.initPoint = point;
+    onMouseDown() {
         this.dragged = false;
-  
     }
 
     onDrag(point) {
         this.dragged = true;
-        this.selected.forEach(s => {s.onDrag(point, this.initPoint)})
+        this.selected.forEach(s => {s.onDrag(point)})
     }
     
     onFinishDrag(point) {
-        this.selected.forEach(s => {s.onFinishDrag(point, this.initPoint)})
+        this.selected.forEach(s => {s.onFinishDrag(point)})
         this.dragged = false
     }
 

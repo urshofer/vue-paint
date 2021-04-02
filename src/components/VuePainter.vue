@@ -129,7 +129,7 @@ export default {
     let _painting;
 
     this.tool.onMouseDown = (event) => {
-      this.state.onMouseDown(event.point.clone())
+      this.state.onMouseDown()
       if (event.item == null) {
         this.state.unselectAll(); 
         return false;

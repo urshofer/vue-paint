@@ -180,55 +180,82 @@ export default class Tool {
   }
 
   /* Called if moved */
-  onDrag (point, mouseDownPoint) {
-    console.log('drag start')    
+  onDrag (point) {
     this.setDragging(true);
     if (this.draggingLastPoint === false) {
       this.draggingLastPoint = point
     }
-    let _deltaX = point.x - this.draggingLastPoint.x;
-    let _deltaY = point.y - this.draggingLastPoint.y;
-    switch (this.state.getTransformation()) {
-      case 'Rotate':
-        console.log('rot')
-        this.primitive.rotation += _deltaX;
-        break;
-      case 'Resize':
-        console.log('Resize')
-        try {
-          this.primitive.size = this.primitive.size.add(new this.paper.Size(_deltaX, _deltaY));
-        } catch (err) {
-          console.warn(err);
-        }
-        break;    
-      case 'Move':
-        if (this.primitive.selected && this.originalPos) {
-          this.primitive.position.x = this.originalPos.x + (point.x - mouseDownPoint.x);
-          this.primitive.position.y = this.originalPos.y + (point.y - mouseDownPoint.y);
-        }
-        break;           
+    let delta = {
+      x: point.x - this.draggingLastPoint.x,
+      y: point.y - this.draggingLastPoint.y
+    }
+    try {
+      switch (this.state.getTransformation()) {
+        case 'Rotate':
+          console.log('rot')
+          this.primitive.rotation += delta.x;
+          break;
+        case 'Resize':
+          console.log('Resize')
+          this.primitive.size = this.primitive.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? delta.x : delta.y));
+          break;    
+        case 'Move':
+          if (this.paper.Key.isDown('shift')) {
+            if (Math.abs(delta.x) > delta.y) {
+              this.primitive.position.x += delta.x;
+            } else {
+              this.primitive.position.y += delta.y;
+            }
+          }
+          else {
+            this.primitive.position.x += delta.x;
+            this.primitive.position.y += delta.y;
+          }
+          break;           
+      }
+    } catch (err) {
+      try {
+        this.transformation(this.state.getTransformation(), point, delta)
+      } catch (err) {
+        console.warn(`transformation type '${this.state.getTransformation()}' needs to be implemented for this tool`)
+        console.warn(`this can be done by defining the function transformation(mode:'${this.state.getTransformation()}', point, delta)`)
+      }
     }
     this.draggingLastPoint = point;
   }
 
   /* Called if move ended */
-  onFinishDrag (point, mouseDownPoint) {
-    console.log('drag finish', point, mouseDownPoint)
+  onFinishDrag (point) {
+    console.log('drag finish', point)
+    let delta = {
+      x: point.x - this.draggingLastPoint.x,
+      y: point.y - this.draggingLastPoint.y
+    }    
     this.setDragging(false);
-    switch (this.state.getTransformation()) {
-      case 'Rotate':
-        this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
-        this.state.setTransformation('Move');
-        break;
-      case 'Resize':
-        this.primitive.size.width = Math.round(this.primitive.size.width / (this.state.gridsize * 2)) * (this.state.gridsize * 2);
-        this.primitive.size.height = Math.round(this.primitive.size.height / (this.state.gridsize * 2)) * (this.state.gridsize * 2);
-        this.state.setTransformation('Move');
-        break;    
-      case 'Move':
-        this.primitive.position = this.round(this.primitive.position);
-        this.originalPos = this.primitive.position;
-        break;           
+    try {
+      switch (this.state.getTransformation()) {
+        case 'Rotate':
+          this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
+          this.state.setTransformation('Move');
+          break;
+        case 'Resize':
+          this.primitive.size.width = Math.round(this.primitive.size.width / (this.state.gridsize * 2)) * (this.state.gridsize * 2);
+          this.primitive.size.height = Math.round(this.primitive.size.height / (this.state.gridsize * 2)) * (this.state.gridsize * 2);
+          this.state.setTransformation('Move');
+          break;    
+        case 'Move':
+          this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
+          this.originalPos = this.primitive.position;
+          break;           
+      }
+    } catch (err) {
+      try {
+        this.endtransformation(this.state.getTransformation(), point, delta)
+      } catch (err) {
+        console.warn(`endtransformation type '${this.state.getTransformation()}' needs to be implemented for this tool`)
+        console.warn(`this can be done by defining the function this.endtransformation(mode:'${this.state.getTransformation()}', point, delta)`)
+      }
+
     }
   }
 
