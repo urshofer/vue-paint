@@ -11,7 +11,7 @@ export default class Raster extends Tool {
             property: "url",
             description: "Text Content",
             type    : "text",
-            value   : "http://paperjs.org/about/paper-js.gif",
+            value   : "/vue-paint/img/logo.png",
             rows    : 1,
             cols    : 200,
             popup   : true,
@@ -21,10 +21,11 @@ export default class Raster extends Tool {
     )
   }
 
-  createPrimitive() {
-    let _r = new this.paper.Raster();
+  createPrimitive(point) {
+    let _toPoint  = this.round(point)
+    let _r = new this.paper.Raster({position: _toPoint});
     _r.source = this.getOption('url');
-    console.log('new raster', _r.source)
+    console.log('new raster')
     return _r;
   }
 
