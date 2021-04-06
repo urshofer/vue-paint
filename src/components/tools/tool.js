@@ -36,13 +36,27 @@ export default class Tool {
   }
 
   setOption(name, value) {
-    console.log(name, value, this.primitive)
+    let redraw = false;
     this.options.forEach(o => {
       if (o.property == name) {
         this.primitive[name] = value;
         o.value = value;
+        if (o.redraw === true) redraw = o.redraw
       }
     })
+    if (redraw === true) {
+      this.draw()
+    }
+  }
+
+  getOption(name) {
+    let value = false;
+    this.options.forEach(o => {
+      if (o.property == name) {
+        value = o.value;
+      }
+    })
+    return value;
   }
 
   round(point) {

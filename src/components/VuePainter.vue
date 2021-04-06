@@ -96,7 +96,7 @@
         <vue-draggable-resizable :resizable="false" id="popup" v-if="state.getContext() && state.getContext().hasPopup()" :w="'auto'" :h="'auto'">
           <form :id="`form-${option.property}`" v-bind:key="`form-${option.description}`" v-for="option in state.getContext().getOptions(true)">
               <textarea 
-                v-if="option.type == 'text'"
+                v-if="option.type == 'text' && option.rows > 1"
                 @keyup="state.getContext().setOption(option.property, $event.target.value)" 
                 @focus="disableKeys" 
                 @blur="enableKeys" 
@@ -107,6 +107,15 @@
                 wrap="hard"
                 :style="{'font-size': `${state.getContext().primitive.fontSize}px`}"
               ></textarea>
+              <input v-else-if="option.type == 'text' && option.rows == 1"
+                name="input"
+                v-model="option.value"
+                @keyup="state.getContext().setOption(option.property, $event.target.value)" 
+                @focus="disableKeys" 
+                @blur="enableKeys" 
+                :maxlength="option.cols" 
+                :style="{'font-size': `${state.getContext().primitive.fontSize}px`}"
+              />
           </form>
         </vue-draggable-resizable>
       </transition>
@@ -120,6 +129,7 @@ import paper  from 'paper'
 import State  from './state.js'
 import Vue from 'vue'
 import VueDraggableResizable from 'vue-draggable-resizable'
+import { Base64 } from 'js-base64';
 
 // optionally import default styles
 import 'vue-draggable-resizable/dist/VueDraggableResizable.css'
@@ -154,7 +164,7 @@ export default {
       colors: ['black', 'green', 'red', 'blue', 'transparent'],
 
       // Tools
-      tools: ['Square', 'Circle', 'Line', 'Star', 'Text'],
+      tools: ['Square', 'Circle', 'Line', 'Star', 'Raster', 'Text', 'TextSmall', 'TextLarge'],
 
       // Transformations
       transformations: [
@@ -191,7 +201,7 @@ export default {
         }
         else {
           if (this.state.isActive()) {
-            _painting = new this.state.active(this.paper, event.point, this.state);
+            _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveOptions());
           }
         }
       }
@@ -203,7 +213,7 @@ export default {
     this.tool.onMouseUp = (event) => {
       console.log(this.state.addOnMouseDown(this.state.getActiveName()))
       if (!_painting && !this.state.hasSelection() && this.state.isActive() && this.state.addOnMouseDown(this.state.getActiveName())) {
-        _painting = new this.state.active(this.paper, event.point, this.state);
+        _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveOptions());
         _painting.onPaint(event.point);        
         _painting.onFinishPaint(event.point);
         _painting = null;        
@@ -267,15 +277,11 @@ export default {
     this.$nextTick(()=>{
       if (this.json) {
         this.json.forEach(o => {
-          let _primitive = this.paper.project.activeLayer.importJSON(atob(o.data))
-          console.log('import', o.prototype, o.data, _primitive)
+          let _primitive = this.paper.project.activeLayer.importJSON(Base64.decode(o.data))
           this.state.setActive(o.prototype)
-          new this.state.active(this.paper, false, this.state, _primitive);
+          new this.state.active(this.paper, false, this.state, _primitive, this.state.getActiveOptions());
         })
         this.state.setActive('')
-        //this.paper.project.importJSON(this.data);
-        //console.log(this.paper.project.activeLayer.children)
-        //_painting = new this.state.active(this.paper, event.point, this.state);
       }
     });
 
@@ -357,9 +363,11 @@ export default {
     background: #FFF;
     box-shadow: 6px 6px 12px #000;
     cursor: grab;
+    input,
     textarea {
       resize: none;
       border: 1px solid #00F;
+      appearance: none;
     }
   }
   #context {

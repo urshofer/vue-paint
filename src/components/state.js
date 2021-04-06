@@ -2,7 +2,13 @@ import Square from './tools/square.js'
 import Circle from './tools/circle.js'
 import Line   from './tools/line.js'
 import Star   from './tools/star.js'
+import Raster   from './tools/raster.js'
 import Text   from './tools/text.js'
+import TextSmall   from './tools/text.js'
+import TextLarge   from './tools/text.js'
+
+import { Base64 } from 'js-base64';
+
 
 export default class State {
     constructor (options) {
@@ -26,19 +32,40 @@ export default class State {
 
         // Register Tools
         this.tools = {
-            'Square': Square,
-            'Circle': Circle,
-            'Line':   Line,
-            'Star':   Star,
-            'Text':   Text
-        }
-        // Is the Item added while dragging or on initial mouse down
-        this.addonmousedown = {
-            'Square': false,
-            'Circle': false,
-            'Line':   false,
-            'Star':   false,
-            'Text':   true
+            'Square': {
+                class: Square,
+                addOnMouseDown: false
+            },
+            'Circle': {
+                class: Circle,
+                addOnMouseDown: false
+            },
+            'Line': {
+                class: Line,
+                addOnMouseDown: false
+            },
+            'Star': {
+                class: Star,
+                addOnMouseDown: false
+            },
+            'Raster': {
+                class: Raster,
+                addOnMouseDown: true
+            },
+            'Text': {
+                class: Text,
+                addOnMouseDown: true
+            },
+            'TextSmall': {
+                class: TextSmall,
+                options: {fontSize: 14, toolName: 'TextSmall'},
+                addOnMouseDown: true
+            },
+            'TextLarge': {
+                class: TextLarge,
+                options: {fontSize: 28, toolName: 'TextLarge'},
+                addOnMouseDown: true
+            },
         }
     }
 
@@ -59,7 +86,7 @@ export default class State {
         this.stack.forEach(e => {
             _json.push({
                 'prototype': e.toolname,
-                'data'     : btoa(e.primitive.exportJSON({asString: true}))
+                'data'     : Base64.encode(e.primitive.exportJSON({asString: true}))
             })
         })
         return JSON.stringify(_json);
@@ -135,7 +162,7 @@ export default class State {
             this.unselectAll();
             this.copy.forEach(s => {
                 console.log(this);
-                let _clone = new this.tools[s.toolname](s.paper, s.startPoint, this, s.primitive.clone());
+                let _clone = new this.tools[s.toolname].class(s.paper, s.startPoint, this, s.primitive.clone());
                 _clone.move('right');
                 _clone.move('down');
                 _clone.shift('front');
@@ -148,7 +175,7 @@ export default class State {
 
     setActive(toolname) {
         if (toolname && this.tools[toolname]) {
-            this.active = this.tools[toolname];
+            this.active = this.tools[toolname].class;
             this.actveByName = toolname;
         }
         else {
@@ -165,8 +192,17 @@ export default class State {
         return this.actveByName;
     }
 
+    getActiveOptions() {
+        return this.tools[this.actveByName].options || {};
+    }
+
+
     addOnMouseDown() {
-        return this.addonmousedown[this.actveByName];
+        try {
+            return this.tools[this.actveByName].addOnMouseDown;
+        } catch (err) {
+            return false
+        }
     }
 
     getContext() {
