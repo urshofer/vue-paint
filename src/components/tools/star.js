@@ -2,6 +2,7 @@ import Tool from './tool.js'
 export default class Star extends Tool {
   constructor (paper, startPoint, state, primitive) {
     super(paper, startPoint, state, primitive)
+    this.toolname = 'Star'
   }
 
 

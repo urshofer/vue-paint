@@ -13,7 +13,7 @@ export default class Tool {
     this.painted = false;
     this.dragging = false;
     this.draggingLastPoint = false;
-    this.options = {}
+    this.options = []
     if (primitive) {
       this.init(primitive)
     }
@@ -26,8 +26,13 @@ export default class Tool {
     this.options = options;
   }
 
-  getOptions() {
-    return this.options;
+  getOptions(popup) {
+    popup = popup || false;
+    return this.options.filter(e => popup ? e.popup === true : !e.popup);
+  }
+
+  hasPopup() {
+    return this.getOptions(true).length > 0
   }
 
   setOption(name, value) {

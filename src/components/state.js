@@ -2,6 +2,7 @@ import Square from './tools/square.js'
 import Circle from './tools/circle.js'
 import Line   from './tools/line.js'
 import Star   from './tools/star.js'
+import Text   from './tools/text.js'
 
 export default class State {
     constructor (options) {
@@ -28,7 +29,16 @@ export default class State {
             'Square': Square,
             'Circle': Circle,
             'Line':   Line,
-            'Star':   Star
+            'Star':   Star,
+            'Text':   Text
+        }
+        // Is the Item added while dragging or on initial mouse down
+        this.addonmousedown = {
+            'Square': false,
+            'Circle': false,
+            'Line':   false,
+            'Star':   false,
+            'Text':   true
         }
     }
 
@@ -48,8 +58,8 @@ export default class State {
         let _json = [];
         this.stack.forEach(e => {
             _json.push({
-                'prototype': e.constructor.name,
-                'data'     : e.primitive.exportJSON({asString: false})
+                'prototype': e.toolname,
+                'data'     : btoa(e.primitive.exportJSON({asString: true}))
             })
         })
         return JSON.stringify(_json);
@@ -125,7 +135,7 @@ export default class State {
             this.unselectAll();
             this.copy.forEach(s => {
                 console.log(this);
-                let _clone = new this.tools[s.constructor.name](s.paper, s.startPoint, this, s.primitive.clone());
+                let _clone = new this.tools[s.toolname](s.paper, s.startPoint, this, s.primitive.clone());
                 _clone.move('right');
                 _clone.move('down');
                 _clone.shift('front');
@@ -137,7 +147,7 @@ export default class State {
     }
 
     setActive(toolname) {
-        if (this.tools[toolname]) {
+        if (toolname && this.tools[toolname]) {
             this.active = this.tools[toolname];
             this.actveByName = toolname;
         }
@@ -153,6 +163,10 @@ export default class State {
 
     getActiveName() {
         return this.actveByName;
+    }
+
+    addOnMouseDown() {
+        return this.addonmousedown[this.actveByName];
     }
 
     getContext() {

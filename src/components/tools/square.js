@@ -2,6 +2,7 @@ import Tool from './tool.js'
 export default class Square extends Tool {
   constructor (paper, startPoint, state, primitive) {
     super(paper, startPoint, state, primitive)
+    this.toolname = 'Square'
     this.registerOptions(
       [
         {

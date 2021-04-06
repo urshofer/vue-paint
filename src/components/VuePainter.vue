@@ -1,11 +1,13 @@
 <template>
     <div>
-      <div id="grid"/>
-      <canvas ref="painter" id="painter" resize></canvas>
+      <div id="wrapper">
+        <div id="grid"/>
+        <canvas ref="painter" id="painter" resize></canvas>
+      </div>
       <div id="menu">
         <div>
           <h1>TOOLS</h1>
-          <a v-for="t in tools" v-bind:key="`tool-${t}`" :class="{'active': state.getActiveName()==t}" @click="state.setActive(t)">{{t}}</a>
+          <a v-for="t in tools" v-bind:key="`tool-${t}`" :class="{'active': state.getActiveName()==t}" @click="state.setActive(state.getActiveName()==t ? false : t)">{{t}}</a>
         </div>
         <div>
           <h1>FILE</h1>
@@ -61,7 +63,7 @@
         <transition name="flipin">
           <div v-if="state.getContext()">
             <h1>PARAMETER</h1>
-            <template v-for="option in state.getContext().getOptions()">
+            <form :id="`form-${option.property}`" v-bind:key="`form-${option.description}`" v-for="option in state.getContext().getOptions()">
                 <label v-bind:key="`option-${option.description}`" v-if="option.type == 'int'">{{option.description}}: {{option.value}}
                   <input 
                     @change="state.getContext().setOption(option.property, $event.target.value)" 
@@ -70,12 +72,45 @@
                     :max="option.max" 
                     :step="option.step" 
                     :value="option.value"
+                    name="input"
                   >
                 </label>
-            </template>
+                <label v-bind:key="`option-${option.property}`" v-if="option.type == 'text'">{{option.description}}
+                  <textarea 
+                    @keyup="state.getContext().setOption(option.property, $event.target.value)" 
+                    @focus="disableKeys" 
+                    @blur="enableKeys" 
+                    :rows="option.rows" 
+                    :cols="option.cols" 
+                    v-model="option.value"
+                    name="input"
+                    wrap="hard" 
+                  ></textarea>
+                </label>                
+            </form>
           </div>
         </transition>
       </div>
+
+      <transition name="flipin">
+        <vue-draggable-resizable :resizable="false" id="popup" v-if="state.getContext() && state.getContext().hasPopup()" :w="'auto'" :h="'auto'">
+          <form :id="`form-${option.property}`" v-bind:key="`form-${option.description}`" v-for="option in state.getContext().getOptions(true)">
+              <textarea 
+                v-if="option.type == 'text'"
+                @keyup="state.getContext().setOption(option.property, $event.target.value)" 
+                @focus="disableKeys" 
+                @blur="enableKeys" 
+                :rows="option.rows" 
+                :cols="option.cols" 
+                v-model="option.value"
+                name="input"
+                wrap="hard"
+                :style="{'font-size': `${state.getContext().primitive.fontSize}px`}"
+              ></textarea>
+          </form>
+        </vue-draggable-resizable>
+      </transition>
+
     </div>
 </template>
 
@@ -83,7 +118,13 @@
 
 import paper  from 'paper'
 import State  from './state.js'
+import Vue from 'vue'
+import VueDraggableResizable from 'vue-draggable-resizable'
 
+// optionally import default styles
+import 'vue-draggable-resizable/dist/VueDraggableResizable.css'
+
+Vue.component('vue-draggable-resizable', VueDraggableResizable)
 
 export default {
   name: 'VuePainter',
@@ -95,6 +136,7 @@ export default {
     try {
       _j = JSON.parse(this.data);
     } catch(err) {
+      console.warn(err);
       _j = false;
     }
     return {
@@ -112,23 +154,29 @@ export default {
       colors: ['black', 'green', 'red', 'blue', 'transparent'],
 
       // Tools
-      tools: ['Square', 'Circle', 'Line', 'Star'],
+      tools: ['Square', 'Circle', 'Line', 'Star', 'Text'],
 
       // Transformations
       transformations: [
         ['Move', 'm'], 
         ['Rotate', 'r'], 
         ['Resize', 's']
-      ]
+      ],
+
+      // Keyhandling
+      keyHandlingActive: true, // set to false if paper should not listen to keystrokes
 
     }
   },
   mounted () {
     this.paper = paper.setup(this.$refs.painter);
+    this.paper.settings.hitTolerance = 10;
+
     this.tool = new paper.Tool();
     let _painting;
 
     this.tool.onMouseDown = (event) => {
+      this.enableKeys();
       this.state.onMouseDown()
       if (event.item == null) {
         this.state.unselectAll(); 
@@ -153,18 +201,33 @@ export default {
     }
     
     this.tool.onMouseUp = (event) => {
-      if (_painting) {
+      console.log(this.state.addOnMouseDown(this.state.getActiveName()))
+      if (!_painting && !this.state.hasSelection() && this.state.isActive() && this.state.addOnMouseDown(this.state.getActiveName())) {
+        _painting = new this.state.active(this.paper, event.point, this.state);
+        _painting.onPaint(event.point);        
         _painting.onFinishPaint(event.point);
         _painting = null;        
+        this.state.setActive(false);
       }
-      if (this.state.dragged) {
-        this.state.onFinishDrag(event.point)
+      else {
+        if (_painting) {
+          _painting.onFinishPaint(event.point);
+          _painting = null;  
+          this.state.setActive(false);      
+        }
+        if (this.state.dragged) {
+          this.state.onFinishDrag(event.point)
+        }
       }
-
       return false;
     } 
     
     this.tool.onKeyDown = (event) => {
+
+      if (this.keyHandlingActive === false) {
+        return true;
+      }
+      
       console.log(event.key)
 
       if (event.key == 'delete' || event.key == 'backspace') {
@@ -204,7 +267,7 @@ export default {
     this.$nextTick(()=>{
       if (this.json) {
         this.json.forEach(o => {
-          let _primitive = this.paper.project.activeLayer.importJSON(o.data)
+          let _primitive = this.paper.project.activeLayer.importJSON(atob(o.data))
           console.log('import', o.prototype, o.data, _primitive)
           this.state.setActive(o.prototype)
           new this.state.active(this.paper, false, this.state, _primitive);
@@ -223,6 +286,14 @@ export default {
     },
     exportSVG() {
       this.$emit('export', this.paper.project.exportSVG({asString: true}));
+    },
+    disableKeys() {
+      console.log('disabling keys')
+      this.keyHandlingActive = false
+    },
+    enableKeys() {
+      console.log('enabling keys')
+      this.keyHandlingActive = true
     }
 
   }
@@ -231,12 +302,20 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="scss" scoped>
-  #grid, #painter {
+  #wrapper {
     position: absolute;
     left: 20%;
     top: 0px;
     width: 70%;
     height: 100%;
+    overflow: auto;
+  }
+  #grid, #painter {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 750px;
+    height: 1500px;
   }
   #grid {
     background: #FFF;
@@ -269,6 +348,19 @@ export default {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+  }
+  #popup {
+    position: absolute;
+    left: 1rem;
+    top: 1rem;
+    padding: 1rem;
+    background: #FFF;
+    box-shadow: 6px 6px 12px #000;
+    cursor: grab;
+    textarea {
+      resize: none;
+      border: 1px solid #00F;
+    }
   }
   #context {
     position: absolute;
