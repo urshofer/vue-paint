@@ -1031,37 +1031,23 @@ var script = {
     angleStep: Number
   },
   data () {
-    let _j = false;
-    if (this.data) {
-      try {
-        _j = JSON.parse(this.data);
-      } catch(err) {
-        console.warn(err);
-        _j = false;
-      }
-    }
 
     let style = document.createElement('style');
     document.head.appendChild(style);
 
     return {
       // Data
-      json: _j,
+      json: null,
 
       // Image Clipart
-      clips: this.prepareClipart(this.clipart),
+      clips: null,
 
       // Paper & Paper.Tool Stuff
       paper: null,
       tool: null,
 
       // State Class
-      state: new State({
-        'gridsize'  : {x: this.gridX || 25, y: this.gridY || 25}, 
-        'anglestep' : this.angleStep || 5, 
-        'fonts'     : this.fonts,
-        'tools'     : this.configuration
-      }),
+      state: null,
 
       // Colors
       colors: this.csscolors || ['black', 'green', 'red', 'blue', 'transparent'],
@@ -1108,6 +1094,23 @@ var script = {
       sheet: style.sheet
 
     }
+  },
+  created() {
+    if (this.data) {
+      try {
+        this.json = JSON.parse(this.data);
+      } catch(err) {
+        console.warn(err);
+        this.json = false;
+      }
+    }
+    this.clips = this.prepareClipart(this.clipart);
+    this.state = new State({
+      'gridsize'  : {x: this.gridX || 25, y: this.gridY || 25}, 
+      'anglestep' : this.angleStep || 5, 
+      'fonts'     : this.fonts,
+      'tools'     : this.configuration
+    });
   },
   mounted() {
     this.$refs.grid.style.setProperty('--backgroundX', `${this.state.gridsize.x}px 100%`);
@@ -1165,6 +1168,14 @@ var script = {
       this.initialize();
     }
   },
+  destroyed() {
+    this.tool.remove(); // This is important, otherwise all event handlers are called on a wrong vue instance on reload
+    this.paper =
+    this.tool  =
+    this.state =
+    this.json  =
+    this.clips = null;
+  },
   methods: {
     initialize () {
       console.log('initializing vue-paint…');
@@ -1183,7 +1194,6 @@ var script = {
           return false;
         }
       };
-
       this.tool.onMouseDrag = (event) => {
         if (!this.state.hasSelection()) {
           if (_painting) {
@@ -1223,7 +1233,6 @@ var script = {
       }; 
       
       this.tool.onKeyDown = (event) => {
-        console.log(event);
         if (this.keyHandlingActive === true) {
           if (event.key == 'delete' || event.key == 'backspace') {
               this.state.deleteSelection();
