@@ -390,8 +390,8 @@ export default class Tool {
       this.primitive.strokeWidth        = this.state.getStrokeWidth();
       this.primitive.opacity            = this.state.getAlpha();
     }
-    catch {
-      console.warn('Primitive not defined')
+    catch (err) {
+      console.warn(`${err} Primitive not defined`)
     }
   }
 }

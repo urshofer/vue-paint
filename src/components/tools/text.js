@@ -107,8 +107,8 @@ export default class Text extends Tool {
       this.primitive.strokeColor.alpha  = this.state.getAlpha();
       this.primitive.fillColor.alpha    = this.state.getAlpha();
     }
-    catch {
-      console.warn('Primitive not defined')
+    catch (err) {
+      console.warn(`${err} Primitive not defined`)
     }
   }
 }
