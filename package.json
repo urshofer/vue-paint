@@ -53,7 +53,8 @@
     "rules": {}
   },
   "browserslist": [
-    "last 2 versions and > 2%",
-    "ie > 10"
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 8"
   ]
 }
