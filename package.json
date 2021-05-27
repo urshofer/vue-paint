@@ -9,7 +9,6 @@
     "deploy": "sh deploy.sh"
   },
   "dependencies": {
-    "core-js": "^3.6.5",
     "file-saver": "^2.0.5",
     "js-base64": "^3.6.0",
     "paper": "^0.12.15",
