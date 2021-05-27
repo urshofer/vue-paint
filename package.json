@@ -13,8 +13,9 @@
     "file-saver": "^2.0.5",
     "js-base64": "^3.6.0",
     "paper": "^0.12.15",
+    "uuid": "^8.3.2",
     "vue": "^2.6.11",
-    "vue-draggable-resizable": "^2.3.0"
+    "wordwrapjs": "^5.0.2"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.0",

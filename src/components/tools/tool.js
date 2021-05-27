@@ -4,16 +4,29 @@
  *  - Master for all tools
  */
 
+import { v4 as uuidv4 } from 'uuid';
+
 export default class Tool {
-  constructor (paper, startPoint, state, primitive) {
+  constructor (paper, startPoint, state, primitive, options, toolname, fixedposition) {
+    options = options || [];
+    this.toolname = toolname;
+    this.id = uuidv4();
     this.state   = state
     this.paper = paper
+    this.fixedposition = fixedposition;
+    
+    if (this.fixedposition !== false) {
+      startPoint = {x:fixedposition.x, y: fixedposition.y}
+    }
+
+
     this.startPoint  = startPoint || false;
     this.mousedown = false;
+    this.alreadySelected = false;
     this.painted = false;
     this.dragging = false;
     this.draggingLastPoint = false;
-    this.options = []
+    this.registerOptions(options);
     if (primitive) {
       this.init(primitive)
     }
@@ -26,21 +39,51 @@ export default class Tool {
     this.options = options;
   }
 
-  getOptions(popup) {
-    popup = popup || false;
-    return this.options.filter(e => popup ? e.popup === true : !e.popup);
+  getOptions() {
+    return this.options;
   }
 
-  hasPopup() {
-    return this.getOptions(true).length > 0
+  getOption(optionname, asobject) {
+    asobject = asobject || false
+    try {
+      let _selected_option = this.options.filter(e => e.property === optionname)[0];
+      if (asobject === false) {
+        return _selected_option.value
+      }
+      else {
+        return _selected_option
+      }
+    }
+    catch (err) {
+      return false;
+    }
   }
+
+  getOptionByType(type) {
+    try {
+      return this.options.filter(e => e.type === type);
+    }
+    catch (err) {
+      return false;
+    }
+  }
+
+  selectBorderColor(color) {
+    this.primitive.selectedColor = color;
+  }
+
 
   setOption(name, value) {
     let redraw = false;
     this.options.forEach(o => {
       if (o.property == name) {
-        this.primitive[name] = value;
-        o.value = value;
+        try {
+          this.primitive[name] = value;
+          o.value = value;            
+        }
+        catch (err) {
+          console.warn(err);
+        }
         if (o.redraw === true) redraw = o.redraw
       }
     })
@@ -49,19 +92,9 @@ export default class Tool {
     }
   }
 
-  getOption(name) {
-    let value = false;
-    this.options.forEach(o => {
-      if (o.property == name) {
-        value = o.value;
-      }
-    })
-    return value;
-  }
-
   round(point) {
-    point.x = Math.round(point.x / this.state.gridsize) * this.state.gridsize;
-    point.y = Math.round(point.y / this.state.gridsize) * this.state.gridsize;
+    point.x = Math.round(point.x / this.state.gridsize.x) * this.state.gridsize.x;
+    point.y = Math.round(point.y / this.state.gridsize.y) * this.state.gridsize.y;
     return point;
   }
 
@@ -72,19 +105,22 @@ export default class Tool {
   }
 
   move(direction) {
+    if (this.fixedposition !== false) {
+      return;
+    }
     let _point;
     switch (direction) {
       case 'left':
-        _point = new this.paper.Point(-this.state.gridsize, 0);
+        _point = new this.paper.Point(-this.state.gridsize.x, 0);
         break;
       case 'right':
-        _point = new this.paper.Point(this.state.gridsize, 0);
+        _point = new this.paper.Point(this.state.gridsize.x, 0);
         break;
       case 'up':
-        _point = new this.paper.Point(0, -this.state.gridsize);
+        _point = new this.paper.Point(0, -this.state.gridsize.y);
         break;
       case 'down':
-        _point = new this.paper.Point(0, this.state.gridsize);
+        _point = new this.paper.Point(0, this.state.gridsize.y);
         break;
     }
     this.primitive.translate(_point);
@@ -96,7 +132,7 @@ export default class Tool {
         this.primitive.bringToFront()
         break;
       case 'back':
-        this.primitive.sendToBack()
+        this.primitive.sendToBack();
         break;
     }
   }  
@@ -109,7 +145,7 @@ export default class Tool {
   }
 
   unselect() {
-    this.primitive.selected = false;
+    this.alreadySelected = this.primitive.selected = false;
     this.state.selected = this.state.selected.filter((e) => { 
       return e != this;
     });
@@ -164,13 +200,22 @@ export default class Tool {
     this.mousedown = event;
     this.originalPos = this.primitive.position;
     this.setDragging(false);
+    this.alreadySelected = this.primitive.selected;
+    if (!this.primitive.selected) {
+      try {
+        this.toggleSelect();
+      }
+      catch (err) {
+        console.warn(err, 'Click: no primitive available')
+      }
+    }
   }
 
   onMouseUp (event) {
-    console.log('mouseup', this)
-    if (this.painted === true && !this.dragging) {
+    console.log('mouseup', this, event)
+    if (this.painted === true && !this.dragging && this.alreadySelected) {
       console.log('click', event)
-      try {
+     try {
         this.toggleSelect();
       }
       catch (err) {
@@ -192,7 +237,6 @@ export default class Tool {
   }
 
   onFinishPaint () {
-    console.log('finish paint')
     this.originalPos = this.primitive.position;
     this.painted = true;
     this.state.addStack(this);
@@ -200,6 +244,9 @@ export default class Tool {
 
   /* Called if moved */
   onDrag (point) {
+    if (this.fixedposition !== false) {
+      return;
+    }
     this.setDragging(true);
     if (this.draggingLastPoint === false) {
       this.draggingLastPoint = point
@@ -215,8 +262,21 @@ export default class Tool {
           this.primitive.rotation += delta.x;
           break;
         case 'Resize':
-          console.log('Resize')
-          this.primitive.size = this.primitive.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? delta.x : delta.y));
+          if (typeof this.resize == "function") {
+            this.resize(delta)
+          }
+          else {
+            let _l = this.primitive.bounds.left;
+            let _t = this.primitive.bounds.top;
+            this.primitive.size = this.primitive.size.add(
+              new this.paper.Size(
+                delta.x, 
+                this.paper.Key.isDown('shift') ? delta.x : delta.y
+              )
+            );
+            this.primitive.bounds.left = _l;
+            this.primitive.bounds.top = _t;
+          }
           break;    
         case 'Move':
           if (this.paper.Key.isDown('shift')) {
@@ -245,12 +305,16 @@ export default class Tool {
 
   /* Called if move ended */
   onFinishDrag (point) {
+    if (this.fixedposition !== false) {
+      return;
+    }    
     console.log('drag finish', point)
+    this.setDragging(false);
+
     let delta = {
       x: point.x - this.draggingLastPoint.x,
       y: point.y - this.draggingLastPoint.y
     }    
-    this.setDragging(false);
     try {
       switch (this.state.getTransformation()) {
         case 'Rotate':
@@ -258,8 +322,16 @@ export default class Tool {
           this.state.setTransformation('Move');
           break;
         case 'Resize':
-          this.primitive.size.width = Math.round(this.primitive.size.width / (this.state.gridsize * 2)) * (this.state.gridsize * 2);
-          this.primitive.size.height = Math.round(this.primitive.size.height / (this.state.gridsize * 2)) * (this.state.gridsize * 2);
+          if (typeof this.endResize == "function") {
+            this.endResize()
+          }
+          else {            
+            this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize.x) * this.state.gridsize.x;
+            this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize.y) * this.state.gridsize.y;
+            this.primitive.bounds.left = Math.round(this.primitive.bounds.left / this.state.gridsize.x) * this.state.gridsize.x;
+            this.primitive.bounds.top = Math.round(this.primitive.bounds.top / this.state.gridsize.y) * this.state.gridsize.y;
+
+          }
           this.state.setTransformation('Move');
           break;    
         case 'Move':
@@ -284,7 +356,12 @@ export default class Tool {
     if (this.primitive) {
       this.primitive.remove()
     }
-    this.primitive = this.createPrimitive(point);
+    if (this.fixedposition !== false && this.fixedposition.width && this.fixedposition.height) {
+      this.primitive = this.createPrimitive({x: this.startPoint.x + this.fixedposition.width,y: this.startPoint.y + this.fixedposition.height});
+    }
+    else {
+      this.primitive = this.createPrimitive(point);
+    }
     this.applyStyle()
     this.attachEvents()
   }
@@ -292,6 +369,16 @@ export default class Tool {
   /* Init from Primitive */
   init (primitive) {
     this.primitive = primitive;
+    this.startPoint = this.primitive.position;
+    this.options.forEach(o => {
+      o.value = this.primitive[o.property];
+      
+      // un-toggle option (for clipart, editor and such)
+      // since the primitive already exists and is not added
+      // manually to the stage
+      o.toggled = false;
+    })
+
     this.onFinishPaint();
     this.attachEvents()
   }
@@ -301,8 +388,7 @@ export default class Tool {
       this.primitive.strokeColor        = this.state.getStrokeColor();
       this.primitive.fillColor          = this.state.getFillColor();
       this.primitive.strokeWidth        = this.state.getStrokeWidth();
-      this.primitive.strokeColor.alpha  = this.state.getAlpha();
-      this.primitive.fillColor.alpha    = this.state.getAlpha();
+      this.primitive.opacity            = this.state.getAlpha();
     }
     catch {
       console.warn('Primitive not defined')

@@ -4,8 +4,6 @@ import Line   from './tools/line.js'
 import Star   from './tools/star.js'
 import Raster   from './tools/raster.js'
 import Text   from './tools/text.js'
-import TextSmall   from './tools/text.js'
-import TextLarge   from './tools/text.js'
 
 import { Base64 } from 'js-base64';
 
@@ -19,54 +17,72 @@ export default class State {
         this.strokeColor  = 'red';
         this.fillColor  = 'black';
         this.alpha      = 1;
-        this.gridsize   = options.gridsize || 25;
+        this.gridsize   = options.gridsize || {x: 25, y: 25};
         this.anglestep  = options.anglestep || 30;
+        this.fonts      = options.fonts || [];
         this.selected   = [];
         this.context = false;
         this.copy   = [];
         this.stack  = [];
-
+        this.clips  = [];
+        this.paper  = null;
         // Register Transformation Modes
         this.allowedTransformations = ['Move', 'Resize', 'Rotate'];
         this.transformation = 'Move';
 
+        // Tools lookup table
+        let _toolClasses = {
+            'Square': Square,
+            'Circle': Circle,
+            'Line'  : Line,
+            'Star'  : Star,
+            'Raster': Raster,
+            'Text'  : Text,
+        }
+
         // Register Tools
-        this.tools = {
+        this.tools = options.tools || {
             'Square': {
-                class: Square,
-                addOnMouseDown: false
+                class: 'Square'
             },
             'Circle': {
-                class: Circle,
-                addOnMouseDown: false
+                class: 'Circle'
             },
             'Line': {
-                class: Line,
-                addOnMouseDown: false
+                class: 'Line'
             },
             'Star': {
-                class: Star,
-                addOnMouseDown: false
+                class: 'Star'
             },
             'Raster': {
-                class: Raster,
-                addOnMouseDown: true
+                class: 'Raster'
             },
             'Text': {
-                class: Text,
-                addOnMouseDown: true
-            },
-            'TextSmall': {
-                class: TextSmall,
-                options: {fontSize: 14, toolName: 'TextSmall'},
-                addOnMouseDown: true
-            },
-            'TextLarge': {
-                class: TextLarge,
-                options: {fontSize: 28, toolName: 'TextLarge'},
-                addOnMouseDown: true
-            },
+                class: 'Text'
+            }
         }
+        // Convert String to Classes
+        // addOnMouseDown true for Text and Raster Object. Others need to be dragged.
+        for (let _t in this.tools) if (Object.hasOwnProperty.call(this.tools, _t)) {
+            this.tools[_t].addOnMouseDown = this.tools[_t].class == 'Text' || this.tools[_t].class == 'Raster';
+            this.tools[_t].class = _toolClasses[this.tools[_t].class];
+            this.tools[_t].defaults = this.tools[_t].defaults || {};
+            this.tools[_t].defaults.toolName = _t;
+        }
+    }
+
+    addClipart(clips) {
+        this.clips = clips;
+    }
+
+    getTools() {
+        let _tools = [];
+        for (const key in this.tools) {
+            if (Object.hasOwnProperty.call(this.tools, key)) {
+                _tools.push(key);
+            }
+        }
+        return _tools;
     }
 
     addStack(e) {
@@ -83,6 +99,9 @@ export default class State {
 
     exportStack() {
         let _json = [];
+
+        this.stack.sort((a,b) => a.primitive.index > b.primitive.index)
+        
         this.stack.forEach(e => {
             _json.push({
                 'prototype': e.toolname,
@@ -90,6 +109,17 @@ export default class State {
             })
         })
         return JSON.stringify(_json);
+    }
+
+    importStack(json) {
+        if (json) {
+            json.forEach(o => {
+              let _primitive = this.paper.project.activeLayer.importJSON(Base64.decode(o.data))
+              this.setActive(o.prototype)
+              new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
+            })
+            this.setActive('')
+        }
     }
 
     onMouseDown() {
@@ -161,8 +191,8 @@ export default class State {
         if (this.copy.length > 0) {
             this.unselectAll();
             this.copy.forEach(s => {
-                console.log(this);
-                let _clone = new this.tools[s.toolname].class(s.paper, s.startPoint, this, s.primitive.clone());
+                console.log(this, s);
+                let _clone = new this.tools[s.toolname].class(s.paper, s.startPoint, this, s.primitive.clone(), this.tools[s.toolname].defaults);
                 _clone.move('right');
                 _clone.move('down');
                 _clone.shift('front');
@@ -192,10 +222,9 @@ export default class State {
         return this.actveByName;
     }
 
-    getActiveOptions() {
-        return this.tools[this.actveByName].options || {};
+    getActiveDefaults() {
+        return this.tools[this.actveByName].defaults || null;
     }
-
 
     addOnMouseDown() {
         try {
@@ -210,6 +239,23 @@ export default class State {
             return this.context;
         }
         else return false;
+    }
+
+    getOptionByType(option, toggled) {
+        toggled = toggled || false;
+        if (this.context && this.selected.length == 1) {
+            let _options = this.context.getOptionByType(option);
+            if (toggled) {
+                return _options.filter(e => e.toggled === true);
+            }
+            else {
+                return _options;
+            }
+            
+        }
+        else {
+            return [];
+        }
     }
 
     getStrokeColor() {

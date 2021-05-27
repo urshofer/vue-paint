@@ -1,8 +1,12 @@
 import Tool from './tool.js'
 export default class Circle extends Tool {
-  constructor (paper, startPoint, state, primitive) {
-    super(paper, startPoint, state, primitive)
-    this.toolname = 'Circle'
+  constructor (paper, startPoint, state, primitive, defaults) {
+    defaults = defaults || {}
+    defaults.fixed = defaults.fixed || false
+    defaults.toolName = defaults.toolName || 'Circle'
+
+    let options = []
+    super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed)
   }
 
   createPrimitive(point) {
