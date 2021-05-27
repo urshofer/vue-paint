@@ -1766,9 +1766,11 @@
               { staticClass: "vue-paint-label vue-paint-label-fillcolor" },
               [
                 _vm._v(_vm._s(_vm.strings.fillcolor) + "\n        "),
-                _vm._l(_vm.colors, function(c) {
-                  return [
-                    _c("a", {
+                _c(
+                  "div",
+                  { staticClass: "vue-paint-colorlist" },
+                  _vm._l(_vm.colors, function(c) {
+                    return _c("a", {
                       key: "bgcolor-" + c,
                       staticClass: "color",
                       class: { "color-active": _vm.state.getFillColor() == c },
@@ -1779,10 +1781,10 @@
                         }
                       }
                     })
-                  ]
-                })
-              ],
-              2
+                  }),
+                  0
+                )
+              ]
             ),
             _vm._v(" "),
             _c(
@@ -1790,9 +1792,11 @@
               { staticClass: "vue-paint-label vue-paint-label-strokecolor" },
               [
                 _vm._v(_vm._s(_vm.strings.strokecolor) + "\n        "),
-                _vm._l(_vm.colors, function(c) {
-                  return [
-                    _c("a", {
+                _c(
+                  "div",
+                  { staticClass: "vue-paint-colorlist" },
+                  _vm._l(_vm.colors, function(c) {
+                    return _c("a", {
                       key: "bgcolor-" + c,
                       staticClass: "color",
                       class: { "color-active": _vm.state.getStrokeColor() == c },
@@ -1803,10 +1807,10 @@
                         }
                       }
                     })
-                  ]
-                })
-              ],
-              2
+                  }),
+                  0
+                )
+              ]
             )
           ])
         ]),

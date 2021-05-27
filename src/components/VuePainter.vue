@@ -69,14 +69,14 @@
             <input @change="state.setAlpha($event.target.value / 4)" type="range" min="0" max="4" :value="state.getAlpha() * 4">
           </label>
           <label class="vue-paint-label vue-paint-label-fillcolor">{{strings.fillcolor}}
-            <template v-for="c in colors">
-              <a v-bind:key="`bgcolor-${c}`" class="color" :style="{'background-color': c}" :class="{'color-active': state.getFillColor()==c}" @click="state.setFillColor(c)"></a>
-            </template>
+            <div class="vue-paint-colorlist">
+              <a v-for="c in colors" v-bind:key="`bgcolor-${c}`" class="color" :style="{'background-color': c}" :class="{'color-active': state.getFillColor()==c}" @click="state.setFillColor(c)"></a>
+            </div>
           </label>
           <label class="vue-paint-label vue-paint-label-strokecolor">{{strings.strokecolor}}
-            <template v-for="c in colors">
-              <a v-bind:key="`bgcolor-${c}`" class="color" :style="{'background-color': c}" :class="{'color-active': state.getStrokeColor()==c}" @click="state.setStrokeColor(c)"></a>
-            </template>
+            <div class="vue-paint-colorlist">
+              <a v-for="c in colors" v-bind:key="`bgcolor-${c}`" class="color" :style="{'background-color': c}" :class="{'color-active': state.getStrokeColor()==c}" @click="state.setStrokeColor(c)"></a>
+            </div>
           </label>
         </div>
       </div>
