@@ -17,5 +17,4 @@ export default class Circle extends Tool {
     var rectangle = new this.paper.Rectangle(this.startPoint, _toPoint);
     return new this.paper.Shape.Ellipse(rectangle);
   }
-
 }

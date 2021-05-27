@@ -31,5 +31,5 @@ export default class Square extends Tool {
     }
     return new this.paper.Shape.Rectangle(this.startPoint, _toPoint);
   }
-
 }
+

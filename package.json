@@ -1,23 +1,29 @@
 {
-  "name": "vue-paint",
+  "name": "vue-painter",
   "version": "0.1.0",
   "private": true,
+  "main": "dist/vue-painter.umd.js",
+  "module": "dist/vue-painter.esm.js",
+  "unpkg": "dist/vue-painter.min.js",
+  "browser": {
+    "./sfc": "src/components/VuePainter.vue"
+  },
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint",
-    "deploy": "sh deploy.sh"
+    "build": "npm run build:umd & npm run build:es & npm run build:unpkg",
+    "build:umd": "rollup --config build/rollup.config.js --format umd --file dist/vue-painter.umd.js",
+    "build:es": "rollup --config build/rollup.config.js --format es --file dist/vue-painter.esm.js",
+    "build:unpkg": "rollup --config build/rollup.config.js --format iife --file dist/vue-painter.min.js"
   },
   "dependencies": {
     "core-js": "^3.6.5",
-    "file-saver": "^2.0.5",
     "js-base64": "^3.6.0",
     "paper": "^0.12.15",
     "uuid": "^8.3.2",
-    "vue": "^2.6.11",
     "wordwrapjs": "^5.0.2"
   },
   "devDependencies": {
+    "@rollup/plugin-buble": "^0.21.3",
+    "@rollup/plugin-commonjs": "^11.1.0",
     "@vue/cli-plugin-babel": "~4.5.0",
     "@vue/cli-plugin-eslint": "~4.5.0",
     "@vue/cli-service": "~4.5.0",
@@ -26,7 +32,11 @@
     "eslint-plugin-vue": "^6.2.2",
     "lint-staged": "^9.5.0",
     "node-sass": "^4.12.0",
+    "rollup": "^1.17.0",
+    "rollup-plugin-css-only": "^3.1.0",
+    "rollup-plugin-vue": "^5.0.1",
     "sass-loader": "^8.0.2",
+    "vue": "^2.6.11",
     "vue-template-compiler": "^2.6.11"
   },
   "eslintConfig": {

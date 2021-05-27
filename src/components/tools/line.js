@@ -14,5 +14,4 @@ export default class Line extends Tool {
     let _toPoint  = this.round(point)
     return new this.paper.Path.Line(this.startPoint, _toPoint);
   }
-
 }

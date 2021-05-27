@@ -2,11 +2,9 @@ import Square from './tools/square.js'
 import Circle from './tools/circle.js'
 import Line   from './tools/line.js'
 import Star   from './tools/star.js'
-import Raster   from './tools/raster.js'
+import Raster from './tools/raster.js'
 import Text   from './tools/text.js'
-
-import { Base64 } from 'js-base64';
-
+import { Base64 } from 'js-base64'
 
 export default class State {
     constructor (options) {

@@ -87,7 +87,5 @@ export default class Raster extends Tool {
     }
     return _r;
   }
-
-
-
 }
+

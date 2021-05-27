@@ -1,5 +1,6 @@
 import Tool from './tool.js'
 import wordwrap from 'wordwrapjs'
+
 export default class Text extends Tool {
   constructor (paper, startPoint, state, primitive, defaults) {
     defaults = defaults || {}
@@ -110,6 +111,4 @@ export default class Text extends Tool {
       console.warn('Primitive not defined')
     }
   }
-
-
 }
