@@ -18,7 +18,9 @@ export default {
     ],*/
     plugins: [
         commonjs(),
-        css(),
+        css({
+            output: 'vue-painter.css'
+        }),
         vue({
             css: false, // Dynamically inject css as a <style> tag
             compileTemplate: true, // Explicitly convert template to render function
