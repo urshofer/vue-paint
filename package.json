@@ -15,7 +15,6 @@
     "build:unpkg": "rollup --config build/rollup.config.js --format iife --file dist/vue-painter.min.js"
   },
   "dependencies": {
-    "core-js": "^3.6.5",
     "js-base64": "^3.6.0",
     "paper": "^0.12.15",
     "uuid": "^8.3.2",
@@ -54,17 +53,8 @@
     "rules": {}
   },
   "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not dead"
-  ],
-  "gitHooks": {
-    "pre-commit": "lint-staged"
-  },
-  "lint-staged": {
-    "*.{js,jsx,vue}": [
-      "vue-cli-service lint",
-      "git add"
-    ]
-  }
+    "current node",
+    "last 2 versions and > 2%",
+    "ie > 10"
+  ]
 }
