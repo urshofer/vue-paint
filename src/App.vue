@@ -22,8 +22,9 @@
 </template>
 
 <script>
-import VuePainter from './components/VuePainter'
-import { saveAs } from 'file-saver';
+import VuePainter from 'vue-painter'
+import { saveAs } from 'file-saver'
+import 'vue-painter/dist/vue-painter.css'
 
 export default {
   name: 'App',
