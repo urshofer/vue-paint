@@ -160,6 +160,20 @@ export default {
                 cols: 30,
                 fixed: {x:20,y:100}
             }
+        },
+        'Grid': {
+          class: 'Grid',
+          defaults: {
+              gridX: 15,
+              gridY: 15,
+              gridXMax: 15 * 3,
+              gridYMax: 15 * 3,
+              gridXMin: 15,
+              gridYMin: 15,
+              gridXStep: 15,
+              gridYStep: 15,
+              //fixed: {x:100,y:100, width: 100, height: 100}
+          }
         }
       },
       translations: {
