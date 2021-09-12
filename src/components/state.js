@@ -4,6 +4,7 @@ import Line   from './tools/line.js'
 import Star   from './tools/star.js'
 import Raster from './tools/raster.js'
 import Text   from './tools/text.js'
+import Grid   from './tools/grid.js'
 import { Base64 } from 'js-base64'
 
 export default class State {
@@ -36,6 +37,7 @@ export default class State {
             'Star'  : Star,
             'Raster': Raster,
             'Text'  : Text,
+            'Grid'  : Grid
         }
 
         // Register Tools
@@ -57,6 +59,9 @@ export default class State {
             },
             'Text': {
                 class: 'Text'
+            },
+            'Grid': {
+                class: 'Grid'
             }
         }
         // Convert String to Classes

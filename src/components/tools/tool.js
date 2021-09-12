@@ -293,6 +293,7 @@ export default class Tool {
           break;           
       }
     } catch (err) {
+      console.warn(`generic transformation error'${err}'`)
       try {
         this.transformation(this.state.getTransformation(), point, delta)
       } catch (err) {
@@ -335,7 +336,7 @@ export default class Tool {
           this.state.setTransformation('Move');
           break;    
         case 'Move':
-          this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
+          this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
           this.originalPos = this.primitive.position;
           break;           
       }
