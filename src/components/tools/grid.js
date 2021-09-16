@@ -2,6 +2,7 @@ import Tool from './tool.js'
 export default class Grid extends Tool {
   constructor (paper, startPoint, state, primitive, defaults) {
     defaults = defaults || {}
+    defaults.gridSquare = defaults.gridSquare || true
     defaults.gridX = defaults.gridX || 5
     defaults.gridY = defaults.gridY || 5
     defaults.gridXMax = defaults.gridXMax || 5
@@ -32,7 +33,14 @@ export default class Grid extends Tool {
             max     : defaults.gridYMax,
             step    : defaults.gridYStep,
             redraw  : true
-          }        
+        },
+        {
+            property: "gridSquare",
+            description: "Square Raster",
+            type    : "boolean",
+            value   : defaults.gridSquare,
+            redraw  : true
+          }   
     ];
 
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed)
@@ -40,17 +48,23 @@ export default class Grid extends Tool {
 
 
   createPrimitive(point) {
-    this.endPoint  = this.round(point)
-    console.log(this.getOption('gridX', true).value * 1, this.startPoint.x, this.endPoint.x)
+    this.endPoint  = point
+    // console.log(this.getOption('gridX', true).value * 1, this.startPoint.x, this.endPoint.x)
 
     let _lines = []
     if (this.paper.Key.isDown('shift')) {
       this.endPoint.y = this.startPoint.y + this.endPoint.x - this.startPoint.x
     }
-    let _xStart = this.startPoint.x
-    while (_xStart <= this.endPoint.x) {
-        _lines.push(new this.paper.Path.Line({x: _xStart, y: this.startPoint.y}, {x: _xStart, y: this.endPoint.y}))
-        _xStart += this.getOption('gridX', true).value * 1
+
+    this.endPoint.x = Math.round(this.endPoint.x / (this.getOption('gridX', true).value * 1)) * (this.getOption('gridX', true).value * 1)
+    this.endPoint.y = Math.round(this.endPoint.y / (this.getOption('gridY', true).value * 1)) * (this.getOption('gridY', true).value * 1)
+
+    if (this.getOption('gridSquare', true).value === true) {
+      let _xStart = this.startPoint.x
+      while (_xStart <= this.endPoint.x) {
+          _lines.push(new this.paper.Path.Line({x: _xStart, y: this.startPoint.y}, {x: _xStart, y: this.endPoint.y}))
+          _xStart += this.getOption('gridX', true).value * 1
+      }
     }
     let _yStart = this.startPoint.y
     while (_yStart <= this.endPoint.y) {
@@ -59,34 +73,25 @@ export default class Grid extends Tool {
     }    
     return new this.paper.CompoundPath({
         children: _lines,
+        applyMatrix: false
     });
   }
 
-  /* using endpoint instead of startpoint if called without parameter */
-  draw (point) {
-    point = point || this.startPoint;
-    if (this.primitive) {
-      this.primitive.remove()
+
+  resize(delta, point) {
+    if (point.x > this.startPoint.x && point.y > this.startPoint.y) {
+      this.endPoint.x = point.x
+      this.endPoint.y = this.paper.Key.isDown('shift') 
+                        ? this.endPoint.y + (point.x - this.startPoint.x)
+                        : point.y
+      this.draw(this.round(this.endPoint))
+    } else {
+      console.log('no negative resize')
     }
-    if (this.fixedposition !== false && this.fixedposition.width && this.fixedposition.height) {
-      this.primitive = this.createPrimitive({x: this.startPoint.x + this.fixedposition.width,y: this.startPoint.y + this.fixedposition.height});
-    }
-    else {
-      this.primitive = this.createPrimitive(point);
-    }
-    this.applyStyle()
-    this.attachEvents()
   }
 
-
-  transformation(mode, point, delta) {
-    switch (mode) {
-      case 'Resize':
-        this.endPoint.x += delta.x
-        this.endPoint.y += this.paper.Key.isDown('shift') ? delta.x : delta.y
-        this.draw(this.endPoint);
-        break;
-    }
+  endResize () {
+    this.state.setTransformation('Move');
   }
 
   setOption(name, value) {

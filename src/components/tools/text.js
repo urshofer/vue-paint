@@ -90,6 +90,7 @@ export default class Text extends Tool {
   createPrimitive() {
     console.log(this)
     let _t = new this.paper.PointText(this.round(this.startPoint));
+    _t.applyMatrix = false
     return _t;
   }
 

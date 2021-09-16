@@ -85,7 +85,16 @@
       this.options.forEach(o => {
         if (o.property == name) {
           try {
-            this.primitive[name] = value;
+            // Function Call
+            if (o.function === true) {
+              if (o.type === 'boolean') {
+                this.primitive[name](o.options[o.value === true ? 0 : 1]);
+              }
+            } 
+            // Parameter Call
+            else {
+              this.primitive[name] = value;
+            }
             o.value = value;            
           }
           catch (err) {
@@ -187,22 +196,21 @@
     }
 
     attachEvents() {
-      /*this.primitive.onClick = (event) => {
-        return this.onClick(event)
-      }*/
-      this.primitive.onMouseDown = (event) => {
-        this.onMouseDown(event);
-      }; 
-      this.primitive.onMouseUp = (event) => {
-        return this.onMouseUp(event)
-      };        
-      //this.primitive.onMouseDrag = (event) => {
-      //  return this.onMouseDrag(event)
-      //}     
+      try {
+        this.primitive.onMouseDown = (event) => {
+          this.onMouseDown(event);
+        }; 
+        this.primitive.onMouseUp = (event) => {
+          return this.onMouseUp(event)
+        };        
+      } catch (err) {
+        console.warn(err);
+      }
     }
 
     onMouseDown (event) {
-      console.log('init', event);
+      if (this.state.painting) return;
+      console.log('init', this, event, this.primitive.selected);
       this.mousedown = event;
       this.originalPos = this.primitive.position;
       this.setDragging(false);
@@ -218,7 +226,8 @@
     }
 
     onMouseUp (event) {
-      console.log('mouseup', this, event);
+      if (this.state.painting) return;
+      console.log('mouseup', this, event, this.painted, this.dragging, this.alreadySelected);
       if (this.painted === true && !this.dragging && this.alreadySelected) {
         console.log('click', event);
        try {
@@ -239,12 +248,14 @@
 
     /* Called on init */
     onPaint (point) {
+      this.state.painting = true;
       this.draw (point);
     }
 
     onFinishPaint () {
       this.originalPos = this.primitive.position;
       this.painted = true;
+      this.state.painting = false;
       this.state.addStack(this);
     }
 
@@ -264,12 +275,16 @@
       try {
         switch (this.state.getTransformation()) {
           case 'Rotate':
-            console.log('rot');
-            this.primitive.rotation += delta.x;
+            if (typeof this.rotate == "function") {
+              this.rotate(delta, point);
+            }
+            else {
+              this.primitive.rotation += delta.x;
+            }
             break;
           case 'Resize':
             if (typeof this.resize == "function") {
-              this.resize(delta);
+              this.resize(delta, point);
             }
             else {
               let _l = this.primitive.bounds.left;
@@ -285,16 +300,21 @@
             }
             break;    
           case 'Move':
-            if (this.paper.Key.isDown('shift')) {
-              if (Math.abs(delta.x) > delta.y) {
-                this.primitive.position.x += delta.x;
-              } else {
-                this.primitive.position.y += delta.y;
-              }
+            if (typeof this.translate == "function") {
+              this.translate(delta, point);
             }
             else {
-              this.primitive.position.x += delta.x;
-              this.primitive.position.y += delta.y;
+              if (this.paper.Key.isDown('shift')) {
+                if (Math.abs(delta.x) > delta.y) {
+                  this.primitive.position.x += delta.x;
+                } else {
+                  this.primitive.position.y += delta.y;
+                }
+              }
+              else {
+                this.primitive.position.x += delta.x;
+                this.primitive.position.y += delta.y;
+              }
             }
             break;           
         }
@@ -325,25 +345,34 @@
       try {
         switch (this.state.getTransformation()) {
           case 'Rotate':
-            this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
-            this.state.setTransformation('Move');
+            if (typeof this.endRotate == "function") {
+              this.endRotate(delta, point);
+            }
+            else {
+              this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
+              this.state.setTransformation('Move');
+            }
             break;
           case 'Resize':
             if (typeof this.endResize == "function") {
-              this.endResize();
+              this.endResize(delta, point);
             }
             else {            
               this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize.x) * this.state.gridsize.x;
               this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize.y) * this.state.gridsize.y;
               this.primitive.bounds.left = Math.round(this.primitive.bounds.left / this.state.gridsize.x) * this.state.gridsize.x;
               this.primitive.bounds.top = Math.round(this.primitive.bounds.top / this.state.gridsize.y) * this.state.gridsize.y;
-
             }
             this.state.setTransformation('Move');
             break;    
           case 'Move':
-            this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
-            this.originalPos = this.primitive.position;
+            if (typeof this.endTranslate == "function") {
+              this.endTranslate(delta, point);
+            }
+            else {
+              this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
+              this.originalPos = this.primitive.position;
+            }
             break;           
         }
       } catch (err) {
@@ -361,7 +390,11 @@
     draw (point) {
       point = point || this.startPoint;
       if (this.primitive) {
-        this.primitive.remove();
+        try {
+          this.primitive.remove();
+        } catch(err) {
+          console.warn(`remove is not callable: ${err}`);
+        }
       }
       if (this.fixedposition !== false && this.fixedposition.width && this.fixedposition.height) {
         this.primitive = this.createPrimitive({x: this.startPoint.x + this.fixedposition.width,y: this.startPoint.y + this.fixedposition.height});
@@ -474,23 +507,207 @@
     }
   }
 
+  class Polyline extends Tool {
+    constructor (paper, startPoint, state, primitive, defaults) {
+      defaults = defaults || {};
+      defaults.fixed = defaults.fixed || false;
+      defaults.toolName = defaults.toolName || 'Polyline';
+
+      defaults.closed = defaults.closed || false;
+      defaults.smooth = defaults.smooth || false;
+      let options = [
+        {
+            property: "closed",
+            description: "Close Line",
+            type    : "boolean",
+            value   : defaults.closed
+        },
+        {
+          property: "smooth",
+          description: "Smooth Line",
+          type    : "boolean",
+          value   : defaults.smooth,
+          function: true,
+          options: [
+            {type: 'geometric', factor: 0},
+            {type: 'geometric', factor: 1}
+          ]
+        }   
+      ];
+      
+      super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
+      this._points = [];
+      this._currentline = null;
+      this._lastPoint = null;
+      this._movePoint = null;
+    }
+
+    createPrimitive() {
+      var myPath = new this.paper.Path();
+      if (this._points && this._points.length > 0) {
+        for (let index = 0; index < this._points.length; index++) {
+          myPath.add(new this.paper.Point(this._points[index]));
+        }
+        myPath.closed = true;
+      }
+      if (this.getOption('smooth', true).value === true) {
+        myPath.smooth();
+      }
+      return myPath;
+    }
+
+    createIntermediateDrawing(point) {
+      var myPath = new this.paper.Path();
+      if (this._points && this._points.length > 0) {
+        for (let index = 0; index < this._points.length; index++) {
+          myPath.add(new this.paper.Point(this._points[index]));
+        }
+        myPath.add(new this.paper.Point(point));
+      }
+      if (this.getOption('smooth', true).value === true) {
+        myPath.smooth();
+      }
+      return myPath;
+    }  
+
+    onFinishPaint(point) {
+        console.log('finish and fill', point);
+        if (point !== undefined) {
+          try {
+            if (this._currentline !== null && this._currentline.remove) {
+              this._currentline.remove();
+              this._currentline = null;
+            }
+          }
+          catch (err) {
+            console.warn(err);
+          }
+          //this._lastPoint = this.round(point)
+          //this._points.push(this._lastPoint)
+          this._points.pop();
+          this.draw(point);
+        }
+        this.painted = true;
+        this.state.painting = false;
+    }
+
+    onPaint(point) {
+      console.log('start routine', point);
+      this._lastPoint = this.round(point);
+      this._points.push(this._lastPoint);
+      this.state.painting = true;
+    }
+
+    onMove(point) {
+      this._movePoint = this.round(point);
+      if (this._currentline !== null && this._currentline.remove) {
+        this._currentline.remove();
+        this._currentline = null;
+      }
+      if (this._lastPoint !== null) {
+        console.log('show active line', point, this._lastPoint);      
+        this._currentline = this.createIntermediateDrawing(this._movePoint);
+        this._currentline.strokeColor = '#CCF';
+        this._currentline.fillColor = '#CCCCFF30';
+        this._currentline.strokeWidth = 1;
+      }
+    }
+
+    onClick(point) {
+      console.log('add Point', point);
+      this._points.push(this._movePoint);
+      this._lastPoint = this._movePoint;
+    }
+
+
+    resize(delta) {
+      this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? delta.x : delta.y));
+    }
+
+    endResize() {
+      this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
+      this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
+      this.state.setTransformation('Move');
+    }
+  }
+
   class Star extends Tool {
     constructor (paper, startPoint, state, primitive, defaults) {
       defaults = defaults || {};
       defaults.fixed = defaults.fixed || false;
       defaults.toolName = defaults.toolName || 'Star';
+      defaults.starpoints = defaults.starpoints || 5;
+      defaults.starpointsMin = defaults.starpointsMin || 3;
+      defaults.starpointsMax = defaults.starpointsMax || 20;
+      defaults.starpointsStep = defaults.starpointsStep || 1;
 
-      let options = [];
+      let options = [
+        {
+            property: "starpoints",
+            description: "Points",
+            type    : "int",
+            value   : defaults.starpoints,
+            min     : defaults.pointsMin,
+            max     : defaults.pointsMax,
+            step    : defaults.pointsStep,
+            redraw  : true
+        }
+    ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
+
+      this._pos = {
+        center: false,
+        radius1: false,
+        radius2: false
+      };
     }
 
+    setOption(name, value) {
+      let redraw = false;
+      this.options.forEach(o => {
+        if (o.property == name) {
+          try {
+            this.primitive[name] = value;
+            o.value = value;            
+          }
+          catch (err) {
+            console.warn(err);
+          }
+          if (o.redraw === true) redraw = o.redraw;
+        }
+      });
+      if (redraw === true) {
+        if (this.primitive) {
+          this.primitive.remove();
+        }
+        this.primitive = new this.paper.Path.Star(
+          this._pos.center, 
+          this.getOption('starpoints', true).value * 1, 
+          this._pos.radius1,
+          this._pos.radius2
+        );
+        this.applyStyle();
+        this.attachEvents();
+      }
+    }
 
     createPrimitive(point) {
       let _toPoint  = this.round(point);
       if (this.paper.Key.isDown('shift')) {
         _toPoint.y = this.startPoint.y + _toPoint.x - this.startPoint.x;
       }
-      return new this.paper.Path.Star(this.startPoint, _toPoint.x - this.startPoint.x > 50 ? Math.round((_toPoint.x - this.startPoint.x) / 10) : 5, _toPoint.y - this.startPoint.y > this.state.gridsize.y * 2 ? (_toPoint.y - this.startPoint.y) - this.state.gridsize.x * 2 : 0, _toPoint.y - this.startPoint.y > 0 ? _toPoint.y - this.startPoint.y : 0);
+
+      this._pos = {
+        center: this.startPoint,
+        radius1: _toPoint.x - this.startPoint.x > this.state.gridsize.x ? _toPoint.x - this.startPoint.x : this.state.gridsize.x,
+        radius2: _toPoint.y - this.startPoint.y > this.state.gridsize.y ? _toPoint.y - this.startPoint.y : this.state.gridsize.y
+      };
+
+      return new this.paper.Path.Star(
+        this._pos.center, 
+        this.getOption('starpoints', true).value * 1, 
+        this._pos.radius1,
+        this._pos.radius2);
     }
 
 
@@ -502,12 +719,19 @@
       }
     }
 
+    endMove() {
+      this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
+      this.originalPos = this.primitive.position;
+      this._pos.center = this.primitive.bounds.center;
+    }
+
     endtransformation(mode) {
       switch (mode) {
         case 'Resize':
           this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
           this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
           this.state.setTransformation('Move');
+          this._pos.center = this.primitive.bounds.center;
           break;
       }
     }
@@ -692,6 +916,7 @@
     createPrimitive() {
       console.log(this);
       let _t = new this.paper.PointText(this.round(this.startPoint));
+      _t.applyMatrix = false;
       return _t;
     }
 
@@ -718,6 +943,7 @@
   class Grid extends Tool {
     constructor (paper, startPoint, state, primitive, defaults) {
       defaults = defaults || {};
+      defaults.gridSquare = defaults.gridSquare || true;
       defaults.gridX = defaults.gridX || 5;
       defaults.gridY = defaults.gridY || 5;
       defaults.gridXMax = defaults.gridXMax || 5;
@@ -748,7 +974,14 @@
               max     : defaults.gridYMax,
               step    : defaults.gridYStep,
               redraw  : true
-            }        
+          },
+          {
+              property: "gridSquare",
+              description: "Square Raster",
+              type    : "boolean",
+              value   : defaults.gridSquare,
+              redraw  : true
+            }   
       ];
 
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
@@ -756,17 +989,23 @@
 
 
     createPrimitive(point) {
-      this.endPoint  = this.round(point);
-      console.log(this.getOption('gridX', true).value * 1, this.startPoint.x, this.endPoint.x);
+      this.endPoint  = point;
+      // console.log(this.getOption('gridX', true).value * 1, this.startPoint.x, this.endPoint.x)
 
       let _lines = [];
       if (this.paper.Key.isDown('shift')) {
         this.endPoint.y = this.startPoint.y + this.endPoint.x - this.startPoint.x;
       }
-      let _xStart = this.startPoint.x;
-      while (_xStart <= this.endPoint.x) {
-          _lines.push(new this.paper.Path.Line({x: _xStart, y: this.startPoint.y}, {x: _xStart, y: this.endPoint.y}));
-          _xStart += this.getOption('gridX', true).value * 1;
+
+      this.endPoint.x = Math.round(this.endPoint.x / (this.getOption('gridX', true).value * 1)) * (this.getOption('gridX', true).value * 1);
+      this.endPoint.y = Math.round(this.endPoint.y / (this.getOption('gridY', true).value * 1)) * (this.getOption('gridY', true).value * 1);
+
+      if (this.getOption('gridSquare', true).value === true) {
+        let _xStart = this.startPoint.x;
+        while (_xStart <= this.endPoint.x) {
+            _lines.push(new this.paper.Path.Line({x: _xStart, y: this.startPoint.y}, {x: _xStart, y: this.endPoint.y}));
+            _xStart += this.getOption('gridX', true).value * 1;
+        }
       }
       let _yStart = this.startPoint.y;
       while (_yStart <= this.endPoint.y) {
@@ -775,34 +1014,25 @@
       }    
       return new this.paper.CompoundPath({
           children: _lines,
+          applyMatrix: false
       });
     }
 
-    /* using endpoint instead of startpoint if called without parameter */
-    draw (point) {
-      point = point || this.startPoint;
-      if (this.primitive) {
-        this.primitive.remove();
+
+    resize(delta, point) {
+      if (point.x > this.startPoint.x && point.y > this.startPoint.y) {
+        this.endPoint.x = point.x;
+        this.endPoint.y = this.paper.Key.isDown('shift') 
+                          ? this.endPoint.y + (point.x - this.startPoint.x)
+                          : point.y;
+        this.draw(this.round(this.endPoint));
+      } else {
+        console.log('no negative resize');
       }
-      if (this.fixedposition !== false && this.fixedposition.width && this.fixedposition.height) {
-        this.primitive = this.createPrimitive({x: this.startPoint.x + this.fixedposition.width,y: this.startPoint.y + this.fixedposition.height});
-      }
-      else {
-        this.primitive = this.createPrimitive(point);
-      }
-      this.applyStyle();
-      this.attachEvents();
     }
 
-
-    transformation(mode, point, delta) {
-      switch (mode) {
-        case 'Resize':
-          this.endPoint.x += delta.x;
-          this.endPoint.y += this.paper.Key.isDown('shift') ? delta.x : delta.y;
-          this.draw(this.endPoint);
-          break;
-      }
+    endResize () {
+      this.state.setTransformation('Move');
     }
 
     setOption(name, value) {
@@ -843,6 +1073,7 @@
           this.stack  = [];
           this.clips  = [];
           this.paper  = null;
+          this.painting = true;
           // Register Transformation Modes
           this.allowedTransformations = ['Move', 'Resize', 'Rotate'];
           this.transformation = 'Move';
@@ -855,7 +1086,8 @@
               'Star'  : Star,
               'Raster': Raster,
               'Text'  : Text,
-              'Grid'  : Grid
+              'Grid'  : Grid,
+              'Polyline': Polyline
           };
 
           // Register Tools
@@ -880,15 +1112,26 @@
               },
               'Grid': {
                   class: 'Grid'
-              }
+              },
+              'Polyline': {
+                  class: 'Polyline'
+              }            
           };
           // Convert String to Classes
-          // addOnMouseDown true for Text and Raster Object. Others need to be dragged.
+
           for (let _t in this.tools) if (Object.hasOwnProperty.call(this.tools, _t)) {
+              // addOnMouseDown true for Text and Raster Object. Others need to be dragged.
               this.tools[_t].addOnMouseDown = this.tools[_t].class == 'Text' || this.tools[_t].class == 'Raster';
-              this.tools[_t].class = _toolClasses[this.tools[_t].class];
+
+              // addOnDoubleClick true for Polyline
+              this.tools[_t].addOnDoubleClick = this.tools[_t].class == 'Polyline';
+
               this.tools[_t].defaults = this.tools[_t].defaults || {};
               this.tools[_t].defaults.toolName = _t;
+
+              // Overload Class
+              this.tools[_t].class = _toolClasses[this.tools[_t].class];
+
           }
       }
 
@@ -966,13 +1209,15 @@
       }
 
       unselectAll() {
-          if (this.selected.length > 0) {
+          let _selectionLength = this.selected.length;
+          if (_selectionLength > 0) {
               this.selected.forEach(s => {
                   s.unselect();
               });
               this.selected = [];
               this.context = false;
           }
+          return _selectionLength
       }
 
       deleteSelection() {
@@ -1055,6 +1300,14 @@
           }
       }
 
+      addOnDoubleClick() {
+          try {
+              return this.tools[this.actveByName].addOnDoubleClick;
+          } catch (err) {
+              return false
+          }
+      }
+
       getContext() {
           if (this.context && this.selected.length == 1) {
               return this.context;
@@ -1121,8 +1374,14 @@
 
       setTransformation(t) {
           if (this.allowedTransformations.indexOf(t) !== -1) {
-              this.transformation = t;
+              this.transformation == t
+                  ? this.transformation = false
+                  : this.transformation = t;
           }
+      }
+
+      disableTransformation() {
+          this.transformation = false;
       }
 
       applyStyle() {
@@ -1135,6 +1394,9 @@
   }
 
   //
+
+  const DOUBLECLICK_TIME_MS = 450;
+  const DOUBLECLICK_DELTA = 3;
 
   var script = {
     name: 'VuePainter',
@@ -1305,22 +1567,37 @@
         this.state.paper = this.paper;
         let _painting;
 
+        // Double Click Stuff
+        let _lastClick = 0;
+        let _lastPoint = {
+          x: -1000,
+          y: -1000
+        };
+
+        let _disableMouseUp = false;
+
         this.tool.onMouseDown = (event) => {
           this.enableKeys();
           this.state.onMouseDown();
           if (event.item == null) {
-            this.state.unselectAll(); 
+            let _selectionLength = this.state.unselectAll();
+            // Disable MouseUp Actions for one time if we really deselected something
+            if (_selectionLength > 0) {
+              _disableMouseUp = true;
+            }
             return false;
           }
         };
         this.tool.onMouseDrag = (event) => {
           if (!this.state.hasSelection()) {
-            if (_painting) {
-              _painting.onPaint(event.point);
-            }
-            else {
-              if (this.state.isActive()) {
-                _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
+            if (this.state.addOnDoubleClick(this.state.getActiveName()) === false) {
+              if (_painting) {
+                _painting.onPaint(event.point);
+              }
+              else {
+                if (this.state.isActive()) {
+                  _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
+                }
               }
             }
           }
@@ -1328,28 +1605,68 @@
             this.state.onDrag(event.point);
           }
         };
-        
+
+        this.tool.onMouseMove = (event) => {
+          if (
+            !this.state.hasSelection() &&
+            this.state.addOnDoubleClick(this.state.getActiveName()) === true && 
+            _painting
+          ) {
+              _painting.onMove(event.point);
+          }
+        };
+
+
         this.tool.onMouseUp = (event) => {
-          this.state.addOnMouseDown(this.state.getActiveName());
+          if (_disableMouseUp === true) {
+            _disableMouseUp = false;
+            return
+          }
           if (!_painting && !this.state.hasSelection() && this.state.isActive() && this.state.addOnMouseDown(this.state.getActiveName())) {
             _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
             _painting.onPaint(event.point);        
             _painting.onFinishPaint(event.point);
             _painting = null;        
-            this.state.setActive(false);
           }
           else {
             if (_painting) {
-              _painting.onFinishPaint(event.point);
-              _painting = null;  
-              this.state.setActive(false);      
+              if (this.state.addOnDoubleClick(this.state.getActiveName())) {
+                  _painting.onClick(event.point);
+              } else {
+                _painting.onFinishPaint(event.point);
+                _painting = null;
+              }
             }
+            else {
+              if (this.state.addOnDoubleClick(this.state.getActiveName()) && !this.state.hasSelection()) {
+                _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
+                _painting.onPaint(event.point);        
+              }
+            }
+
             if (this.state.dragged) {
               this.state.onFinishDrag(event.point);
             }
           }
+
+          if (
+            event.timeStamp - _lastClick <= DOUBLECLICK_TIME_MS &&
+            Math.sqrt((_lastPoint.x - event.point.x) ** 2 + (_lastPoint.y - event.point.y) ** 2) <= DOUBLECLICK_DELTA 
+          ) {
+            this.tool.onDoubleClick(event);
+          }
+          _lastClick = event.timeStamp;
+          _lastPoint = event.point;
           return false;
         }; 
+
+        this.tool.onDoubleClick = (event) => {
+
+          if (_painting && this.state.addOnDoubleClick(this.state.getActiveName())) {
+            _painting.onFinishPaint(event.point);
+            _painting = null;
+          }
+        };
         
         this.tool.onKeyDown = (event) => {
           if (this.keyHandlingActive === true) {
@@ -1459,11 +1776,9 @@
         this.$emit('export', svg);
       },
       disableKeys() {
-        console.log('disabling keys');
         this.keyHandlingActive = false;
       },
       enableKeys() {
-        console.log('enabling keys');
         this.keyHandlingActive = true;
       },
       // needed to ensure reactivity ($set)
@@ -1475,6 +1790,7 @@
         }
         else {
           this.disableKeys();
+          this.state.disableTransformation();
           this.$nextTick(() => {
             try {
               this.$refs[option.property][0].focus();
@@ -1686,14 +2002,13 @@
                   key: "" + option.property,
                   staticClass: "vue-paint-editor",
                   style: {
-                    left:
-                      _vm.state.getContext().primitive.position.x -
-                      _vm.state.getContext().primitive.bounds.width / 2 +
-                      "px",
-                    top:
-                      _vm.state.getContext().primitive.position.y -
-                      _vm.state.getContext().primitive.bounds.height / 2 +
-                      "px"
+                    left: _vm.state.getContext().primitive.position.x + "px",
+                    top: _vm.state.getContext().primitive.position.y + "px",
+                    transform:
+                      "rotate(" +
+                      _vm.state.getContext().primitive.rotation +
+                      "deg)",
+                    "transform-origin": "0px 0px"
                   },
                   attrs: { id: "fitpopup" }
                 },
@@ -1713,7 +2028,15 @@
                       "font-size":
                         _vm.state.getContext().primitive.fontSize + "px",
                       "line-height":
-                        _vm.state.getContext().primitive.leading + "px"
+                        _vm.state.getContext().primitive.leading + "px",
+                      transform:
+                        "translateX(-" +
+                        _vm.state.getContext().primitive.internalBounds.width /
+                          2 +
+                        "px) translateY(-" +
+                        _vm.state.getContext().primitive.internalBounds.height /
+                          2 +
+                        "px)"
                     },
                     attrs: {
                       rows: option.rows,
@@ -1778,8 +2101,10 @@
                     key: "tool-" + t,
                     class:
                       "vue-paint-button vue-paint-button-" +
-                      t +
-                      (_vm.state.getActiveName() == t ? " active" : ""),
+                      t.replace(" ", "_") +
+                      (_vm.state.getActiveName() == t
+                        ? " vue-paint-button-active"
+                        : ""),
                     on: {
                       click: function($event) {
                         _vm.state.setActive(
@@ -1984,7 +2309,7 @@
                               "vue-paint-button vue-paint-button-" +
                               t[0] +
                               (_vm.state.getTransformation() == t[0]
-                                ? " active"
+                                ? " vue-paint-button-active"
                                 : ""),
                             on: {
                               click: function($event) {
@@ -2155,7 +2480,9 @@
                                       "vue-paint-button vue-paint-button-" +
                                       option.description +
                                       " " +
-                                      (option.toggled ? " active" : ""),
+                                      (option.toggled
+                                        ? " vue-paint-button-active"
+                                        : ""),
                                     on: {
                                       click: function($event) {
                                         return _vm.toggleOption(option)
@@ -2218,6 +2545,40 @@
                                             .setOption(
                                               option.property,
                                               $event.target.value
+                                            );
+                                        }
+                                      }
+                                    })
+                                  ]
+                                )
+                              : _vm._e(),
+                            _vm._v(" "),
+                            option.type == "boolean"
+                              ? _c(
+                                  "label",
+                                  {
+                                    key: "option-" + option.description,
+                                    class:
+                                      "vue-paint-label vue-paint-label-" +
+                                      option.description
+                                  },
+                                  [
+                                    _vm._v(
+                                      _vm._s(
+                                        _vm.strings[option.description] ||
+                                          option.description
+                                      ) + "\n            "
+                                    ),
+                                    _c("input", {
+                                      attrs: { type: "checkbox", name: "input" },
+                                      domProps: { checked: option.value },
+                                      on: {
+                                        change: function($event) {
+                                          _vm.state
+                                            .getContext()
+                                            .setOption(
+                                              option.property,
+                                              $event.target.checked
                                             );
                                         }
                                       }

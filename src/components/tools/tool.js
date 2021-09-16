@@ -78,7 +78,16 @@ export default class Tool {
     this.options.forEach(o => {
       if (o.property == name) {
         try {
-          this.primitive[name] = value;
+          // Function Call
+          if (o.function === true) {
+            if (o.type === 'boolean') {
+              this.primitive[name](o.options[o.value === true ? 0 : 1]);
+            }
+          } 
+          // Parameter Call
+          else {
+            this.primitive[name] = value;
+          }
           o.value = value;            
         }
         catch (err) {
@@ -181,22 +190,21 @@ export default class Tool {
   }
 
   attachEvents() {
-    /*this.primitive.onClick = (event) => {
-      return this.onClick(event)
-    }*/
-    this.primitive.onMouseDown = (event) => {
-      this.onMouseDown(event)
-    } 
-    this.primitive.onMouseUp = (event) => {
-      return this.onMouseUp(event)
-    }        
-    //this.primitive.onMouseDrag = (event) => {
-    //  return this.onMouseDrag(event)
-    //}     
+    try {
+      this.primitive.onMouseDown = (event) => {
+        this.onMouseDown(event)
+      } 
+      this.primitive.onMouseUp = (event) => {
+        return this.onMouseUp(event)
+      }        
+    } catch (err) {
+      console.warn(err)
+    }
   }
 
   onMouseDown (event) {
-    console.log('init', event)
+    if (this.state.painting) return;
+    console.log('init', this, event, this.primitive.selected)
     this.mousedown = event;
     this.originalPos = this.primitive.position;
     this.setDragging(false);
@@ -212,7 +220,8 @@ export default class Tool {
   }
 
   onMouseUp (event) {
-    console.log('mouseup', this, event)
+    if (this.state.painting) return;
+    console.log('mouseup', this, event, this.painted, this.dragging, this.alreadySelected)
     if (this.painted === true && !this.dragging && this.alreadySelected) {
       console.log('click', event)
      try {
@@ -233,12 +242,14 @@ export default class Tool {
 
   /* Called on init */
   onPaint (point) {
+    this.state.painting = true;
     this.draw (point)
   }
 
   onFinishPaint () {
     this.originalPos = this.primitive.position;
     this.painted = true;
+    this.state.painting = false;
     this.state.addStack(this);
   }
 
@@ -258,12 +269,16 @@ export default class Tool {
     try {
       switch (this.state.getTransformation()) {
         case 'Rotate':
-          console.log('rot')
-          this.primitive.rotation += delta.x;
+          if (typeof this.rotate == "function") {
+            this.rotate(delta, point)
+          }
+          else {
+            this.primitive.rotation += delta.x;
+          }
           break;
         case 'Resize':
           if (typeof this.resize == "function") {
-            this.resize(delta)
+            this.resize(delta, point)
           }
           else {
             let _l = this.primitive.bounds.left;
@@ -279,16 +294,21 @@ export default class Tool {
           }
           break;    
         case 'Move':
-          if (this.paper.Key.isDown('shift')) {
-            if (Math.abs(delta.x) > delta.y) {
-              this.primitive.position.x += delta.x;
-            } else {
-              this.primitive.position.y += delta.y;
-            }
+          if (typeof this.translate == "function") {
+            this.translate(delta, point)
           }
           else {
-            this.primitive.position.x += delta.x;
-            this.primitive.position.y += delta.y;
+            if (this.paper.Key.isDown('shift')) {
+              if (Math.abs(delta.x) > delta.y) {
+                this.primitive.position.x += delta.x;
+              } else {
+                this.primitive.position.y += delta.y;
+              }
+            }
+            else {
+              this.primitive.position.x += delta.x;
+              this.primitive.position.y += delta.y;
+            }
           }
           break;           
       }
@@ -319,25 +339,34 @@ export default class Tool {
     try {
       switch (this.state.getTransformation()) {
         case 'Rotate':
-          this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
-          this.state.setTransformation('Move');
+          if (typeof this.endRotate == "function") {
+            this.endRotate(delta, point)
+          }
+          else {
+            this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
+            this.state.setTransformation('Move');
+          }
           break;
         case 'Resize':
           if (typeof this.endResize == "function") {
-            this.endResize()
+            this.endResize(delta, point)
           }
           else {            
             this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize.x) * this.state.gridsize.x;
             this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize.y) * this.state.gridsize.y;
             this.primitive.bounds.left = Math.round(this.primitive.bounds.left / this.state.gridsize.x) * this.state.gridsize.x;
             this.primitive.bounds.top = Math.round(this.primitive.bounds.top / this.state.gridsize.y) * this.state.gridsize.y;
-
           }
           this.state.setTransformation('Move');
           break;    
         case 'Move':
-          this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
-          this.originalPos = this.primitive.position;
+          if (typeof this.endTranslate == "function") {
+            this.endTranslate(delta, point)
+          }
+          else {
+            this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
+            this.originalPos = this.primitive.position;
+          }
           break;           
       }
     } catch (err) {
@@ -355,7 +384,11 @@ export default class Tool {
   draw (point) {
     point = point || this.startPoint;
     if (this.primitive) {
-      this.primitive.remove()
+      try {
+        this.primitive.remove()
+      } catch(err) {
+        console.warn(`remove is not callable: ${err}`)
+      }
     }
     if (this.fixedposition !== false && this.fixedposition.width && this.fixedposition.height) {
       this.primitive = this.createPrimitive({x: this.startPoint.x + this.fixedposition.width,y: this.startPoint.y + this.fixedposition.height});

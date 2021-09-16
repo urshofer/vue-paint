@@ -128,7 +128,7 @@
 .vue-paint-editor input,
 .vue-paint-editor textarea {
   resize: none;
-  border: none;
+  border: 1px solid transparent;
   appearance: none;
   font-family: Helvetica;
   background: transparent;
@@ -136,6 +136,7 @@
   overflow: hidden;
   color: transparent;
   caret-color: black;
+  margin: -1px;
 }
 .vue-paint-editor input:focus,
 .vue-paint-editor textarea:focus {
@@ -196,7 +197,7 @@
   box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2);
   background: #FFF;
 }
-.vue-paint-button.active {
+.vue-paint-button-active {
   background: #999;
 }
 .vue-paint-arrowbuttons a {

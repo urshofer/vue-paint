@@ -1,6 +1,7 @@
 import Square from './tools/square.js'
 import Circle from './tools/circle.js'
 import Line   from './tools/line.js'
+import Polyline   from './tools/polyline.js'
 import Star   from './tools/star.js'
 import Raster from './tools/raster.js'
 import Text   from './tools/text.js'
@@ -25,6 +26,7 @@ export default class State {
         this.stack  = [];
         this.clips  = [];
         this.paper  = null;
+        this.painting = true;
         // Register Transformation Modes
         this.allowedTransformations = ['Move', 'Resize', 'Rotate'];
         this.transformation = 'Move';
@@ -37,7 +39,8 @@ export default class State {
             'Star'  : Star,
             'Raster': Raster,
             'Text'  : Text,
-            'Grid'  : Grid
+            'Grid'  : Grid,
+            'Polyline': Polyline
         }
 
         // Register Tools
@@ -62,15 +65,26 @@ export default class State {
             },
             'Grid': {
                 class: 'Grid'
-            }
+            },
+            'Polyline': {
+                class: 'Polyline'
+            }            
         }
         // Convert String to Classes
-        // addOnMouseDown true for Text and Raster Object. Others need to be dragged.
+
         for (let _t in this.tools) if (Object.hasOwnProperty.call(this.tools, _t)) {
+            // addOnMouseDown true for Text and Raster Object. Others need to be dragged.
             this.tools[_t].addOnMouseDown = this.tools[_t].class == 'Text' || this.tools[_t].class == 'Raster';
-            this.tools[_t].class = _toolClasses[this.tools[_t].class];
+
+            // addOnDoubleClick true for Polyline
+            this.tools[_t].addOnDoubleClick = this.tools[_t].class == 'Polyline';
+
             this.tools[_t].defaults = this.tools[_t].defaults || {};
             this.tools[_t].defaults.toolName = _t;
+
+            // Overload Class
+            this.tools[_t].class = _toolClasses[this.tools[_t].class];
+
         }
     }
 
@@ -148,13 +162,15 @@ export default class State {
     }
 
     unselectAll() {
-        if (this.selected.length > 0) {
+        let _selectionLength = this.selected.length
+        if (_selectionLength > 0) {
             this.selected.forEach(s => {
                 s.unselect();
             })
             this.selected = [];
             this.context = false;
         }
+        return _selectionLength
     }
 
     deleteSelection() {
@@ -237,6 +253,14 @@ export default class State {
         }
     }
 
+    addOnDoubleClick() {
+        try {
+            return this.tools[this.actveByName].addOnDoubleClick;
+        } catch (err) {
+            return false
+        }
+    }
+
     getContext() {
         if (this.context && this.selected.length == 1) {
             return this.context;
@@ -303,8 +327,14 @@ export default class State {
 
     setTransformation(t) {
         if (this.allowedTransformations.indexOf(t) !== -1) {
-            this.transformation = t;
+            this.transformation == t
+                ? this.transformation = false
+                : this.transformation = t
         }
+    }
+
+    disableTransformation() {
+        this.transformation = false
     }
 
     applyStyle() {

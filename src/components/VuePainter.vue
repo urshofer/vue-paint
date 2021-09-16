@@ -29,8 +29,10 @@
           v-for="option in state.getOptionByType('textarea', true)"
           :key="`${option.property}`"
           :style="{
-          'left': `${state.getContext().primitive.position.x - (state.getContext().primitive.bounds.width/2)}px`,
-          'top': `${state.getContext().primitive.position.y - (state.getContext().primitive.bounds.height/2)}px`,
+          'left': `${state.getContext().primitive.position.x}px`,
+          'top': `${state.getContext().primitive.position.y}px`,
+          'transform': `rotate(${state.getContext().primitive.rotation}deg)`,
+          'transform-origin': `0px 0px`
           }"
         >
           <textarea 
@@ -43,7 +45,12 @@
             name="input"
             wrap="hard"
             :ref="option.property"
-            :style="{'font-size': `${state.getContext().primitive.fontSize}px`, 'line-height': `${state.getContext().primitive.leading}px`}"
+            :style="{
+              'font-size': `${state.getContext().primitive.fontSize}px`, 
+              'line-height': `${state.getContext().primitive.leading}px`,
+              'transform': `translateX(-${state.getContext().primitive.internalBounds.width / 2}px) translateY(-${state.getContext().primitive.internalBounds.height / 2}px)`,
+
+            }"
           ></textarea>
         </div>
         <div id="grid" ref="grid" class="vue-paint-grid"/>
@@ -53,7 +60,7 @@
       <div id="menu" class="vue-paint-menu">
         <div>
           <div class="vue-paint-menu-divider">{{strings.tools}}</div>
-          <a :class="`vue-paint-button vue-paint-button-${t}${state.getActiveName()==t?' active':''}`" v-for="t in tools" v-bind:key="`tool-${t}`" @click="state.setActive(state.getActiveName()==t ? false : t)">{{t}}</a>
+          <a :class="`vue-paint-button vue-paint-button-${t.replace(' ','_')}${state.getActiveName()==t?' vue-paint-button-active':''}`" v-for="t in tools" v-bind:key="`tool-${t}`" @click="state.setActive(state.getActiveName()==t ? false : t)">{{t}}</a>
         </div>
         <div>
           <div class="vue-paint-menu-divider">{{strings.file}}</div>
@@ -86,7 +93,7 @@
             <div class="vue-paint-menu-divider">{{strings.selection}}</div>
             <a class="vue-paint-button vue-paint-button-delete" @click="state.deleteSelection()">{{strings.delete}}  <span>🔙</span></a>
             <a class="vue-paint-button vue-paint-button-copy" @click="state.copySelection()">{{strings.copy}} <span>cmd-c</span></a>
-            <a :class="`vue-paint-button vue-paint-button-${t[0]}${state.getTransformation()==t[0]?' active':''}`" v-for="t in transformations" v-bind:key="`transformation-${t[0]}`" @click="state.setTransformation(t[0])">{{translations[t[0]]}} <span>{{t[1]}}</span></a>
+            <a :class="`vue-paint-button vue-paint-button-${t[0]}${state.getTransformation()==t[0]?' vue-paint-button-active':''}`" v-for="t in transformations" v-bind:key="`transformation-${t[0]}`" @click="state.setTransformation(t[0])">{{translations[t[0]]}} <span>{{t[1]}}</span></a>
             <a class="vue-paint-button vue-paint-button-background" @click="state.shiftSelection('back')">{{strings.background}}<span>⇞</span></a>
             <a class="vue-paint-button vue-paint-button-foreground" @click="state.shiftSelection('front')">{{strings.foreground}}<span>⇟</span></a>
             <div class="vue-paint-arrowbuttons">
@@ -112,7 +119,7 @@
             <form :id="`form-${option.property}`" v-bind:key="`form-${option.description}`" v-for="option in state.getContext().getOptions()">
               <a
                   v-if="option.type == 'textarea' || option.type == 'clipart'"
-                  :class="`vue-paint-button vue-paint-button-${option.description} ${option.toggled?' active':''}`"
+                  :class="`vue-paint-button vue-paint-button-${option.description} ${option.toggled?' vue-paint-button-active':''}`"
                   v-bind:key="option.parameter"
                   @click="toggleOption(option)"
               >
@@ -133,6 +140,17 @@
                   name="input"
                 >
               </label>
+              <label
+                :class="`vue-paint-label vue-paint-label-${option.description}`" 
+                v-bind:key="`option-${option.description}`"
+                v-if="option.type == 'boolean'">{{strings[option.description] || option.description}}
+                <input 
+                  @change="state.getContext().setOption(option.property, $event.target.checked)" 
+                  type="checkbox" 
+                  :checked="option.value"
+                  name="input"
+                >
+              </label>              
               <label
                 :class="`vue-paint-label vue-paint-label-${option.description}`"
                 v-bind:key="`option-${option.property}`"
@@ -157,6 +175,9 @@
 
 import paper  from 'paper'
 import State  from './state.js'
+
+const DOUBLECLICK_TIME_MS = 450;
+const DOUBLECLICK_DELTA = 3;
 
 export default {
   name: 'VuePainter',
@@ -327,22 +348,37 @@ export default {
       this.state.paper = this.paper;
       let _painting;
 
+      // Double Click Stuff
+      let _lastClick = 0;
+      let _lastPoint = {
+        x: -1000,
+        y: -1000
+      }
+
+      let _disableMouseUp = false
+
       this.tool.onMouseDown = (event) => {
         this.enableKeys();
         this.state.onMouseDown()
         if (event.item == null) {
-          this.state.unselectAll(); 
+          let _selectionLength = this.state.unselectAll();
+          // Disable MouseUp Actions for one time if we really deselected something
+          if (_selectionLength > 0) {
+            _disableMouseUp = true
+          }
           return false;
         }
       }
       this.tool.onMouseDrag = (event) => {
         if (!this.state.hasSelection()) {
-          if (_painting) {
-            _painting.onPaint(event.point);
-          }
-          else {
-            if (this.state.isActive()) {
-              _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
+          if (this.state.addOnDoubleClick(this.state.getActiveName()) === false) {
+            if (_painting) {
+              _painting.onPaint(event.point);
+            }
+            else {
+              if (this.state.isActive()) {
+                _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
+              }
             }
           }
         }
@@ -350,28 +386,68 @@ export default {
           this.state.onDrag(event.point)
         }
       }
-      
+
+      this.tool.onMouseMove = (event) => {
+        if (
+          !this.state.hasSelection() &&
+          this.state.addOnDoubleClick(this.state.getActiveName()) === true && 
+          _painting
+        ) {
+            _painting.onMove(event.point);
+        }
+      }
+
+
       this.tool.onMouseUp = (event) => {
-        this.state.addOnMouseDown(this.state.getActiveName())
+        if (_disableMouseUp === true) {
+          _disableMouseUp = false
+          return
+        }
         if (!_painting && !this.state.hasSelection() && this.state.isActive() && this.state.addOnMouseDown(this.state.getActiveName())) {
           _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
           _painting.onPaint(event.point);        
           _painting.onFinishPaint(event.point);
           _painting = null;        
-          this.state.setActive(false);
         }
         else {
           if (_painting) {
-            _painting.onFinishPaint(event.point);
-            _painting = null;  
-            this.state.setActive(false);      
+            if (this.state.addOnDoubleClick(this.state.getActiveName())) {
+                _painting.onClick(event.point);
+            } else {
+              _painting.onFinishPaint(event.point);
+              _painting = null;
+            }
           }
+          else {
+            if (this.state.addOnDoubleClick(this.state.getActiveName()) && !this.state.hasSelection()) {
+              _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
+              _painting.onPaint(event.point);        
+            }
+          }
+
           if (this.state.dragged) {
             this.state.onFinishDrag(event.point)
           }
         }
+
+        if (
+          event.timeStamp - _lastClick <= DOUBLECLICK_TIME_MS &&
+          Math.sqrt((_lastPoint.x - event.point.x) ** 2 + (_lastPoint.y - event.point.y) ** 2) <= DOUBLECLICK_DELTA 
+        ) {
+          this.tool.onDoubleClick(event);
+        }
+        _lastClick = event.timeStamp
+        _lastPoint = event.point
         return false;
       } 
+
+      this.tool.onDoubleClick = (event) => {
+
+        if (_painting && this.state.addOnDoubleClick(this.state.getActiveName())) {
+          _painting.onFinishPaint(event.point);
+          _painting = null;
+        }
+      }
       
       this.tool.onKeyDown = (event) => {
         if (this.keyHandlingActive === true) {
@@ -481,11 +557,9 @@ export default {
       this.$emit('export', svg);
     },
     disableKeys() {
-      console.log('disabling keys')
       this.keyHandlingActive = false
     },
     enableKeys() {
-      console.log('enabling keys')
       this.keyHandlingActive = true
     },
     // needed to ensure reactivity ($set)
@@ -497,6 +571,7 @@ export default {
       }
       else {
         this.disableKeys();
+        this.state.disableTransformation()
         this.$nextTick(() => {
           try {
             this.$refs[option.property][0].focus()
@@ -664,7 +739,7 @@ export default {
       input,
       textarea {
         resize: none;
-        border: none;
+        border: 1px solid transparent;
         appearance: none;
         font-family: Helvetica;
         background: transparent;
@@ -672,6 +747,7 @@ export default {
         overflow: hidden;
         color: transparent;
         caret-color: black;
+        margin: -1px;
         &:focus {
           outline: none;
         }
@@ -734,7 +810,7 @@ export default {
         box-shadow: 2px 2px 2px rgba(0,0,0,0.2);
         background: #FFF;
       }
-      &.active {
+      &-active {
         background: #999;
       }
     }
