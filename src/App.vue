@@ -62,6 +62,7 @@ export default {
         'red',
         'blue',
         'magenta',
+        'white',
         'rgba(0,0,0,0)'
       ],
       configuration: {
@@ -78,14 +79,20 @@ export default {
         'Kreis': {
             class: 'Circle',
             defaults: {
-                fixed: {x:100,y:100, width: 100, height: 100}
+                //fixed: {x:100,y:100, width: 100, height: 100}
             }
         },
         'Linie': {
             class: 'Line'
         },
         'Stern': {
-            class: 'Star'
+            class: 'Star',
+            defaults: {
+              starpoints: 5,
+              starpointsMin: 3,
+              starpointsMax: 20,
+              starpointsStep: 1
+            }
         },
         'Clipart': {
             class: 'Raster',
@@ -95,7 +102,11 @@ export default {
             }
         },
         'Text': {
-            class: 'Text'
+            class: 'Text',
+            defaults: {
+              rows: 15,
+              cols: 60,
+            }
         },
         'Block': {
             class: 'Text',
@@ -164,6 +175,7 @@ export default {
         'Grid': {
           class: 'Grid',
           defaults: {
+              gridSquare: true,
               gridX: 15,
               gridY: 15,
               gridXMax: 15 * 3,
@@ -174,7 +186,14 @@ export default {
               gridYStep: 15,
               //fixed: {x:100,y:100, width: 100, height: 100}
           }
-        }
+        },
+        'Polyline': {
+            class: 'Polyline',
+            defaults: {
+              closed: true,
+              smooth: false
+            }
+        },        
       },
       translations: {
         'tools': 'Werkzeuge',
