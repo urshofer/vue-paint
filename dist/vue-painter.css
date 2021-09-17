@@ -6,7 +6,7 @@
   height: 100%;
   overflow: auto;
 }
-.vue-paint-grid, .vue-paint-canvas, .vue-paint-grid-rotated {
+.vue-paint-grid, .vue-paint-canvas, .vue-paint-grid-rotated, .vue-paint-grid-adjust {
   position: absolute;
   left: 0px;
   top: 0px;
@@ -14,25 +14,21 @@
   height: 1500px;
 }
 .vue-paint-grid {
-  background: #FFF;
+  background: transparent;
+  z-index: 2;
 }
-.vue-paint-grid:after, .vue-paint-grid:before {
+.vue-paint-grid:before {
   content: "";
   position: absolute;
   height: 100%;
   width: 100%;
-}
-.vue-paint-grid:before {
-  background-size: var(--backgroundX);
-  background-image: linear-gradient(to right, #d2d2eeb6 1px, transparent 1px);
-}
-.vue-paint-grid:after {
-  background-size: var(--backgroundY);
-  background-image: linear-gradient(to bottom, #d2d2eeb6 1px, transparent 1px);
+  background-image: radial-gradient(circle at 1px 1px, #797979 1px, transparent 0);
+  background-size: var(--backgroundXY);
 }
 .vue-paint-grid-rotated {
   background: transparent;
   overflow: hidden;
+  z-index: 1;
 }
 .vue-paint-grid-rotated:after {
   content: "";
@@ -41,11 +37,17 @@
   width: 400%;
   transform: rotate(var(--rotation)) translateX(-50%);
   transform-origin: 0% 0%;
-  background-size: var(--backgroundY);
-  background-image: linear-gradient(to bottom, #ffd2eeb6 1px, transparent 1px);
+  background-image: radial-gradient(circle at 1px 1px, #6ed1ff 1px, transparent 0);
+  background-size: var(--backgroundXY);
+}
+.vue-paint-grid-adjust {
+  z-index: 0;
+  pointer-events: none;
+  transform: translateX(-1px) translateY(-1px);
 }
 .vue-paint-canvas {
   background: transparent;
+  z-index: 3;
 }
 .vue-paint-menu {
   position: absolute;

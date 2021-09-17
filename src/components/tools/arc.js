@@ -1,51 +1,34 @@
 import Tool from './tool.js'
-export default class Star extends Tool {
+export default class Arc extends Tool {
   constructor (paper, startPoint, state, primitive, defaults) {
     defaults = defaults || {}
     defaults.fixed = defaults.fixed || false
-    defaults.toolName = defaults.toolName || 'Star'
-    defaults.starpoints = defaults.starpoints || 5
-    defaults.starpointsMin = defaults.starpointsMin || 3
-    defaults.starpointsMax = defaults.starpointsMax || 20
-    defaults.starpointsStep = defaults.starpointsStep || 1
-
-    defaults.starsize = defaults.starsize || 0.8
-    defaults.starsizeMin = defaults.starsizeMin || 0.25
-    defaults.starsizeMax = defaults.starsizeMax || 0.95
-    defaults.starsizeStep = defaults.starsizeStep || 0.05
+    defaults.toolName = defaults.toolName || 'arc'
+    defaults.angle = defaults.angle || 2
+    defaults.angleMin = defaults.angleMin || 0.1
+    defaults.angleMax = defaults.angleMax || 5
+    defaults.angleStep = defaults.angleStep || 0.01
 
 
     let options = [
       {
-          property: "starpoints",
-          description: "Points",
+          property: "angle",
+          description: "Angle",
           type    : "int",
-          value   : defaults.starpoints,
-          min     : defaults.starpointsMin,
-          max     : defaults.starpointsMax,
-          step    : defaults.starpointsStep,
+          value   : defaults.angle,
+          min     : defaults.angleMin,
+          max     : defaults.angleMax,
+          step    : defaults.angleStep,
           redraw  : true
-      },
-      {
-        property: "starsize",
-        description: "Size",
-        type    : "int",
-        value   : defaults.starsize,
-        min     : defaults.starsizeMin,
-        max     : defaults.starsizeMax,
-        step    : defaults.starsizeStep,
-        redraw  : true
-    }
-
+      }
   ];
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed)
 
     // Backup parameters, applied after options change
 
     this._pos = {
-      center: false,
-      radius1: false,
-      radius2: false,
+      startPoint: false,
+      toPoint: false,
       bounds: false,
       rotation: false,
       previousSibling: false
@@ -67,22 +50,17 @@ export default class Star extends Tool {
       }
     })
     if (redraw === true) {
+        
       if (this.primitive) {
         this._pos.bounds = this.primitive.bounds
         this._pos.rotation = this.primitive.rotation
         this._pos.previousSibling = this.primitive.previousSibling || false
         this.primitive.remove()
       }
-      this._pos.radius2 = this._pos.radius1 * this.getOption('starsize', true).value * 1
-      this.primitive = new this.paper.Path.Star(
-        this._pos.center, 
-        this.getOption('starpoints', true).value * 1, 
-        this._pos.radius1,
-        this._pos.radius2
-      );
-      if (this._pos.bounds) {
+      this.primitive = this.drawAngle(this._pos.startPoint, this._pos.toPoint);
+/*      if (this._pos.bounds) {
         this.primitive.bounds = this._pos.bounds
-      }
+      }*/
       if (this._pos.rotation) {
         this.primitive.rotation = this._pos.rotation
       }
@@ -94,30 +72,20 @@ export default class Star extends Tool {
     }
   }
 
+  drawAngle(from, to) {
+    let x1 = new this.paper.Point(from.x + ((to.y - from.y) / 2), from.y + ((to.x - from.x) / 2))
+    let x2 = to.subtract(from).divide(2).add(from)
+    let through = x1.subtract(x2).divide(this.getOption('angle', true).value * 1).add(x2)
+	return (new this.paper.Path.Arc(from, through, to));
+  }
+
   createPrimitive(point) {
     let _toPoint  = this.round(point)
-    if (this.paper.Key.isDown('shift')) {
-      _toPoint.y = this.startPoint.y + _toPoint.x - this.startPoint.x
-    }
-
-    let _distance = Math.sqrt((_toPoint.x - this.startPoint.x) ** 2 + (_toPoint.y - this.startPoint.y) ** 2)
-    _distance = _distance > this.state.gridsize.x ? _distance : this.state.gridsize.x
-
-
     this._pos = {
-      center: this.startPoint,
-      radius1: _distance,
-      radius2: _distance * this.getOption('starsize', true).value * 1,
-      bounds: false
+      startPoint: this.startPoint,
+      toPoint: _toPoint,
     }
-
-    console.log(this.getOption('starsize', true).value * 1)
-
-    return new this.paper.Path.Star(
-      this._pos.center, 
-      this.getOption('starpoints', true).value * 1, 
-      this._pos.radius1,
-      this._pos.radius2);
+    return this.drawAngle(this._pos.startPoint, this._pos.toPoint)
   }
 
 
@@ -129,11 +97,19 @@ export default class Star extends Tool {
     }
   }
 
+  translate(delta) {
+    this._pos.startPoint.x += delta.x;
+    this._pos.startPoint.y += delta.y;
+    this._pos.toPoint.x += delta.x;
+    this._pos.toPoint.y += delta.y;
+    this.primitive.position.x += delta.x;
+    this.primitive.position.y += delta.y;
+  }
+
 
   endTranslate() {
     this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
     this.originalPos = this.primitive.position;
-    this._pos.center = this.primitive.bounds.center
   }
 
   endtransformation(mode) {
@@ -142,7 +118,6 @@ export default class Star extends Tool {
         this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
         this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
         this.state.setTransformation('Move');
-        this._pos.center = this.primitive.bounds.center
         break;
     }
   }

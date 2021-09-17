@@ -29,7 +29,10 @@ export default class Square extends Tool {
     if (this.paper.Key.isDown('shift')) {
       _toPoint.y = this.startPoint.y + _toPoint.x - this.startPoint.x
     }
-    return new this.paper.Shape.Rectangle(this.startPoint, _toPoint);
+    if (Math.abs(this.startPoint.x - _toPoint.x) >= this.state.gridsize.x / 2 && Math.abs(this.startPoint.y - _toPoint.y) >= this.state.gridsize.y / 2) {
+      return new this.paper.Shape.Rectangle(this.startPoint, _toPoint);
+    }
+    return null
   }
 }
 

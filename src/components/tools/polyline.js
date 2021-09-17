@@ -36,6 +36,7 @@ export default class Polyline extends Tool {
 
   createPrimitive() {
     var myPath = new this.paper.Path();
+    myPath.strokeJoin = 'round';
     if (this._points && this._points.length > 0) {
       for (let index = 0; index < this._points.length; index++) {
         myPath.add(new this.paper.Point(this._points[index]));
@@ -50,6 +51,7 @@ export default class Polyline extends Tool {
 
   createIntermediateDrawing(point) {
     var myPath = new this.paper.Path();
+    myPath.strokeJoin = 'round';
     if (this._points && this._points.length > 0) {
       for (let index = 0; index < this._points.length; index++) {
         myPath.add(new this.paper.Point(this._points[index]));

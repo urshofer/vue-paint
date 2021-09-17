@@ -53,8 +53,10 @@
             }"
           ></textarea>
         </div>
-        <div id="grid" ref="grid" class="vue-paint-grid"/>
-        <div id="grid" ref="grid2" class="vue-paint-grid-rotated"/>
+        <div class="vue-paint-grid-adjust">
+          <div id="grid" ref="grid" class="vue-paint-grid"/>
+          <div id="grid" ref="grid2" v-if="this.state.gridsize.x != this.state.gridsize.y" class="vue-paint-grid-rotated"/>
+        </div>
         <canvas ref="painter" id="painter" class="vue-paint-canvas" resize></canvas>
       </div>
       <div id="menu" class="vue-paint-menu">
@@ -277,9 +279,11 @@ export default {
   mounted() {
     this.$refs.grid.style.setProperty('--backgroundX', `${this.state.gridsize.x}px 100%`);
     this.$refs.grid.style.setProperty('--backgroundY', `100% ${this.state.gridsize.y}px`);
+    this.$refs.grid.style.setProperty('--backgroundXY', `${this.state.gridsize.x}px ${this.state.gridsize.y}px`);
     let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x);
     this.$refs.grid2.style.setProperty('--backgroundY', `100% ${this.state.gridsize.x * Math.sin(_rotation)}px`);
     this.$refs.grid2.style.setProperty('--background', `${(this.state.gridsize.x * Math.sin(_rotation))}px`);
+    this.$refs.grid2.style.setProperty('--backgroundXY', `${this.state.gridsize.y * Math.sin(_rotation)}px ${this.state.gridsize.x * Math.sin(_rotation)}px`);
     this.$refs.grid2.style.setProperty('--rotation', `${-1 * _rotation / Math.PI * 180}deg`);
     
 
@@ -615,7 +619,7 @@ export default {
       height: 100%;
       overflow: auto;
     }
-    &-grid, &-canvas, &-grid-rotated {
+    &-grid, &-canvas, &-grid-rotated, &-grid-adjust {
       position: absolute;
       left: 0px;
       top: 0px;
@@ -623,26 +627,21 @@ export default {
       height: 1500px;
     }
     &-grid {
-      background: #FFF;
-      &:after,
+      background: transparent;
+      z-index: 2;
       &:before {
           content: "";
           position: absolute;
           height: 100%;
           width: 100%;
-      }    
-      &:before {
-          background-size: var(--backgroundX);
-          background-image: linear-gradient(to right, #d2d2eeb6 1px, transparent 1px);
-      }
-      &:after {
-          background-size: var(--backgroundY);
-          background-image: linear-gradient(to bottom, #d2d2eeb6 1px, transparent 1px);
+          background-image: radial-gradient(circle at 1px 1px, rgb(121, 121, 121) 1px, transparent 0);
+          background-size: var(--backgroundXY);
       }
     }
     &-grid-rotated {
       background: transparent;
       overflow: hidden;
+      z-index: 1;
       &:after {
         content: "";
         position: absolute;
@@ -650,12 +649,18 @@ export default {
         width: 400%;
         transform: rotate(var(--rotation)) translateX(-50%);
         transform-origin: 0% 0%;
-        background-size: var(--backgroundY);
-        background-image: linear-gradient(to bottom, #ffd2eeb6 1px, transparent 1px);
+        background-image: radial-gradient(circle at 1px 1px, rgb(110, 209, 255) 1px, transparent 0);
+        background-size: var(--backgroundXY);        
       }
+    }
+    &-grid-adjust {
+      z-index: 0;
+      pointer-events: none;
+      transform: translateX(-1px) translateY(-1px);
     }
     &-canvas {
       background: transparent;
+      z-index: 3;
     }
     &-menu {
       position: absolute;

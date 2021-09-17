@@ -247,10 +247,12 @@ export default class Tool {
   }
 
   onFinishPaint () {
-    this.originalPos = this.primitive.position;
     this.painted = true;
     this.state.painting = false;
-    this.state.addStack(this);
+    if (this.primitive != null) {
+      this.originalPos = this.primitive.position;
+      this.state.addStack(this);
+    }
   }
 
   /* Called if moved */

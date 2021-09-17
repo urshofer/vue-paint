@@ -3,9 +3,11 @@ import Circle from './tools/circle.js'
 import Line   from './tools/line.js'
 import Polyline   from './tools/polyline.js'
 import Star   from './tools/star.js'
+import Polygon from './tools/polygon.js'
 import Raster from './tools/raster.js'
 import Text   from './tools/text.js'
 import Grid   from './tools/grid.js'
+import Arc  from './tools/arc.js'
 import { Base64 } from 'js-base64'
 
 export default class State {
@@ -37,10 +39,12 @@ export default class State {
             'Circle': Circle,
             'Line'  : Line,
             'Star'  : Star,
+            'Polygon': Polygon,
             'Raster': Raster,
             'Text'  : Text,
             'Grid'  : Grid,
-            'Polyline': Polyline
+            'Polyline': Polyline,
+            'Arc': Arc
         }
 
         // Register Tools
@@ -57,6 +61,9 @@ export default class State {
             'Star': {
                 class: 'Star'
             },
+            'Polygon': {
+                class: 'Polygon'
+            },
             'Raster': {
                 class: 'Raster'
             },
@@ -68,7 +75,10 @@ export default class State {
             },
             'Polyline': {
                 class: 'Polyline'
-            }            
+            },
+            'Arc': {
+                class: 'Arc'
+            }
         }
         // Convert String to Classes
 
@@ -212,6 +222,7 @@ export default class State {
             this.copy.forEach(s => {
                 console.log(this, s);
                 let _clone = new this.tools[s.toolname].class(s.paper, s.startPoint, this, s.primitive.clone(), this.tools[s.toolname].defaults);
+                _clone._pos = s._pos
                 _clone.move('right');
                 _clone.move('down');
                 _clone.shift('front');

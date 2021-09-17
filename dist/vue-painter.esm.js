@@ -249,10 +249,12 @@ class Tool {
   }
 
   onFinishPaint () {
-    this.originalPos = this.primitive.position;
     this.painted = true;
     this.state.painting = false;
-    this.state.addStack(this);
+    if (this.primitive != null) {
+      this.originalPos = this.primitive.position;
+      this.state.addStack(this);
+    }
   }
 
   /* Called if moved */
@@ -462,7 +464,10 @@ class Square extends Tool {
     if (this.paper.Key.isDown('shift')) {
       _toPoint.y = this.startPoint.y + _toPoint.x - this.startPoint.x;
     }
-    return new this.paper.Shape.Rectangle(this.startPoint, _toPoint);
+    if (Math.abs(this.startPoint.x - _toPoint.x) >= this.state.gridsize.x / 2 && Math.abs(this.startPoint.y - _toPoint.y) >= this.state.gridsize.y / 2) {
+      return new this.paper.Shape.Rectangle(this.startPoint, _toPoint);
+    }
+    return null
   }
 }
 
@@ -481,8 +486,12 @@ class Circle extends Tool {
     if (this.paper.Key.isDown('shift')) {
       _toPoint.y = this.startPoint.y + _toPoint.x - this.startPoint.x;
     }
-    var rectangle = new this.paper.Rectangle(this.startPoint, _toPoint);
-    return new this.paper.Shape.Ellipse(rectangle);
+    
+    if (Math.abs(this.startPoint.x - _toPoint.x) >= this.state.gridsize.x / 2 && Math.abs(this.startPoint.y - _toPoint.y) >= this.state.gridsize.y / 2) {
+      var rectangle = new this.paper.Rectangle(this.startPoint, _toPoint);
+      return new this.paper.Shape.Ellipse(rectangle);
+    }
+    return null
   }
 }
 
@@ -499,7 +508,10 @@ class Line extends Tool {
 
   createPrimitive(point) {
     let _toPoint  = this.round(point);
-    return new this.paper.Path.Line(this.startPoint, _toPoint);
+    if (Math.abs(this.startPoint.x - _toPoint.x) >= this.state.gridsize.x / 2 || Math.abs(this.startPoint.y - _toPoint.y) >= this.state.gridsize.y / 2) {
+      return new this.paper.Path.Line(this.startPoint, _toPoint);
+    }
+    return null
   }
 }
 
@@ -540,6 +552,7 @@ class Polyline extends Tool {
 
   createPrimitive() {
     var myPath = new this.paper.Path();
+    myPath.strokeJoin = 'round';
     if (this._points && this._points.length > 0) {
       for (let index = 0; index < this._points.length; index++) {
         myPath.add(new this.paper.Point(this._points[index]));
@@ -554,6 +567,7 @@ class Polyline extends Tool {
 
   createIntermediateDrawing(point) {
     var myPath = new this.paper.Path();
+    myPath.strokeJoin = 'round';
     if (this._points && this._points.length > 0) {
       for (let index = 0; index < this._points.length; index++) {
         myPath.add(new this.paper.Point(this._points[index]));
@@ -637,24 +651,46 @@ class Star extends Tool {
     defaults.starpointsMax = defaults.starpointsMax || 20;
     defaults.starpointsStep = defaults.starpointsStep || 1;
 
+    defaults.starsize = defaults.starsize || 0.8;
+    defaults.starsizeMin = defaults.starsizeMin || 0.25;
+    defaults.starsizeMax = defaults.starsizeMax || 0.95;
+    defaults.starsizeStep = defaults.starsizeStep || 0.05;
+
+
     let options = [
       {
           property: "starpoints",
           description: "Points",
           type    : "int",
           value   : defaults.starpoints,
-          min     : defaults.pointsMin,
-          max     : defaults.pointsMax,
-          step    : defaults.pointsStep,
+          min     : defaults.starpointsMin,
+          max     : defaults.starpointsMax,
+          step    : defaults.starpointsStep,
           redraw  : true
-      }
+      },
+      {
+        property: "starsize",
+        description: "Size",
+        type    : "int",
+        value   : defaults.starsize,
+        min     : defaults.starsizeMin,
+        max     : defaults.starsizeMax,
+        step    : defaults.starsizeStep,
+        redraw  : true
+    }
+
   ];
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
+
+    // Backup parameters, applied after options change
 
     this._pos = {
       center: false,
       radius1: false,
-      radius2: false
+      radius2: false,
+      bounds: false,
+      rotation: false,
+      previousSibling: false
     };
   }
 
@@ -674,14 +710,27 @@ class Star extends Tool {
     });
     if (redraw === true) {
       if (this.primitive) {
+        this._pos.bounds = this.primitive.bounds;
+        this._pos.rotation = this.primitive.rotation;
+        this._pos.previousSibling = this.primitive.previousSibling || false;
         this.primitive.remove();
       }
+      this._pos.radius2 = this._pos.radius1 * this.getOption('starsize', true).value * 1;
       this.primitive = new this.paper.Path.Star(
         this._pos.center, 
         this.getOption('starpoints', true).value * 1, 
         this._pos.radius1,
         this._pos.radius2
       );
+      if (this._pos.bounds) {
+        this.primitive.bounds = this._pos.bounds;
+      }
+      if (this._pos.rotation) {
+        this.primitive.rotation = this._pos.rotation;
+      }
+      if (this._pos.previousSibling) {
+        this.primitive.insertAbove(this._pos.previousSibling);
+      }
       this.applyStyle();
       this.attachEvents();
     }
@@ -693,11 +742,18 @@ class Star extends Tool {
       _toPoint.y = this.startPoint.y + _toPoint.x - this.startPoint.x;
     }
 
+    let _distance = Math.sqrt((_toPoint.x - this.startPoint.x) ** 2 + (_toPoint.y - this.startPoint.y) ** 2);
+    _distance = _distance > this.state.gridsize.x ? _distance : this.state.gridsize.x;
+
+
     this._pos = {
       center: this.startPoint,
-      radius1: _toPoint.x - this.startPoint.x > this.state.gridsize.x ? _toPoint.x - this.startPoint.x : this.state.gridsize.x,
-      radius2: _toPoint.y - this.startPoint.y > this.state.gridsize.y ? _toPoint.y - this.startPoint.y : this.state.gridsize.y
+      radius1: _distance,
+      radius2: _distance * this.getOption('starsize', true).value * 1,
+      bounds: false
     };
+
+    console.log(this.getOption('starsize', true).value * 1);
 
     return new this.paper.Path.Star(
       this._pos.center, 
@@ -715,7 +771,8 @@ class Star extends Tool {
     }
   }
 
-  endMove() {
+
+  endTranslate() {
     this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
     this.originalPos = this.primitive.position;
     this._pos.center = this.primitive.bounds.center;
@@ -728,6 +785,128 @@ class Star extends Tool {
         this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
         this.state.setTransformation('Move');
         this._pos.center = this.primitive.bounds.center;
+        break;
+    }
+  }
+}
+
+class Polygon extends Tool {
+  constructor (paper, startPoint, state, primitive, defaults) {
+    defaults = defaults || {};
+    defaults.fixed = defaults.fixed || false;
+    defaults.toolName = defaults.toolName || 'polygon';
+    defaults.sides = defaults.sides || 5;
+    defaults.sidesMin = defaults.sidesMin || 3;
+    defaults.sidesMax = defaults.sidesMax || 20;
+    defaults.sidesStep = defaults.sidesStep || 1;
+
+
+    let options = [
+      {
+          property: "sides",
+          description: "Sides",
+          type    : "int",
+          value   : defaults.sides,
+          min     : defaults.sidesMin,
+          max     : defaults.sidesMax,
+          step    : defaults.sidesStep,
+          redraw  : true
+      }
+  ];
+    super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
+
+    // Backup parameters, applied after options change
+
+    this._pos = {
+      center: false,
+      radius: false,
+      bounds: false,
+      rotation: false,
+      previousSibling: false
+    };
+  }
+
+  setOption(name, value) {
+    let redraw = false;
+    this.options.forEach(o => {
+      if (o.property == name) {
+        try {
+          this.primitive[name] = value;
+          o.value = value;            
+        }
+        catch (err) {
+          console.warn(err);
+        }
+        if (o.redraw === true) redraw = o.redraw;
+      }
+    });
+    if (redraw === true) {
+      if (this.primitive) {
+        this._pos.bounds = this.primitive.bounds;
+        this._pos.center = this.primitive.bounds.center;
+        this._pos.rotation = this.primitive.rotation;
+        this._pos.previousSibling = this.primitive.previousSibling || false;
+        this.primitive.remove();
+      }
+      this.primitive = new this.paper.Path.RegularPolygon(
+        this._pos.center, 
+        this.getOption('sides', true).value * 1, 
+        this._pos.radius1
+      );
+      if (this._pos.bounds) {
+        this.primitive.bounds = this._pos.bounds;
+      }
+      if (this._pos.rotation) {
+        this.primitive.rotation = this._pos.rotation;
+      }
+      if (this._pos.previousSibling) {
+        this.primitive.insertAbove(this._pos.previousSibling);
+      }
+      this.applyStyle();
+      this.attachEvents();
+    }
+  }
+
+  createPrimitive(point) {
+    let _toPoint  = this.round(point);
+
+    let _distance = Math.sqrt((_toPoint.x - this.startPoint.x) ** 2 + (_toPoint.y - this.startPoint.y) ** 2);
+    _distance = _distance > this.state.gridsize.x ? _distance : this.state.gridsize.x;
+
+
+    this._pos = {
+      center: this.startPoint,
+      radius1: _distance,
+      bounds: false
+    };
+
+    return new this.paper.Path.RegularPolygon(
+      this._pos.center, 
+      this.getOption('sides', true).value * 1, 
+      this._pos.radius1);
+  }
+
+
+  transformation(mode, point, delta) {
+    switch (mode) {
+      case 'Resize':
+        this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? delta.x : delta.y));
+        break;
+    }
+  }
+
+
+  endTranslate() {
+    this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
+    this.originalPos = this.primitive.position;
+  }
+
+  endtransformation(mode) {
+    switch (mode) {
+      case 'Resize':
+        this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
+        this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
+        this.state.setTransformation('Move');
         break;
     }
   }
@@ -1051,6 +1230,130 @@ class Grid extends Tool {
   }  
 }
 
+class Arc extends Tool {
+  constructor (paper, startPoint, state, primitive, defaults) {
+    defaults = defaults || {};
+    defaults.fixed = defaults.fixed || false;
+    defaults.toolName = defaults.toolName || 'arc';
+    defaults.angle = defaults.angle || 2;
+    defaults.angleMin = defaults.angleMin || 0.1;
+    defaults.angleMax = defaults.angleMax || 5;
+    defaults.angleStep = defaults.angleStep || 0.01;
+
+
+    let options = [
+      {
+          property: "angle",
+          description: "Angle",
+          type    : "int",
+          value   : defaults.angle,
+          min     : defaults.angleMin,
+          max     : defaults.angleMax,
+          step    : defaults.angleStep,
+          redraw  : true
+      }
+  ];
+    super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
+
+    // Backup parameters, applied after options change
+
+    this._pos = {
+      startPoint: false,
+      toPoint: false,
+      bounds: false,
+      rotation: false,
+      previousSibling: false
+    };
+  }
+
+  setOption(name, value) {
+    let redraw = false;
+    this.options.forEach(o => {
+      if (o.property == name) {
+        try {
+          this.primitive[name] = value;
+          o.value = value;            
+        }
+        catch (err) {
+          console.warn(err);
+        }
+        if (o.redraw === true) redraw = o.redraw;
+      }
+    });
+    if (redraw === true) {
+        
+      if (this.primitive) {
+        this._pos.bounds = this.primitive.bounds;
+        this._pos.rotation = this.primitive.rotation;
+        this._pos.previousSibling = this.primitive.previousSibling || false;
+        this.primitive.remove();
+      }
+      this.primitive = this.drawAngle(this._pos.startPoint, this._pos.toPoint);
+/*      if (this._pos.bounds) {
+        this.primitive.bounds = this._pos.bounds
+      }*/
+      if (this._pos.rotation) {
+        this.primitive.rotation = this._pos.rotation;
+      }
+      if (this._pos.previousSibling) {
+        this.primitive.insertAbove(this._pos.previousSibling);
+      }
+      this.applyStyle();
+      this.attachEvents();
+    }
+  }
+
+  drawAngle(from, to) {
+    let x1 = new this.paper.Point(from.x + ((to.y - from.y) / 2), from.y + ((to.x - from.x) / 2));
+    let x2 = to.subtract(from).divide(2).add(from);
+    let through = x1.subtract(x2).divide(this.getOption('angle', true).value * 1).add(x2);
+	return (new this.paper.Path.Arc(from, through, to));
+  }
+
+  createPrimitive(point) {
+    let _toPoint  = this.round(point);
+    this._pos = {
+      startPoint: this.startPoint,
+      toPoint: _toPoint,
+    };
+    return this.drawAngle(this._pos.startPoint, this._pos.toPoint)
+  }
+
+
+  transformation(mode, point, delta) {
+    switch (mode) {
+      case 'Resize':
+        this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? delta.x : delta.y));
+        break;
+    }
+  }
+
+  translate(delta) {
+    this._pos.startPoint.x += delta.x;
+    this._pos.startPoint.y += delta.y;
+    this._pos.toPoint.x += delta.x;
+    this._pos.toPoint.y += delta.y;
+    this.primitive.position.x += delta.x;
+    this.primitive.position.y += delta.y;
+  }
+
+
+  endTranslate() {
+    this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
+    this.originalPos = this.primitive.position;
+  }
+
+  endtransformation(mode) {
+    switch (mode) {
+      case 'Resize':
+        this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
+        this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
+        this.state.setTransformation('Move');
+        break;
+    }
+  }
+}
+
 class State {
     constructor (options) {
         options = options || {};
@@ -1080,10 +1383,12 @@ class State {
             'Circle': Circle,
             'Line'  : Line,
             'Star'  : Star,
+            'Polygon': Polygon,
             'Raster': Raster,
             'Text'  : Text,
             'Grid'  : Grid,
-            'Polyline': Polyline
+            'Polyline': Polyline,
+            'Arc': Arc
         };
 
         // Register Tools
@@ -1100,6 +1405,9 @@ class State {
             'Star': {
                 class: 'Star'
             },
+            'Polygon': {
+                class: 'Polygon'
+            },
             'Raster': {
                 class: 'Raster'
             },
@@ -1111,7 +1419,10 @@ class State {
             },
             'Polyline': {
                 class: 'Polyline'
-            }            
+            },
+            'Arc': {
+                class: 'Arc'
+            }
         };
         // Convert String to Classes
 
@@ -1255,6 +1566,7 @@ class State {
             this.copy.forEach(s => {
                 console.log(this, s);
                 let _clone = new this.tools[s.toolname].class(s.paper, s.startPoint, this, s.primitive.clone(), this.tools[s.toolname].defaults);
+                _clone._pos = s._pos;
                 _clone.move('right');
                 _clone.move('down');
                 _clone.shift('front');
@@ -1492,9 +1804,11 @@ var script = {
   mounted() {
     this.$refs.grid.style.setProperty('--backgroundX', `${this.state.gridsize.x}px 100%`);
     this.$refs.grid.style.setProperty('--backgroundY', `100% ${this.state.gridsize.y}px`);
+    this.$refs.grid.style.setProperty('--backgroundXY', `${this.state.gridsize.x}px ${this.state.gridsize.y}px`);
     let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x);
     this.$refs.grid2.style.setProperty('--backgroundY', `100% ${this.state.gridsize.x * Math.sin(_rotation)}px`);
     this.$refs.grid2.style.setProperty('--background', `${(this.state.gridsize.x * Math.sin(_rotation))}px`);
+    this.$refs.grid2.style.setProperty('--backgroundXY', `${this.state.gridsize.y * Math.sin(_rotation)}px ${this.state.gridsize.x * Math.sin(_rotation)}px`);
     this.$refs.grid2.style.setProperty('--rotation', `${-1 * _rotation / Math.PI * 180}deg`);
     
 
@@ -2061,17 +2375,21 @@ var __vue_render__ = function() {
             )
           }),
           _vm._v(" "),
-          _c("div", {
-            ref: "grid",
-            staticClass: "vue-paint-grid",
-            attrs: { id: "grid" }
-          }),
-          _vm._v(" "),
-          _c("div", {
-            ref: "grid2",
-            staticClass: "vue-paint-grid-rotated",
-            attrs: { id: "grid" }
-          }),
+          _c("div", { staticClass: "vue-paint-grid-adjust" }, [
+            _c("div", {
+              ref: "grid",
+              staticClass: "vue-paint-grid",
+              attrs: { id: "grid" }
+            }),
+            _vm._v(" "),
+            this.state.gridsize.x != this.state.gridsize.y
+              ? _c("div", {
+                  ref: "grid2",
+                  staticClass: "vue-paint-grid-rotated",
+                  attrs: { id: "grid" }
+                })
+              : _vm._e()
+          ]),
           _vm._v(" "),
           _c("canvas", {
             ref: "painter",
