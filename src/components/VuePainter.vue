@@ -277,15 +277,18 @@ export default {
     });
   },
   mounted() {
-    this.$refs.grid.style.setProperty('--backgroundX', `${this.state.gridsize.x}px 100%`);
-    this.$refs.grid.style.setProperty('--backgroundY', `100% ${this.state.gridsize.y}px`);
-    this.$refs.grid.style.setProperty('--backgroundXY', `${this.state.gridsize.x}px ${this.state.gridsize.y}px`);
+    if (this.$refs.grid) {
+      this.$refs.grid.style.setProperty('--backgroundX', `${this.state.gridsize.x}px 100%`);
+      this.$refs.grid.style.setProperty('--backgroundY', `100% ${this.state.gridsize.y}px`);
+      this.$refs.grid.style.setProperty('--backgroundXY', `${this.state.gridsize.x}px ${this.state.gridsize.y}px`);
+    }
     let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x);
-    this.$refs.grid2.style.setProperty('--backgroundY', `100% ${this.state.gridsize.x * Math.sin(_rotation)}px`);
-    this.$refs.grid2.style.setProperty('--background', `${(this.state.gridsize.x * Math.sin(_rotation))}px`);
-    this.$refs.grid2.style.setProperty('--backgroundXY', `${this.state.gridsize.y * Math.sin(_rotation)}px ${this.state.gridsize.x * Math.sin(_rotation)}px`);
-    this.$refs.grid2.style.setProperty('--rotation', `${-1 * _rotation / Math.PI * 180}deg`);
-    
+    if (this.$refs.grid2) {
+      this.$refs.grid2.style.setProperty('--backgroundY', `100% ${this.state.gridsize.x * Math.sin(_rotation)}px`);
+      this.$refs.grid2.style.setProperty('--background', `${(this.state.gridsize.x * Math.sin(_rotation))}px`);
+      this.$refs.grid2.style.setProperty('--backgroundXY', `${this.state.gridsize.y * Math.sin(_rotation)}px ${this.state.gridsize.x * Math.sin(_rotation)}px`);
+      this.$refs.grid2.style.setProperty('--rotation', `${-1 * _rotation / Math.PI * 180}deg`);
+    }    
 
         // Inject Fonts into CSS HEAD
     try {
