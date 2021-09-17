@@ -91,9 +91,31 @@ export default {
               starpoints: 5,
               starpointsMin: 3,
               starpointsMax: 20,
-              starpointsStep: 1
+              starpointsStep: 1,
+              starsize: 0.8,
+              starsizeMin: 0.25,
+              starsizeMax: 0.95,
+              starsizeStep: 0.05              
             }
         },
+        'Polygon': {
+            class: 'Polygon',
+            defaults: {
+              sides: 5,
+              sidesMin: 3,
+              sidesMax: 20,
+              sidesStep: 1
+            }
+        },
+        'Arc': {
+            class: 'Arc',
+            defaults: {
+              angle: 2,
+              angleMin: 0.1,
+              angleMax: 5,
+              angleStep: 0.01
+            }
+        },        
         'Clipart': {
             class: 'Raster',
             defaults: {
