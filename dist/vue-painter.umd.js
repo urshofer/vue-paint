@@ -1885,7 +1885,7 @@
                 strokeColor: this.gridColor || '#CCF',
                 dashArray: [1, 2]
             });
-            _l.rotate(_rotation * -1, [this.paper.project.view.bounds.width + 2,_y]);        
+            _l.rotate(_rotation * -1, [this.paper.project.view.bounds.width,_y]);        
           }      
         } else {
           for (let _y = 0; _y < this.paper.project.view.bounds.height; _y+=this.state.gridsize.y) {
