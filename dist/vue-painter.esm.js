@@ -1717,7 +1717,9 @@ var script = {
     translations: Object,
     gridX: Number,
     gridY: Number,
-    angleStep: Number
+    angleStep: Number,
+    gridColor: String,
+    dotColor: String
   },
   data () {
 
@@ -1780,7 +1782,10 @@ var script = {
       keyHandlingActive: true, // set to false if paper should not listen to keystrokes
 
       // Style Sheet
-      sheet: style.sheet
+      sheet: style.sheet,
+
+      // Drawing Layer
+      layer: null
 
     }
   },
@@ -1802,19 +1807,6 @@ var script = {
     });
   },
   mounted() {
-    if (this.$refs.grid) {
-      this.$refs.grid.style.setProperty('--backgroundX', `${this.state.gridsize.x}px 100%`);
-      this.$refs.grid.style.setProperty('--backgroundY', `100% ${this.state.gridsize.y}px`);
-      this.$refs.grid.style.setProperty('--backgroundXY', `${this.state.gridsize.x}px ${this.state.gridsize.y}px`);
-    }
-    let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x);
-    if (this.$refs.grid2) {
-      this.$refs.grid2.style.setProperty('--backgroundY', `100% ${this.state.gridsize.x * Math.sin(_rotation)}px`);
-      this.$refs.grid2.style.setProperty('--background', `${(this.state.gridsize.x * Math.sin(_rotation))}px`);
-      this.$refs.grid2.style.setProperty('--backgroundXY', `${this.state.gridsize.y * Math.sin(_rotation)}px ${this.state.gridsize.x * Math.sin(_rotation)}px`);
-      this.$refs.grid2.style.setProperty('--rotation', `${-1 * _rotation / Math.PI * 180}deg`);
-    }    
-
         // Inject Fonts into CSS HEAD
     try {
       if (this.fonts && this.fonts.length && this.fonts.length > 0) {
@@ -1871,6 +1863,54 @@ var script = {
     this.clips = null;
   },
   methods: {
+    drawGrid() {
+      new this.paper.Layer();
+      let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x) * -(180/Math.PI);
+      if (this.state.gridsize.y != this.state.gridsize.x) {
+        for (let _y = 0; _y < this.paper.project.view.bounds.height * 2; _y+=this.state.gridsize.y) {
+          let _l = this.paper.Path.Line({
+              from: [0, _y],
+              to: [this.paper.project.view.bounds.width * 2, _y],
+              strokeColor: this.gridColor || '#CCF',
+              dashArray: [1, 2]
+          });
+          _l.rotate(_rotation, [0,_y]);
+          _l = this.paper.Path.Line({
+              from: [this.paper.project.view.bounds.width * -2, _y],
+              to: [this.paper.project.view.bounds.width, _y],
+              strokeColor: this.gridColor || '#CCF',
+              dashArray: [1, 2]
+          });
+          _l.rotate(_rotation * -1, [this.paper.project.view.bounds.width + 2,_y]);        
+        }      
+      } else {
+        for (let _y = 0; _y < this.paper.project.view.bounds.height; _y+=this.state.gridsize.y) {
+          this.paper.Path.Line({
+              from: [0, _y],
+              to: [this.paper.project.view.bounds.width, _y],
+              strokeColor: this.gridColor || '#CCF',
+              dashArray: [1, 2]
+          });
+        }
+        for (let _x = 0; _x < this.paper.project.view.bounds.width; _x+=this.state.gridsize.x) {
+          this.paper.Path.Line({
+              from: [_x, 0],
+              to: [_x, this.paper.project.view.bounds.height],
+              strokeColor: this.gridColor || '#CCF',
+              dashArray: [1, 2]
+          });
+        }        
+      }
+      for (let _y = 0; _y < this.paper.project.view.bounds.height; _y+=this.state.gridsize.y) {
+        for (let _x = 0; _x < this.paper.project.view.bounds.width; _x+=this.state.gridsize.x) {
+          new this.paper.Path.Circle({
+              center: [_x, _y],
+              radius: 1,
+              fillColor: this.dotColor || '#000',
+          });
+        }
+      }      
+    },
     initialize () {
       console.log('initializing vue-paint…');
       this.tools = this.state.getTools();
@@ -1879,6 +1919,10 @@ var script = {
       this.tool = new paper.Tool();
       this.state.paper = this.paper;
       let _painting;
+
+      this.drawGrid();
+
+      this.layer = new this.paper.Layer();
 
       // Double Click Stuff
       let _lastClick = 0;
@@ -2048,7 +2092,7 @@ var script = {
       this.$emit('save', this.state.exportStack());
     },
     exportSVG() {
-      let svg = this.paper.project.exportSVG({
+      let svg = this.paper.project.activeLayer.exportSVG({
         asString: true,
         onExport: (item, node) => {
             if (item._class === 'PointText') {
@@ -2085,6 +2129,8 @@ var script = {
           </style>
         </defs>`)
       });
+
+      svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${this.paper.project.view.bounds.width}" height="${this.paper.project.view.bounds.height}" viewBox="0,0,${this.paper.project.view.bounds.width},${this.paper.project.view.bounds.height}">${svg}</svg>`;
 
       this.$emit('export', svg);
     },
@@ -2377,22 +2423,6 @@ var __vue_render__ = function() {
               ]
             )
           }),
-          _vm._v(" "),
-          _c("div", { staticClass: "vue-paint-grid-adjust" }, [
-            _c("div", {
-              ref: "grid",
-              staticClass: "vue-paint-grid",
-              attrs: { id: "grid" }
-            }),
-            _vm._v(" "),
-            this.state.gridsize.x != this.state.gridsize.y
-              ? _c("div", {
-                  ref: "grid2",
-                  staticClass: "vue-paint-grid-rotated",
-                  attrs: { id: "grid" }
-                })
-              : _vm._e()
-          ]),
           _vm._v(" "),
           _c("canvas", {
             ref: "painter",

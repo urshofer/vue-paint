@@ -6,46 +6,12 @@
   height: 100%;
   overflow: auto;
 }
-.vue-paint-grid, .vue-paint-canvas, .vue-paint-grid-rotated, .vue-paint-grid-adjust {
+.vue-paint-canvas {
   position: absolute;
   left: 0px;
   top: 0px;
   width: 750px;
   height: 1500px;
-}
-.vue-paint-grid {
-  background: transparent;
-  z-index: 2;
-}
-.vue-paint-grid:before {
-  content: "";
-  position: absolute;
-  height: 100%;
-  width: 100%;
-  background-image: radial-gradient(circle at 1px 1px, #797979 1px, transparent 0);
-  background-size: var(--backgroundXY);
-}
-.vue-paint-grid-rotated {
-  background: transparent;
-  overflow: hidden;
-  z-index: 1;
-}
-.vue-paint-grid-rotated:after {
-  content: "";
-  position: absolute;
-  height: 400%;
-  width: 400%;
-  transform: rotate(var(--rotation)) translateX(-50%);
-  transform-origin: 0% 0%;
-  background-image: radial-gradient(circle at 1px 1px, #6ed1ff 1px, transparent 0);
-  background-size: var(--backgroundXY);
-}
-.vue-paint-grid-adjust {
-  z-index: 0;
-  pointer-events: none;
-  transform: translateX(-1px) translateY(-1px);
-}
-.vue-paint-canvas {
   background: transparent;
   z-index: 3;
 }
