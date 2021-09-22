@@ -352,7 +352,7 @@ export default {
               strokeColor: this.gridColor || '#CCF',
               dashArray: [1, 2]
           });
-          _l.rotate(_rotation * -1, [this.paper.project.view.bounds.width,_y]);        
+          _l.rotate(_rotation * -1, [Math.floor(this.paper.project.view.bounds.width / this.state.gridsize.x) * this.state.gridsize.x,_y]);        
         }      
       } else {
         for (let _y = 0; _y < this.paper.project.view.bounds.height; _y+=this.state.gridsize.y) {
