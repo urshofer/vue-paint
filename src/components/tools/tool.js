@@ -196,7 +196,10 @@ export default class Tool {
       } 
       this.primitive.onMouseUp = (event) => {
         return this.onMouseUp(event)
-      }        
+      } 
+      this.primitive.onDoubleClick = (event) => {
+        return this.onDoubleClick(event)
+      }              
     } catch (err) {
       console.warn(err)
     }
@@ -204,7 +207,7 @@ export default class Tool {
 
   onMouseDown (event) {
     if (this.state.painting) return;
-    console.log('init', this, event, this.primitive.selected)
+    // console.log('init', this, event, this.primitive.selected)
     this.mousedown = event;
     this.originalPos = this.primitive.position;
     this.setDragging(false);
@@ -219,11 +222,11 @@ export default class Tool {
     }
   }
 
-  onMouseUp (event) {
+  onMouseUp () {
     if (this.state.painting) return;
-    console.log('mouseup', this, event, this.painted, this.dragging, this.alreadySelected)
+    // console.log('mouseup', this, event, this.painted, this.dragging, this.alreadySelected)
     if (this.painted === true && !this.dragging && this.alreadySelected) {
-      console.log('click', event)
+     // console.log('click', event)
      try {
         this.toggleSelect();
       }
@@ -232,13 +235,11 @@ export default class Tool {
       }
     }
     this.mousedown = false;
-    return false;
   }
 
-  //onMouseDrag (event) {
-  //  console.log('mouse drag', event)
-  //  return false;
-  //}
+  onDoubleClick (event) {
+    console.log('doubleclick', event)
+  }
 
   /* Called on init */
   onPaint (point) {
@@ -331,7 +332,7 @@ export default class Tool {
     if (this.fixedposition !== false) {
       return;
     }    
-    console.log('drag finish', point)
+    // console.log('drag finish', point)
     this.setDragging(false);
 
     let delta = {

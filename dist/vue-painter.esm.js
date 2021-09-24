@@ -198,7 +198,10 @@ class Tool {
       }; 
       this.primitive.onMouseUp = (event) => {
         return this.onMouseUp(event)
-      };        
+      }; 
+      this.primitive.onDoubleClick = (event) => {
+        return this.onDoubleClick(event)
+      };              
     } catch (err) {
       console.warn(err);
     }
@@ -206,7 +209,7 @@ class Tool {
 
   onMouseDown (event) {
     if (this.state.painting) return;
-    console.log('init', this, event, this.primitive.selected);
+    // console.log('init', this, event, this.primitive.selected)
     this.mousedown = event;
     this.originalPos = this.primitive.position;
     this.setDragging(false);
@@ -221,11 +224,11 @@ class Tool {
     }
   }
 
-  onMouseUp (event) {
+  onMouseUp () {
     if (this.state.painting) return;
-    console.log('mouseup', this, event, this.painted, this.dragging, this.alreadySelected);
+    // console.log('mouseup', this, event, this.painted, this.dragging, this.alreadySelected)
     if (this.painted === true && !this.dragging && this.alreadySelected) {
-      console.log('click', event);
+     // console.log('click', event)
      try {
         this.toggleSelect();
       }
@@ -234,13 +237,11 @@ class Tool {
       }
     }
     this.mousedown = false;
-    return false;
   }
 
-  //onMouseDrag (event) {
-  //  console.log('mouse drag', event)
-  //  return false;
-  //}
+  onDoubleClick (event) {
+    console.log('doubleclick', event);
+  }
 
   /* Called on init */
   onPaint (point) {
@@ -333,7 +334,7 @@ class Tool {
     if (this.fixedposition !== false) {
       return;
     }    
-    console.log('drag finish', point);
+    // console.log('drag finish', point)
     this.setDragging(false);
 
     let delta = {
@@ -978,6 +979,11 @@ class Raster extends Tool {
     //this.primitive.fitBounds(_b);
 }
 
+  /* Called on init */
+  onPaint () {
+    this.state.painting = true;
+  }
+
 
   createPrimitive() {
     let _toPoint  = this.round(this.startPoint);
@@ -1086,13 +1092,29 @@ class Text extends Tool {
   }
   
   
-  
+  onDoubleClick () {
+    this.state.unselectAll();
+    this.select();
+    let _e = {
+      key: 'e',
+      modifiers: {
+        meta: true
+      }
+    };
+    console.log(this.paper.tool.emit('keydown', _e));
+    return false;
+  }
 
   createPrimitive() {
     console.log(this);
     let _t = new this.paper.PointText(this.round(this.startPoint));
     _t.applyMatrix = false;
     return _t;
+  }
+
+  /* Called on init */
+  onPaint () {
+    this.state.painting = true;
   }
 
   applyStyle() {
@@ -1936,7 +1958,7 @@ var script = {
       this.tool.onMouseDown = (event) => {
         this.enableKeys();
         this.state.onMouseDown();
-        if (event.item == null) {
+        if (event.item == null || event.item.layer.getIndex() === 0) {
           let _selectionLength = this.state.unselectAll();
           // Disable MouseUp Actions for one time if we really deselected something
           if (_selectionLength > 0) {
@@ -1979,32 +2001,58 @@ var script = {
           _disableMouseUp = false;
           return
         }
+
+        // Action for AddOnClick Itmes
+
         if (!_painting && !this.state.hasSelection() && this.state.isActive() && this.state.addOnMouseDown(this.state.getActiveName())) {
           _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
           _painting.onPaint(event.point);        
           _painting.onFinishPaint(event.point);
-          _painting = null;        
+          _painting = null;
+          this.state.setActive(false);
+          console.log('--------');
         }
         else {
+
+          // Already drawing: Finishing Actions or Intermediate Actions
+
           if (_painting) {
+
+            // Action for addOnDoubleClick (intermediate action)
+
             if (this.state.addOnDoubleClick(this.state.getActiveName())) {
                 _painting.onClick(event.point);
-            } else {
+            } 
+            
+            // Action for single-dragging items (i.e. circles)
+            
+            else {
               _painting.onFinishPaint(event.point);
               _painting = null;
             }
           }
+
+          // Not drawing: Starting Actions
+
           else {
+
+            // Double Click Items: Start here
+            // All others started on mousedown (due to dragging functionality)
+
             if (this.state.addOnDoubleClick(this.state.getActiveName()) && !this.state.hasSelection()) {
               _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
               _painting.onPaint(event.point);        
             }
           }
 
+          // General finish drag event
+
           if (this.state.dragged) {
             this.state.onFinishDrag(event.point);
           }
         }
+
+        // Double Click Trigger (timeout and delta)
 
         if (
           event.timeStamp - _lastClick <= DOUBLECLICK_TIME_MS &&
@@ -2018,7 +2066,6 @@ var script = {
       }; 
 
       this.tool.onDoubleClick = (event) => {
-
         if (_painting && this.state.addOnDoubleClick(this.state.getActiveName())) {
           _painting.onFinishPaint(event.point);
           _painting = null;
@@ -2857,7 +2904,7 @@ var __vue_render__ = function() {
                               )
                             : _vm._e(),
                           _vm._v(" "),
-                          option.type == "int"
+                          option.type == "int" && option.min !== option.max
                             ? _c(
                                 "label",
                                 {

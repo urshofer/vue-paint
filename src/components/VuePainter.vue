@@ -127,7 +127,7 @@
               <label
                 :class="`vue-paint-label vue-paint-label-${option.description}`" 
                 v-bind:key="`option-${option.description}`"
-                v-if="option.type == 'int'">{{strings[option.description] || option.description}}: {{option.value}}
+                v-if="option.type == 'int' && option.min !== option.max">{{strings[option.description] || option.description}}: {{option.value}}
                 <input 
                   @change="state.getContext().setOption(option.property, $event.target.value)" 
                   type="range" 
@@ -407,7 +407,7 @@ export default {
       this.tool.onMouseDown = (event) => {
         this.enableKeys();
         this.state.onMouseDown()
-        if (event.item == null) {
+        if (event.item == null || event.item.layer.getIndex() === 0) {
           let _selectionLength = this.state.unselectAll();
           // Disable MouseUp Actions for one time if we really deselected something
           if (_selectionLength > 0) {
@@ -450,32 +450,58 @@ export default {
           _disableMouseUp = false
           return
         }
+
+        // Action for AddOnClick Itmes
+
         if (!_painting && !this.state.hasSelection() && this.state.isActive() && this.state.addOnMouseDown(this.state.getActiveName())) {
           _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
           _painting.onPaint(event.point);        
           _painting.onFinishPaint(event.point);
-          _painting = null;        
+          _painting = null;
+          this.state.setActive(false)
+          console.log('--------')
         }
         else {
+
+          // Already drawing: Finishing Actions or Intermediate Actions
+
           if (_painting) {
+
+            // Action for addOnDoubleClick (intermediate action)
+
             if (this.state.addOnDoubleClick(this.state.getActiveName())) {
                 _painting.onClick(event.point);
-            } else {
+            } 
+            
+            // Action for single-dragging items (i.e. circles)
+            
+            else {
               _painting.onFinishPaint(event.point);
               _painting = null;
             }
           }
+
+          // Not drawing: Starting Actions
+
           else {
+
+            // Double Click Items: Start here
+            // All others started on mousedown (due to dragging functionality)
+
             if (this.state.addOnDoubleClick(this.state.getActiveName()) && !this.state.hasSelection()) {
               _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
               _painting.onPaint(event.point);        
             }
           }
 
+          // General finish drag event
+
           if (this.state.dragged) {
             this.state.onFinishDrag(event.point)
           }
         }
+
+        // Double Click Trigger (timeout and delta)
 
         if (
           event.timeStamp - _lastClick <= DOUBLECLICK_TIME_MS &&
@@ -489,7 +515,6 @@ export default {
       } 
 
       this.tool.onDoubleClick = (event) => {
-
         if (_painting && this.state.addOnDoubleClick(this.state.getActiveName())) {
           _painting.onFinishPaint(event.point);
           _painting = null;

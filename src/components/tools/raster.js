@@ -65,6 +65,11 @@ export default class Raster extends Tool {
     //this.primitive.fitBounds(_b);
 }
 
+  /* Called on init */
+  onPaint () {
+    this.state.painting = true;
+  }
+
 
   createPrimitive() {
     let _toPoint  = this.round(this.startPoint)

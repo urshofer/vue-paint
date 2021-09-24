@@ -85,13 +85,29 @@ export default class Text extends Tool {
   }
   
   
-  
+  onDoubleClick () {
+    this.state.unselectAll();
+    this.select();
+    let _e = {
+      key: 'e',
+      modifiers: {
+        meta: true
+      }
+    }
+    console.log(this.paper.tool.emit('keydown', _e))
+    return false;
+  }
 
   createPrimitive() {
     console.log(this)
     let _t = new this.paper.PointText(this.round(this.startPoint));
     _t.applyMatrix = false
     return _t;
+  }
+
+  /* Called on init */
+  onPaint () {
+    this.state.painting = true;
   }
 
   applyStyle() {
