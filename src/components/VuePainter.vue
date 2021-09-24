@@ -40,16 +40,18 @@
             @focus="disableKeys" 
             @blur="enableKeys" 
             :rows="option.rows" 
-            :cols="Math.round(option.cols * 1.75)" 
+            :cols="longestWord(option.value)" 
             v-model="option.value"
             name="input"
             wrap="hard"
             :ref="option.property"
             :style="{
+              'width': `${state.getContext().primitive.handleBounds.width + state.getContext().primitive.fontSize}px`, 
               'font-size': `${state.getContext().primitive.fontSize}px`, 
               'line-height': `${state.getContext().primitive.leading}px`,
+              'font-family': `${state.getContext().primitive.fontFamily}`,
               'transform': `translateX(-${state.getContext().primitive.internalBounds.width / 2}px) translateY(-${state.getContext().primitive.internalBounds.height / 2}px)`,
-
+              'text-align': state.getContext().primitive.justification || 'left'
             }"
           ></textarea>
         </div>
@@ -337,6 +339,16 @@ export default {
     this.clips = null;
   },
   methods: {
+    longestWord(string) {
+      var str = string.split("\n");
+      var longest = 0;
+      for (var i = 0; i < str.length - 1; i++) {
+          if (longest < str[i].length) {
+              longest = str[i].length;
+          }
+      }
+      return longest;
+    },
     drawGrid() {
       new this.paper.Layer();
       let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x) * -(180/Math.PI);
@@ -789,13 +801,13 @@ export default {
         resize: none;
         border: 1px solid transparent;
         appearance: none;
-        font-family: Helvetica;
         background: transparent;
         padding: 0;
         overflow: hidden;
         color: transparent;
         caret-color: black;
         margin: -1px;
+        box-sizing: border-box;
         &:focus {
           outline: none;
         }

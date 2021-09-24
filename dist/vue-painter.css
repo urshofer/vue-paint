@@ -102,13 +102,13 @@
   resize: none;
   border: 1px solid transparent;
   appearance: none;
-  font-family: Helvetica;
   background: transparent;
   padding: 0;
   overflow: hidden;
   color: transparent;
   caret-color: black;
   margin: -1px;
+  box-sizing: border-box;
 }
 .vue-paint-editor input:focus,
 .vue-paint-editor textarea:focus {

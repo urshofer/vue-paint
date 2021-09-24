@@ -15,6 +15,7 @@ export default class Text extends Tool {
     defaults.leadingMax = defaults.leadingMax || 20
     defaults.rows = defaults.rows || 40
     defaults.cols = defaults.cols || 10
+    defaults.justification = defaults.justification || 'left'
     defaults.fixed = defaults.fixed || false
     
     let options = [
@@ -55,6 +56,12 @@ export default class Text extends Tool {
         description: "Font Weight",
         type    : "string",
         value   : defaults.fontWeight
+      },
+      {
+        property: "justification",
+        description: "Justification",
+        type    : "string",
+        value   : defaults.justification
       }
     ]
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed)
@@ -123,6 +130,7 @@ export default class Text extends Tool {
       this.primitive.strokeWidth        = 0;
       this.primitive.strokeColor.alpha  = this.state.getAlpha();
       this.primitive.fillColor.alpha    = this.state.getAlpha();
+      this.primitive.justification      = this.getOption('justification')
     }
     catch (err) {
       console.warn(`${err} Primitive not defined`)

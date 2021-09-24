@@ -1022,6 +1022,7 @@ class Text extends Tool {
     defaults.leadingMax = defaults.leadingMax || 20;
     defaults.rows = defaults.rows || 40;
     defaults.cols = defaults.cols || 10;
+    defaults.justification = defaults.justification || 'left';
     defaults.fixed = defaults.fixed || false;
     
     let options = [
@@ -1062,6 +1063,12 @@ class Text extends Tool {
         description: "Font Weight",
         type    : "string",
         value   : defaults.fontWeight
+      },
+      {
+        property: "justification",
+        description: "Justification",
+        type    : "string",
+        value   : defaults.justification
       }
     ];
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
@@ -1130,6 +1137,7 @@ class Text extends Tool {
       this.primitive.strokeWidth        = 0;
       this.primitive.strokeColor.alpha  = this.state.getAlpha();
       this.primitive.fillColor.alpha    = this.state.getAlpha();
+      this.primitive.justification      = this.getOption('justification');
     }
     catch (err) {
       console.warn(`${err} Primitive not defined`);
@@ -1885,6 +1893,16 @@ var script = {
     this.clips = null;
   },
   methods: {
+    longestWord(string) {
+      var str = string.split("\n");
+      var longest = 0;
+      for (var i = 0; i < str.length - 1; i++) {
+          if (longest < str[i].length) {
+              longest = str[i].length;
+          }
+      }
+      return longest;
+    },
     drawGrid() {
       new this.paper.Layer();
       let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x) * -(180/Math.PI);
@@ -2431,10 +2449,16 @@ var __vue_render__ = function() {
                   ref: option.property,
                   refInFor: true,
                   style: {
+                    width:
+                      _vm.state.getContext().primitive.handleBounds.width +
+                      _vm.state.getContext().primitive.fontSize +
+                      "px",
                     "font-size":
                       _vm.state.getContext().primitive.fontSize + "px",
                     "line-height":
                       _vm.state.getContext().primitive.leading + "px",
+                    "font-family":
+                      "" + _vm.state.getContext().primitive.fontFamily,
                     transform:
                       "translateX(-" +
                       _vm.state.getContext().primitive.internalBounds.width /
@@ -2442,11 +2466,13 @@ var __vue_render__ = function() {
                       "px) translateY(-" +
                       _vm.state.getContext().primitive.internalBounds.height /
                         2 +
-                      "px)"
+                      "px)",
+                    "text-align":
+                      _vm.state.getContext().primitive.justification || "left"
                   },
                   attrs: {
                     rows: option.rows,
-                    cols: Math.round(option.cols * 1.75),
+                    cols: _vm.longestWord(option.value),
                     name: "input",
                     wrap: "hard"
                   },
