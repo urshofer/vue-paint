@@ -2474,6 +2474,9 @@ var __vue_render__ = function() {
           _c("canvas", {
             ref: "painter",
             staticClass: "vue-paint-canvas",
+            class: {
+              "vue-paint-canvas-select": _vm.state.getActiveName() === ""
+            },
             attrs: { id: "painter", resize: "" }
           })
         ],
@@ -2481,6 +2484,25 @@ var __vue_render__ = function() {
       ),
       _vm._v(" "),
       _c("div", { staticClass: "vue-paint-menu", attrs: { id: "menu" } }, [
+        _c("div", [
+          _c(
+            "a",
+            {
+              class:
+                "vue-paint-button vue-paint-button-selection" +
+                (_vm.state.getActiveName() === ""
+                  ? " vue-paint-button-active"
+                  : ""),
+              on: {
+                click: function($event) {
+                  return _vm.state.setActive(false)
+                }
+              }
+            },
+            [_vm._v(_vm._s(_vm.strings.selection))]
+          )
+        ]),
+        _vm._v(" "),
         _c(
           "div",
           [

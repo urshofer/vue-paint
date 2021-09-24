@@ -53,9 +53,12 @@
             }"
           ></textarea>
         </div>
-        <canvas ref="painter" id="painter" class="vue-paint-canvas" resize></canvas>
+        <canvas ref="painter" id="painter" class="vue-paint-canvas" :class="{'vue-paint-canvas-select': state.getActiveName()===''}" resize></canvas>
       </div>
       <div id="menu" class="vue-paint-menu">
+        <div>
+          <a :class="`vue-paint-button vue-paint-button-selection${state.getActiveName()===''?' vue-paint-button-active':''}`" @click="state.setActive(false)">{{strings.selection}}</a>
+        </div>
         <div>
           <div class="vue-paint-menu-divider">{{strings.tools}}</div>
           <a :class="`vue-paint-button vue-paint-button-${t.replace(' ','_')}${state.getActiveName()==t?' vue-paint-button-active':''}`" v-for="t in tools" v-bind:key="`tool-${t}`" @click="state.setActive(state.getActiveName()==t ? false : t)">{{t}}</a>
@@ -697,6 +700,10 @@ export default {
       height: 1500px;
       background: transparent;
       z-index: 3;
+      cursor: crosshair;
+      &-select {
+        cursor: pointer;
+      }
     }
     &-menu {
       position: absolute;
