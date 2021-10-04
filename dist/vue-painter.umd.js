@@ -109,8 +109,10 @@
     }
 
     round(point) {
-      point.x = Math.round(point.x / this.state.gridsize.x) * this.state.gridsize.x;
-      point.y = Math.round(point.y / this.state.gridsize.y) * this.state.gridsize.y;
+      if (!this.paper.Key.isDown('meta')) {
+        point.x = Math.round(point.x / this.state.gridsize.x) * this.state.gridsize.x;
+        point.y = Math.round(point.y / this.state.gridsize.y) * this.state.gridsize.y;
+      }
       return point;
     }
 
