@@ -2,7 +2,7 @@ import Tool from './tool.js'
 export default class Grid extends Tool {
   constructor (paper, startPoint, state, primitive, defaults) {
     defaults = defaults || {}
-    defaults.gridSquare = defaults.gridSquare || true
+    defaults.gridSquare = defaults.gridSquare || false
     defaults.gridX = defaults.gridX || 5
     defaults.gridY = defaults.gridY || 5
     defaults.gridXMax = defaults.gridXMax || 5
