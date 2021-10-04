@@ -604,6 +604,10 @@
         }
         this.painted = true;
         this.state.painting = false;
+        if (this.primitive != null) {
+          this.originalPos = this.primitive.position;
+          this.state.addStack(this);
+        }
     }
 
     onPaint(point) {
@@ -1503,6 +1507,7 @@
       }
 
       exportStack() {
+          this.unselectAll();
           let _json = [];
 
           this.stack.sort((a,b) => a.primitive.index > b.primitive.index);

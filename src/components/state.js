@@ -125,6 +125,7 @@ export default class State {
     }
 
     exportStack() {
+        this.unselectAll();
         let _json = [];
 
         this.stack.sort((a,b) => a.primitive.index > b.primitive.index)

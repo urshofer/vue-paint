@@ -600,6 +600,10 @@ class Polyline extends Tool {
       }
       this.painted = true;
       this.state.painting = false;
+      if (this.primitive != null) {
+        this.originalPos = this.primitive.position;
+        this.state.addStack(this);
+      }
   }
 
   onPaint(point) {
@@ -1499,6 +1503,7 @@ class State {
     }
 
     exportStack() {
+        this.unselectAll();
         let _json = [];
 
         this.stack.sort((a,b) => a.primitive.index > b.primitive.index);

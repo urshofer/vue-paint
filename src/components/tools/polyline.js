@@ -83,6 +83,10 @@ export default class Polyline extends Tool {
       }
       this.painted = true;
       this.state.painting = false;
+      if (this.primitive != null) {
+        this.originalPos = this.primitive.position;
+        this.state.addStack(this);
+      }
   }
 
   onPaint(point) {
