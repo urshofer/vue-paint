@@ -1,3 +1,9 @@
+.vue-paint .folded label, .vue-paint .folded a, .vue-paint .folded form, .vue-paint .folded .vue-paint-arrowbuttons {
+  display: none;
+}
+.vue-paint .folded .vue-paint-menu-divider:after {
+  content: "+";
+}
 .vue-paint-wrapper {
   position: absolute;
   left: 20%;
@@ -24,11 +30,9 @@
   left: 0px;
   top: 0px;
   width: 20%;
-  height: 100%;
+  height: auto;
+  max-height: 100%;
   background: #CCC;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
 }
 .vue-paint-clipart-wrapper {
   position: absolute;
@@ -119,11 +123,12 @@
   right: 0px;
   top: 0px;
   width: 10%;
-  height: 100%;
+  height: auto;
+  max-height: 100%;
   background: #CCC;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+}
+.vue-paint-menu, .vue-paint-context {
+  overflow-y: auto;
 }
 .vue-paint-menu-divider {
   font: inherit;
@@ -132,6 +137,16 @@
   background: #EEE;
   margin: 0;
   text-align: center;
+  cursor: pointer;
+  position: relative;
+}
+.vue-paint-menu-divider:after {
+  content: "-";
+  display: block;
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  line-height: 0;
 }
 .vue-paint-label {
   padding: 0.5em;

@@ -29,9 +29,9 @@
           v-for="option in state.getOptionByType('textarea', true)"
           :key="`${option.property}`"
           :style="{
-          'left': `${state.getContext().primitive.position.x}px`,
-          'top': `${state.getContext().primitive.position.y}px`,
-          'transform': `rotate(${state.getContext().primitive.rotation}deg)`,
+          'left': `${state.getContext().primitive.position.x * scaling / 100}px`,
+          'top': `${state.getContext().primitive.position.y * scaling / 100}px`,
+          'transform': `scale(${scaling / 100}) rotate(${state.getContext().primitive.rotation}deg)`,
           'transform-origin': `0px 0px`
           }"
         >
@@ -55,23 +55,21 @@
             }"
           ></textarea>
         </div>
-        <canvas ref="painter" id="painter" class="vue-paint-canvas" :class="{'vue-paint-canvas-select': state.getActiveName()===''}" resize></canvas>
+        <canvas ref="painter" id="painter" class="vue-paint-canvas" :class="{'vue-paint-canvas-select': state.getActiveName()===''}"></canvas>
       </div>
       <div id="menu" class="vue-paint-menu">
         <div>
+          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.tools}}</div>
           <a :class="`vue-paint-button vue-paint-button-selection${state.getActiveName()===''?' vue-paint-button-active':''}`" @click="state.setActive(false)">{{strings.selection}}</a>
-        </div>
-        <div>
-          <div class="vue-paint-menu-divider">{{strings.tools}}</div>
           <a :class="`vue-paint-button vue-paint-button-${t.replace(' ','_')}${state.getActiveName()==t?' vue-paint-button-active':''}`" v-for="t in tools" v-bind:key="`tool-${t}`" @click="state.setActive(state.getActiveName()==t ? false : t)">{{t}}</a>
         </div>
         <div>
-          <div class="vue-paint-menu-divider">{{strings.file}}</div>
+          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.file}}</div>
           <a class="vue-paint-button vue-paint-button-save" @click="saveJSON()">{{strings.save}}</a>
           <a class="vue-paint-button vue-paint-button-export" @click="exportSVG()">{{strings.export}}</a>
         </div>
         <div>
-          <div class="vue-paint-menu-divider">{{strings.preset}}</div>
+          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.preset}}</div>
           <label class="vue-paint-label vue-paint-label-stroke">{{strings.stroke}} {{state.getStrokeWidth()}} Px
             <input @change="state.setStrokeWidth($event.target.value)" type="range" min="0" max="10" :value="state.getStrokeWidth()">
           </label>
@@ -88,12 +86,15 @@
               <a v-for="c in colors" v-bind:key="`bgcolor-${c}`" class="color" :style="{'background-color': c}" :class="{'color-active': state.getStrokeColor()==c}" @click="state.setStrokeColor(c)"></a>
             </div>
           </label>
+          <label class="vue-paint-label vue-paint-label-stroke">Scaling {{scaling}}%
+            <input @change="setScaling($event.target.value)" type="range" min="25" step="25" max="200" :value="scaling">
+          </label>          
         </div>
       </div>
       <div id="context" class="vue-paint-context">
         <transition name="flipin">
           <div v-if="state.hasSelection()">
-            <div class="vue-paint-menu-divider">{{strings.selection}}</div>
+            <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.selection}}</div>
             <a class="vue-paint-button vue-paint-button-delete" @click="state.deleteSelection()">{{strings.delete}}  <span>🔙</span></a>
             <a class="vue-paint-button vue-paint-button-copy" @click="state.copySelection()">{{strings.copy}} <span>cmd-c</span></a>
             <a :class="`vue-paint-button vue-paint-button-${t[0]}${state.getTransformation()==t[0]?' vue-paint-button-active':''}`" v-for="t in transformations" v-bind:key="`transformation-${t[0]}`" @click="state.setTransformation(t[0])">{{translations[t[0]]}} <span>{{t[1]}}</span></a>
@@ -110,7 +111,7 @@
 
         <transition name="flipin">
           <div v-if="state.hasClipboard()">
-            <div class="vue-paint-menu-divider">{{strings.clipboard}}</div>
+            <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.clipboard}}</div>
             <a class="vue-paint-button vue-paint-button-paste" @click="state.pasteSelection()">{{strings.paste}}<span>cmd-v</span></a>
             <a class="vue-paint-button vue-paint-button-clear" @click="state.clearSelection()">{{strings.clear}}</a>
           </div>
@@ -118,7 +119,7 @@
 
         <transition name="flipin">
           <div v-if="state.getContext()">
-            <div class="vue-paint-menu-divider">{{strings.parameter}}</div>
+            <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.parameter}}</div>
             <form :id="`form-${option.property}`" v-bind:key="`form-${option.description}`" v-for="option in state.getContext().getOptions()">
               <a
                   v-if="option.type == 'textarea' || option.type == 'clipart'"
@@ -261,8 +262,11 @@ export default {
       sheet: style.sheet,
 
       // Drawing Layer
-      layer: null
+      layer: null,
 
+      // Scaling
+      scaling: 100,
+      viewSize: {}
     }
   },
   created() {
@@ -352,6 +356,18 @@ export default {
     drawGrid() {
       new this.paper.Layer();
       let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x) * -(180/Math.PI);
+
+      this.paper.Path.Line({
+          from: [0, this.paper.project.view.bounds.height / 2],
+          to: [this.paper.project.view.bounds.width, this.paper.project.view.bounds.height / 2],
+          strokeColor: '#CCC',
+      });
+      this.paper.Path.Line({
+          from: [this.paper.project.view.bounds.width / 2, 0],
+          to: [this.paper.project.view.bounds.width / 2, this.paper.project.view.bounds.height],
+          strokeColor: '#CCC',
+      });      
+
       if (this.state.gridsize.y != this.state.gridsize.x) {
         for (let _y = 0; _y < this.paper.project.view.bounds.height * 2; _y+=this.state.gridsize.y) {
           let _l = this.paper.Path.Line({
@@ -395,7 +411,15 @@ export default {
               fillColor: this.dotColor || '#000',
           });
         }
-      }      
+      }
+    },
+    setScaling(value) {
+      this.scaling = value * 1.0;
+      if (this.$refs.painter) {
+        this.paper.view.scale(1 / this.paper.view.zoom, [0,0])
+        this.paper.view.scale(this.scaling / 100, [0,0])
+        this.paper.view.viewSize = this.viewSize.multiply(this.scaling / 100)
+      }
     },
     initialize () {
       console.log('initializing vue-paint…')
@@ -405,7 +429,7 @@ export default {
       this.tool = new paper.Tool();
       this.state.paper = this.paper;
       let _painting;
-
+      this.viewSize = this.paper.view.viewSize.clone()
       this.drawGrid();
 
       this.layer = new this.paper.Layer();
@@ -696,6 +720,16 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="scss">
   .vue-paint {
+    .folded {
+      label, a, form, .vue-paint-arrowbuttons {
+        display: none;
+      }
+      .vue-paint-menu-divider {
+        &:after {
+          content: "+"
+        }
+      }
+    }
     &-wrapper {
       position: absolute;
       left: 20%;
@@ -722,11 +756,9 @@ export default {
       left: 0px;
       top: 0px;
       width: 20%;
-      height: 100%;
+      height: auto;
+      max-height: 100%;
       background: #CCC;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
     }
     &-clipart {
       &-wrapper {
@@ -818,13 +850,13 @@ export default {
       right: 0px;
       top: 0px;
       width: 10%;
-      height: 100%;
+      height: auto;
+      max-height: 100%;
       background: #CCC;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;    
     }
-
+    &-menu, &-context {
+      overflow-y: auto;
+    }
     &-menu-divider {
       font: inherit;
       padding: 0.5rem;
@@ -832,6 +864,16 @@ export default {
       background: #EEE;
       margin: 0;
       text-align: center;
+      cursor: pointer;
+      position: relative;
+      &:after {
+        content: "-";
+        display: block;
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        line-height: 0;
+      }
     }
 
     &-label {

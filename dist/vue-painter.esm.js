@@ -1822,8 +1822,11 @@ var script = {
       sheet: style.sheet,
 
       // Drawing Layer
-      layer: null
+      layer: null,
 
+      // Scaling
+      scaling: 100,
+      viewSize: {}
     }
   },
   created() {
@@ -1913,6 +1916,18 @@ var script = {
     drawGrid() {
       new this.paper.Layer();
       let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x) * -(180/Math.PI);
+
+      this.paper.Path.Line({
+          from: [0, this.paper.project.view.bounds.height / 2],
+          to: [this.paper.project.view.bounds.width, this.paper.project.view.bounds.height / 2],
+          strokeColor: '#CCC',
+      });
+      this.paper.Path.Line({
+          from: [this.paper.project.view.bounds.width / 2, 0],
+          to: [this.paper.project.view.bounds.width / 2, this.paper.project.view.bounds.height],
+          strokeColor: '#CCC',
+      });      
+
       if (this.state.gridsize.y != this.state.gridsize.x) {
         for (let _y = 0; _y < this.paper.project.view.bounds.height * 2; _y+=this.state.gridsize.y) {
           let _l = this.paper.Path.Line({
@@ -1956,7 +1971,15 @@ var script = {
               fillColor: this.dotColor || '#000',
           });
         }
-      }      
+      }
+    },
+    setScaling(value) {
+      this.scaling = value * 1.0;
+      if (this.$refs.painter) {
+        this.paper.view.scale(1 / this.paper.view.zoom, [0,0]);
+        this.paper.view.scale(this.scaling / 100, [0,0]);
+        this.paper.view.viewSize = this.viewSize.multiply(this.scaling / 100);
+      }
     },
     initialize () {
       console.log('initializing vue-paint…');
@@ -1966,7 +1989,7 @@ var script = {
       this.tool = new paper.Tool();
       this.state.paper = this.paper;
       let _painting;
-
+      this.viewSize = this.paper.view.viewSize.clone();
       this.drawGrid();
 
       this.layer = new this.paper.Layer();
@@ -2433,10 +2456,20 @@ var __vue_render__ = function() {
                 key: "" + option.property,
                 staticClass: "vue-paint-editor",
                 style: {
-                  left: _vm.state.getContext().primitive.position.x + "px",
-                  top: _vm.state.getContext().primitive.position.y + "px",
+                  left:
+                    (_vm.state.getContext().primitive.position.x *
+                      _vm.scaling) /
+                      100 +
+                    "px",
+                  top:
+                    (_vm.state.getContext().primitive.position.y *
+                      _vm.scaling) /
+                      100 +
+                    "px",
                   transform:
-                    "rotate(" +
+                    "scale(" +
+                    _vm.scaling / 100 +
+                    ") rotate(" +
                     _vm.state.getContext().primitive.rotation +
                     "deg)",
                   "transform-origin": "0px 0px"
@@ -2510,38 +2543,47 @@ var __vue_render__ = function() {
             class: {
               "vue-paint-canvas-select": _vm.state.getActiveName() === ""
             },
-            attrs: { id: "painter", resize: "" }
+            attrs: { id: "painter" }
           })
         ],
         2
       ),
       _vm._v(" "),
       _c("div", { staticClass: "vue-paint-menu", attrs: { id: "menu" } }, [
-        _c("div", [
-          _c(
-            "a",
-            {
-              class:
-                "vue-paint-button vue-paint-button-selection" +
-                (_vm.state.getActiveName() === ""
-                  ? " vue-paint-button-active"
-                  : ""),
-              on: {
-                click: function($event) {
-                  return _vm.state.setActive(false)
-                }
-              }
-            },
-            [_vm._v(_vm._s(_vm.strings.selection))]
-          )
-        ]),
-        _vm._v(" "),
         _c(
           "div",
           [
-            _c("div", { staticClass: "vue-paint-menu-divider" }, [
-              _vm._v(_vm._s(_vm.strings.tools))
-            ]),
+            _c(
+              "div",
+              {
+                staticClass: "vue-paint-menu-divider",
+                on: {
+                  click: function($event) {
+                    return $event.target.parentElement.classList.toggle(
+                      "folded"
+                    )
+                  }
+                }
+              },
+              [_vm._v(_vm._s(_vm.strings.tools))]
+            ),
+            _vm._v(" "),
+            _c(
+              "a",
+              {
+                class:
+                  "vue-paint-button vue-paint-button-selection" +
+                  (_vm.state.getActiveName() === ""
+                    ? " vue-paint-button-active"
+                    : ""),
+                on: {
+                  click: function($event) {
+                    return _vm.state.setActive(false)
+                  }
+                }
+              },
+              [_vm._v(_vm._s(_vm.strings.selection))]
+            ),
             _vm._v(" "),
             _vm._l(_vm.tools, function(t) {
               return _c(
@@ -2570,9 +2612,18 @@ var __vue_render__ = function() {
         ),
         _vm._v(" "),
         _c("div", [
-          _c("div", { staticClass: "vue-paint-menu-divider" }, [
-            _vm._v(_vm._s(_vm.strings.file))
-          ]),
+          _c(
+            "div",
+            {
+              staticClass: "vue-paint-menu-divider",
+              on: {
+                click: function($event) {
+                  return $event.target.parentElement.classList.toggle("folded")
+                }
+              }
+            },
+            [_vm._v(_vm._s(_vm.strings.file))]
+          ),
           _vm._v(" "),
           _c(
             "a",
@@ -2602,9 +2653,18 @@ var __vue_render__ = function() {
         ]),
         _vm._v(" "),
         _c("div", [
-          _c("div", { staticClass: "vue-paint-menu-divider" }, [
-            _vm._v(_vm._s(_vm.strings.preset))
-          ]),
+          _c(
+            "div",
+            {
+              staticClass: "vue-paint-menu-divider",
+              on: {
+                click: function($event) {
+                  return $event.target.parentElement.classList.toggle("folded")
+                }
+              }
+            },
+            [_vm._v(_vm._s(_vm.strings.preset))]
+          ),
           _vm._v(" "),
           _c(
             "label",
@@ -2700,6 +2760,23 @@ var __vue_render__ = function() {
                 0
               )
             ]
+          ),
+          _vm._v(" "),
+          _c(
+            "label",
+            { staticClass: "vue-paint-label vue-paint-label-stroke" },
+            [
+              _vm._v("Scaling " + _vm._s(_vm.scaling) + "%\n        "),
+              _c("input", {
+                attrs: { type: "range", min: "25", step: "25", max: "200" },
+                domProps: { value: _vm.scaling },
+                on: {
+                  change: function($event) {
+                    return _vm.setScaling($event.target.value)
+                  }
+                }
+              })
+            ]
           )
         ])
       ]),
@@ -2713,9 +2790,20 @@ var __vue_render__ = function() {
               ? _c(
                   "div",
                   [
-                    _c("div", { staticClass: "vue-paint-menu-divider" }, [
-                      _vm._v(_vm._s(_vm.strings.selection))
-                    ]),
+                    _c(
+                      "div",
+                      {
+                        staticClass: "vue-paint-menu-divider",
+                        on: {
+                          click: function($event) {
+                            return $event.target.parentElement.classList.toggle(
+                              "folded"
+                            )
+                          }
+                        }
+                      },
+                      [_vm._v(_vm._s(_vm.strings.selection))]
+                    ),
                     _vm._v(" "),
                     _c(
                       "a",
@@ -2865,9 +2953,20 @@ var __vue_render__ = function() {
           _c("transition", { attrs: { name: "flipin" } }, [
             _vm.state.hasClipboard()
               ? _c("div", [
-                  _c("div", { staticClass: "vue-paint-menu-divider" }, [
-                    _vm._v(_vm._s(_vm.strings.clipboard))
-                  ]),
+                  _c(
+                    "div",
+                    {
+                      staticClass: "vue-paint-menu-divider",
+                      on: {
+                        click: function($event) {
+                          return $event.target.parentElement.classList.toggle(
+                            "folded"
+                          )
+                        }
+                      }
+                    },
+                    [_vm._v(_vm._s(_vm.strings.clipboard))]
+                  ),
                   _vm._v(" "),
                   _c(
                     "a",
@@ -2906,9 +3005,20 @@ var __vue_render__ = function() {
               ? _c(
                   "div",
                   [
-                    _c("div", { staticClass: "vue-paint-menu-divider" }, [
-                      _vm._v(_vm._s(_vm.strings.parameter))
-                    ]),
+                    _c(
+                      "div",
+                      {
+                        staticClass: "vue-paint-menu-divider",
+                        on: {
+                          click: function($event) {
+                            return $event.target.parentElement.classList.toggle(
+                              "folded"
+                            )
+                          }
+                        }
+                      },
+                      [_vm._v(_vm._s(_vm.strings.parameter))]
+                    ),
                     _vm._v(" "),
                     _vm._l(_vm.state.getContext().getOptions(), function(
                       option
