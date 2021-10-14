@@ -2224,16 +2224,23 @@ var script = {
         .map(rule => stringifyRule(rule))
         .join('\n');
 
-      svg = svg.replace(/<svg(.*?)>/, (e) => {
+      /*svg = svg.replace(/<svg(.*?)>/, (e) => {
         return (`${e}
         <defs>
           <style>
             ${_str}
           </style>
         </defs>`)
-      });
+      })*/
 
-      svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${this.paper.project.view.bounds.width}" height="${this.paper.project.view.bounds.height}" viewBox="0,0,${this.paper.project.view.bounds.width},${this.paper.project.view.bounds.height}">${svg}</svg>`;
+      svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${this.paper.project.view.bounds.width}" height="${this.paper.project.view.bounds.height}" viewBox="0,0,${this.paper.project.view.bounds.width},${this.paper.project.view.bounds.height}">
+      <defs>
+        <style>
+          ${_str}
+        </style>
+      </defs>
+      ${svg}
+      </svg>`;
 
       this.$emit('export', svg);
     },
