@@ -2200,6 +2200,7 @@
       exportSVG() {
         let svg = this.paper.project.activeLayer.exportSVG({
           asString: true,
+          embedImages: false,
           onExport: (item, node) => {
               if (item._class === 'PointText') {
                   node.textContent = null;
