@@ -1,5 +1,5 @@
 <template>
-    <div class="vue-paint">
+    <div class="vue-paint" :style="cssVars">
       <transition name="flipin">
         <div 
           class="vue-paint-clipart-wrapper"
@@ -197,6 +197,13 @@ export default {
     angleStep: Number,
     gridColor: String,
     dotColor: String
+  },
+  computed: {
+    cssVars () {
+      return {
+        '--vue-paint-scaling-factor': `${this.scaling}`
+      }
+    }
   },
   data () {
 

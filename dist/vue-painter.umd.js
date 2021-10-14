@@ -1762,6 +1762,13 @@
       gridColor: String,
       dotColor: String
     },
+    computed: {
+      cssVars () {
+        return {
+          '--vue-paint-scaling-factor': `${this.scaling}`
+        }
+      }
+    },
     data () {
 
       let style = document.createElement('style');
@@ -2364,7 +2371,7 @@
     var _c = _vm._self._c || _h;
     return _c(
       "div",
-      { staticClass: "vue-paint" },
+      { staticClass: "vue-paint", style: _vm.cssVars },
       [
         _c(
           "transition",
