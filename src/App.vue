@@ -122,6 +122,7 @@ export default {
                 source: "/vue-paint/img/default.png",
                 fixed: false,
                 defaultWidth: 300,
+                defaultHeight: 300,
                 keepAspect: false
             }
         },
