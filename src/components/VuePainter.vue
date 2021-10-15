@@ -120,55 +120,57 @@
         <transition name="flipin">
           <div v-if="state.getContext()">
             <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.parameter}}</div>
-            <form :id="`form-${option.property}`" v-bind:key="`form-${option.description}`" v-for="option in state.getContext().getOptions()">
-              <a
-                  v-if="option.type == 'textarea' || option.type == 'clipart'"
-                  :class="`vue-paint-button vue-paint-button-${option.description} ${option.toggled?' vue-paint-button-active':''}`"
-                  v-bind:key="option.parameter"
-                  @click="toggleOption(option)"
-              >
-                {{strings[option.description] || option.description}}<span>{{option.type == 'textarea' ? 'cmd-e' : 'cmd-i'}}</span>
-              </a>
+            <template v-for="option in state.getContext().getOptions()">
+              <form v-if="option.type != 'hidden'" :id="`form-${option.property}`" v-bind:key="`form-${option.description}`">
+                <a
+                    v-if="option.type == 'textarea' || option.type == 'clipart'"
+                    :class="`vue-paint-button vue-paint-button-${option.description} ${option.toggled?' vue-paint-button-active':''}`"
+                    v-bind:key="option.parameter"
+                    @click="toggleOption(option)"
+                >
+                  {{strings[option.description] || option.description}}<span>{{option.type == 'textarea' ? 'cmd-e' : 'cmd-i'}}</span>
+                </a>
 
-              <label
-                :class="`vue-paint-label vue-paint-label-${option.description}`" 
-                v-bind:key="`option-${option.description}`"
-                v-if="option.type == 'int' && option.min !== option.max">{{strings[option.description] || option.description}}: {{option.value}}
-                <input 
-                  @change="state.getContext().setOption(option.property, $event.target.value)" 
-                  type="range" 
-                  :min="option.min" 
-                  :max="option.max" 
-                  :step="option.step" 
-                  :value="option.value"
-                  name="input"
-                >
-              </label>
-              <label
-                :class="`vue-paint-label vue-paint-label-${option.description}`" 
-                v-bind:key="`option-${option.description}`"
-                v-if="option.type == 'boolean'">{{strings[option.description] || option.description}}
-                <input 
-                  @change="state.getContext().setOption(option.property, $event.target.checked)" 
-                  type="checkbox" 
-                  :checked="option.value"
-                  name="input"
-                >
-              </label>              
-              <label
-                :class="`vue-paint-label vue-paint-label-${option.description}`"
-                v-bind:key="`option-${option.property}`"
-                v-if="option.type == 'text'">{{strings[option.description] || option.description}}
-                <input
-                  @keyup="state.getContext().setOption(option.property, $event.target.value)" 
-                  @focus="disableKeys" 
-                  @blur="enableKeys" 
-                  v-model="option.value"
-                  name="input"
-                  type="text"
-                >
-              </label>                
-            </form>
+                <label
+                  :class="`vue-paint-label vue-paint-label-${option.description}`" 
+                  v-bind:key="`option-${option.description}`"
+                  v-if="option.type == 'int' && option.min !== option.max">{{strings[option.description] || option.description}}: {{option.value}}
+                  <input 
+                    @change="state.getContext().setOption(option.property, $event.target.value)" 
+                    type="range" 
+                    :min="option.min" 
+                    :max="option.max" 
+                    :step="option.step" 
+                    :value="option.value"
+                    name="input"
+                  >
+                </label>
+                <label
+                  :class="`vue-paint-label vue-paint-label-${option.description}`" 
+                  v-bind:key="`option-${option.description}`"
+                  v-if="option.type == 'boolean'">{{strings[option.description] || option.description}}
+                  <input 
+                    @change="state.getContext().setOption(option.property, $event.target.checked)" 
+                    type="checkbox" 
+                    :checked="option.value"
+                    name="input"
+                  >
+                </label>              
+                <label
+                  :class="`vue-paint-label vue-paint-label-${option.description}`"
+                  v-bind:key="`option-${option.property}`"
+                  v-if="option.type == 'text'">{{strings[option.description] || option.description}}
+                  <input
+                    @keyup="state.getContext().setOption(option.property, $event.target.value)" 
+                    @focus="disableKeys" 
+                    @blur="enableKeys" 
+                    v-model="option.value"
+                    name="input"
+                    type="text"
+                  >
+                </label>
+              </form>
+            </template>
           </div>
         </transition>
       </div>

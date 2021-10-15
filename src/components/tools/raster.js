@@ -25,7 +25,7 @@ export default class Raster extends Tool {
       },
       {
         property: "defaultWidth",
-        description: "Keep Aspect",
+        description: "defaultWidth",
         type    : "hidden",
         value   : defaults.defaultWidth
       }      
