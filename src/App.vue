@@ -120,7 +120,9 @@ export default {
             class: 'Raster',
             defaults: {
                 source: "/vue-paint/img/default.png",
-                fixed: false
+                fixed: false,
+                defaultWidth: 300,
+                keepAspect: false
             }
         },
         'Text': {
