@@ -927,10 +927,11 @@ class Polygon extends Tool {
 class Raster extends Tool {
   constructor (paper, startPoint, state, primitive, defaults) {
     defaults = defaults || {};
-    defaults.source = defaults.source || "/vue-paint/img/default.png";
+    defaults.source = false;
     defaults.fixed = defaults.fixed || false;
     defaults.toolName = defaults.toolName || 'Raster';
-    defaults.defaultWidth = defaults.defaultWidth || 250;
+    defaults.defaultWidth = defaults.defaultWidth || 300;
+    defaults.defaultHeight = defaults.defaultHeight || 300;
     defaults.keepAspect = defaults.keepAspect || true;
 
     let options = [
@@ -939,7 +940,6 @@ class Raster extends Tool {
           description: "Clipart",
           type    : "clipart",
           value   : defaults.source,
-          redraw  : true,
           toggled : true
       },
       {
@@ -953,7 +953,14 @@ class Raster extends Tool {
         description: "defaultWidth",
         type    : "hidden",
         value   : defaults.defaultWidth
+      },
+      {
+        property: "defaultHeight",
+        description: "defaultHeight",
+        type    : "hidden",
+        value   : defaults.defaultHeight
       }      
+
     ];
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
   }
@@ -1020,29 +1027,33 @@ class Raster extends Tool {
 
 
   createPrimitive() {
+    console.log('createPrimitive');
     let _toPoint  = this.round(this.startPoint);
     let _r = new this.paper.Raster({
       crossOrigin: 'anonymous', 
       position: _toPoint, 
-      smoothing: 'high',
-      width: this.getOption('defaultWidth')
+      smoothing: 'high'
     });
-    _r.source = this.getOption('source');
     let _initialize = () => {
+      if (this.getOption('source') !== false) {
+        _r.source = this.getOption('source');
+      }
       if (this.initialized !== true) {
         this.initialized = true;
-        this.toggleSelect();
-        this.selectBorderColor('red');
-        console.log('init toggle');
+        let _b = new this.paper.Rectangle(_toPoint.x, _toPoint.y, this.getOption('defaultWidth'), this.getOption('defaultHeight'));
+        _r.fitBounds(_b);
       }
-    };
+    };    
+
     _r.onLoad = () => {
-      console.log(this.aspect);
       _initialize();
     };
     _r.onError = () => {
       _initialize();
     };
+
+    this.primitive = _r;
+    this.toggleSelect();
     return _r;
   }
 }
