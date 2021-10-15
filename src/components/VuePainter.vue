@@ -619,14 +619,6 @@ export default {
         if (this.json) {
           this.state.importStack(this.json)
         }
-        /*if (this.json) {
-          this.json.forEach(o => {
-            let _primitive = this.paper.project.activeLayer.importJSON(Base64.decode(o.data))
-            this.state.setActive(o.prototype)
-            new this.state.active(this.paper, false, this.state, _primitive, this.state.getActiveDefaults());
-          })
-          this.state.setActive('')
-        }*/
       });
 
     },
@@ -663,15 +655,6 @@ export default {
       let _str = Array.from(this.sheet.cssRules)
         .map(rule => stringifyRule(rule))
         .join('\n')
-
-      /*svg = svg.replace(/<svg(.*?)>/, (e) => {
-        return (`${e}
-        <defs>
-          <style>
-            ${_str}
-          </style>
-        </defs>`)
-      })*/
 
       svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${this.paper.project.view.bounds.width}" height="${this.paper.project.view.bounds.height}" viewBox="0,0,${this.paper.project.view.bounds.width},${this.paper.project.view.bounds.height}">
       <defs>

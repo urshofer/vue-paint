@@ -354,21 +354,23 @@
               this.endRotate(delta, point);
             }
             else {
-              this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
-              this.state.setTransformation('Move');
+              if (!this.paper.Key.isDown('meta')) {
+                this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
+              }
             }
             break;
           case 'Resize':
             if (typeof this.endResize == "function") {
               this.endResize(delta, point);
             }
-            else {            
-              this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize.x) * this.state.gridsize.x;
-              this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize.y) * this.state.gridsize.y;
-              this.primitive.bounds.left = Math.round(this.primitive.bounds.left / this.state.gridsize.x) * this.state.gridsize.x;
-              this.primitive.bounds.top = Math.round(this.primitive.bounds.top / this.state.gridsize.y) * this.state.gridsize.y;
+            else {
+              if (!this.paper.Key.isDown('meta')) {
+                this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize.x) * this.state.gridsize.x;
+                this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize.y) * this.state.gridsize.y;
+                this.primitive.bounds.left = Math.round(this.primitive.bounds.left / this.state.gridsize.x) * this.state.gridsize.x;
+                this.primitive.bounds.top = Math.round(this.primitive.bounds.top / this.state.gridsize.y) * this.state.gridsize.y;
+              }
             }
-            this.state.setTransformation('Move');
             break;    
           case 'Move':
             if (typeof this.endTranslate == "function") {
@@ -646,9 +648,10 @@
     }
 
     endResize() {
-      this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
-      this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
-      this.state.setTransformation('Move');
+      if (!this.paper.Key.isDown('meta')) {
+        this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
+        this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
+      }
     }
   }
 
@@ -792,9 +795,10 @@
     endtransformation(mode) {
       switch (mode) {
         case 'Resize':
-          this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
-          this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
-          this.state.setTransformation('Move');
+          if (!this.paper.Key.isDown('meta')) {
+            this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
+            this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
+          }
           this._pos.center = this.primitive.bounds.center;
           break;
       }
@@ -915,9 +919,10 @@
     endtransformation(mode) {
       switch (mode) {
         case 'Resize':
-          this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
-          this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
-          this.state.setTransformation('Move');
+          if (!this.paper.Key.isDown('meta')) {
+            this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
+            this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
+          }
           break;
       }
     }
@@ -929,7 +934,8 @@
       defaults.source = defaults.source || "/vue-paint/img/default.png";
       defaults.fixed = defaults.fixed || false;
       defaults.toolName = defaults.toolName || 'Raster';
-
+      defaults.defaultWidth = defaults.defaultWidth || 250;
+      defaults.keepAspect = defaults.keepAspect || true;
 
       let options = [
         {
@@ -939,7 +945,19 @@
             value   : defaults.source,
             redraw  : true,
             toggled : true
-        }
+        },
+        {
+          property: "keepAspect",
+          description: "Keep Aspect",
+          type    : "boolean",
+          value   : defaults.keepAspect
+        },
+        {
+          property: "defaultWidth",
+          description: "Keep Aspect",
+          type    : "hidden",
+          value   : defaults.defaultWidth
+        }      
       ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
     }
@@ -950,7 +968,7 @@
      */
 
     resize(delta) {
-      if (this.paper.Key.isDown('shift')) {
+      if (this.paper.Key.isDown('shift') || this.getOption('keepAspect') === true) {
         this.primitive.scale(
           1 / this.primitive.bounds.width * (this.primitive.bounds.width + delta.x),
           {
@@ -976,13 +994,23 @@
      */
 
     endResize() {
+      let _fX = 1 / this.primitive.bounds.width * (Math.round(this.primitive.bounds.width / this.state.gridsize.x) * this.state.gridsize.x);
+      let _fY = 1 / this.primitive.bounds.height * (Math.round(this.primitive.bounds.height / this.state.gridsize.y) * this.state.gridsize.y);
+      if (this.paper.Key.isDown('meta')) {
+        _fX = 1;
+        _fY = 1;
+      }
+      if (this.paper.Key.isDown('shift') || this.getOption('keepAspect') === true) {
+        _fY = _fX;
+      }
+      let _pos = this.round({
+        x: this.primitive.bounds.left,
+        y: this.primitive.bounds.top
+      });
       this.primitive.scale(
-        1 / this.primitive.bounds.width * (Math.round(this.primitive.bounds.width / this.state.gridsize.x) * this.state.gridsize.x),
-        1 / this.primitive.bounds.height * (Math.round(this.primitive.bounds.height / this.state.gridsize.y) * this.state.gridsize.y),
-        {
-          x: this.primitive.bounds.left,
-          y: this.primitive.bounds.top
-        }
+        _fX,
+        _fY,
+        _pos
       );
       //let _b = this.primitive.bounds.clone();
       //this.primitive.scaling = [1,1]
@@ -997,7 +1025,12 @@
 
     createPrimitive() {
       let _toPoint  = this.round(this.startPoint);
-      let _r = new this.paper.Raster({crossOrigin: 'anonymous', position: _toPoint, smoothing: 'high'});
+      let _r = new this.paper.Raster({
+        crossOrigin: 'anonymous', 
+        position: _toPoint, 
+        smoothing: 'high',
+        width: this.getOption('defaultWidth')
+      });
       _r.source = this.getOption('source');
       let _initialize = () => {
         if (this.initialized !== true) {
@@ -1247,7 +1280,6 @@
     }
 
     endResize () {
-      this.state.setTransformation('Move');
     }
 
     setOption(name, value) {
@@ -1386,9 +1418,10 @@
     endtransformation(mode) {
       switch (mode) {
         case 'Resize':
-          this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
-          this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
-          this.state.setTransformation('Move');
+          if (!this.paper.Key.isDown('meta')) {
+            this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
+            this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
+          }
           break;
       }
     }
@@ -2183,14 +2216,6 @@
           if (this.json) {
             this.state.importStack(this.json);
           }
-          /*if (this.json) {
-            this.json.forEach(o => {
-              let _primitive = this.paper.project.activeLayer.importJSON(Base64.decode(o.data))
-              this.state.setActive(o.prototype)
-              new this.state.active(this.paper, false, this.state, _primitive, this.state.getActiveDefaults());
-            })
-            this.state.setActive('')
-          }*/
         });
 
       },
@@ -2227,15 +2252,6 @@
         let _str = Array.from(this.sheet.cssRules)
           .map(rule => stringifyRule(rule))
           .join('\n');
-
-        /*svg = svg.replace(/<svg(.*?)>/, (e) => {
-          return (`${e}
-          <defs>
-            <style>
-              ${_str}
-            </style>
-          </defs>`)
-        })*/
 
         svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${this.paper.project.view.bounds.width}" height="${this.paper.project.view.bounds.height}" viewBox="0,0,${this.paper.project.view.bounds.width},${this.paper.project.view.bounds.height}">
       <defs>

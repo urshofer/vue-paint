@@ -5,7 +5,8 @@ export default class Raster extends Tool {
     defaults.source = defaults.source || "/vue-paint/img/default.png"
     defaults.fixed = defaults.fixed || false
     defaults.toolName = defaults.toolName || 'Raster'
-
+    defaults.defaultWidth = defaults.defaultWidth || 250
+    defaults.keepAspect = defaults.keepAspect || true
 
     let options = [
       {
@@ -15,7 +16,19 @@ export default class Raster extends Tool {
           value   : defaults.source,
           redraw  : true,
           toggled : true
-      }
+      },
+      {
+        property: "keepAspect",
+        description: "Keep Aspect",
+        type    : "boolean",
+        value   : defaults.keepAspect
+      },
+      {
+        property: "defaultWidth",
+        description: "Keep Aspect",
+        type    : "hidden",
+        value   : defaults.defaultWidth
+      }      
     ]
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed)
   }
@@ -26,7 +39,7 @@ export default class Raster extends Tool {
    */
 
   resize(delta) {
-    if (this.paper.Key.isDown('shift')) {
+    if (this.paper.Key.isDown('shift') || this.getOption('keepAspect') === true) {
       this.primitive.scale(
         1 / this.primitive.bounds.width * (this.primitive.bounds.width + delta.x),
         {
@@ -52,13 +65,23 @@ export default class Raster extends Tool {
    */
 
   endResize() {
+    let _fX = 1 / this.primitive.bounds.width * (Math.round(this.primitive.bounds.width / this.state.gridsize.x) * this.state.gridsize.x)
+    let _fY = 1 / this.primitive.bounds.height * (Math.round(this.primitive.bounds.height / this.state.gridsize.y) * this.state.gridsize.y)
+    if (this.paper.Key.isDown('meta')) {
+      _fX = 1
+      _fY = 1
+    }
+    if (this.paper.Key.isDown('shift') || this.getOption('keepAspect') === true) {
+      _fY = _fX
+    }
+    let _pos = this.round({
+      x: this.primitive.bounds.left,
+      y: this.primitive.bounds.top
+    })
     this.primitive.scale(
-      1 / this.primitive.bounds.width * (Math.round(this.primitive.bounds.width / this.state.gridsize.x) * this.state.gridsize.x),
-      1 / this.primitive.bounds.height * (Math.round(this.primitive.bounds.height / this.state.gridsize.y) * this.state.gridsize.y),
-      {
-        x: this.primitive.bounds.left,
-        y: this.primitive.bounds.top
-      }
+      _fX,
+      _fY,
+      _pos
     )
     //let _b = this.primitive.bounds.clone();
     //this.primitive.scaling = [1,1]
@@ -73,7 +96,12 @@ export default class Raster extends Tool {
 
   createPrimitive() {
     let _toPoint  = this.round(this.startPoint)
-    let _r = new this.paper.Raster({crossOrigin: 'anonymous', position: _toPoint, smoothing: 'high'});
+    let _r = new this.paper.Raster({
+      crossOrigin: 'anonymous', 
+      position: _toPoint, 
+      smoothing: 'high',
+      width: this.getOption('defaultWidth')
+    });
     _r.source = this.getOption('source');
     let _initialize = () => {
       if (this.initialized !== true) {

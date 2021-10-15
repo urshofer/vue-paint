@@ -113,9 +113,10 @@ export default class Polygon extends Tool {
   endtransformation(mode) {
     switch (mode) {
       case 'Resize':
-        this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
-        this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
-        this.state.setTransformation('Move');
+        if (!this.paper.Key.isDown('meta')) {
+          this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2)
+          this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2)
+        }
         break;
     }
   }

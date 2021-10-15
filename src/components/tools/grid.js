@@ -91,7 +91,6 @@ export default class Grid extends Tool {
   }
 
   endResize () {
-    this.state.setTransformation('Move');
   }
 
   setOption(name, value) {

@@ -348,21 +348,23 @@ export default class Tool {
             this.endRotate(delta, point)
           }
           else {
-            this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
-            this.state.setTransformation('Move');
+            if (!this.paper.Key.isDown('meta')) {
+              this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
+            }
           }
           break;
         case 'Resize':
           if (typeof this.endResize == "function") {
             this.endResize(delta, point)
           }
-          else {            
-            this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize.x) * this.state.gridsize.x;
-            this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize.y) * this.state.gridsize.y;
-            this.primitive.bounds.left = Math.round(this.primitive.bounds.left / this.state.gridsize.x) * this.state.gridsize.x;
-            this.primitive.bounds.top = Math.round(this.primitive.bounds.top / this.state.gridsize.y) * this.state.gridsize.y;
+          else {
+            if (!this.paper.Key.isDown('meta')) {
+              this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize.x) * this.state.gridsize.x;
+              this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize.y) * this.state.gridsize.y;
+              this.primitive.bounds.left = Math.round(this.primitive.bounds.left / this.state.gridsize.x) * this.state.gridsize.x;
+              this.primitive.bounds.top = Math.round(this.primitive.bounds.top / this.state.gridsize.y) * this.state.gridsize.y;
+            }
           }
-          this.state.setTransformation('Move');
           break;    
         case 'Move':
           if (typeof this.endTranslate == "function") {
