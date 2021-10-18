@@ -92,7 +92,7 @@
           </label>          
         </div>
       </vue-draggable-resizable>
-      <vue-draggable-resizable :parent="true" :x="state.hasSelectionBoundingBox().x" :y="getContextY()"  :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
+      <vue-draggable-resizable v-if="state.hasSelection() || state.hasClipboard() || state.getContext()" :parent="true" :x="state.hasSelectionBoundingBox().x" :y="getContextY()"  :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
         <div class="drag"/>
         <div v-if="state.hasSelection()">
           <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.functions}}</div>
