@@ -1841,6 +1841,7 @@
           'file': 'File',
           'preset': 'Preset',
           'selection': 'Selection',
+          'functions': 'Functions',
           'parameter': 'Parameter',
           'clipboard': 'Clipboard',
           'save': 'Save',
@@ -2848,7 +2849,7 @@
                             }
                           }
                         },
-                        [_vm._v(_vm._s(_vm.strings.selection))]
+                        [_vm._v(_vm._s(_vm.strings.functions))]
                       ),
                       _vm._v(" "),
                       _c(

@@ -94,7 +94,7 @@
       <div id="context" class="vue-paint-context">
         <transition name="flipin">
           <div v-if="state.hasSelection()">
-            <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.selection}}</div>
+            <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.functions}}</div>
             <a class="vue-paint-button vue-paint-button-delete" @click="state.deleteSelection()">{{strings.delete}}  <span>🔙</span></a>
             <a class="vue-paint-button vue-paint-button-copy" @click="state.copySelection()">{{strings.copy}} <span>cmd-c</span></a>
             <a :class="`vue-paint-button vue-paint-button-${t[0]}${state.getTransformation()==t[0]?' vue-paint-button-active':''}`" v-for="t in transformations" v-bind:key="`transformation-${t[0]}`" @click="state.setTransformation(t[0])">{{translations[t[0]]}} <span>{{t[1]}}</span></a>
@@ -235,6 +235,7 @@ export default {
         'file': 'File',
         'preset': 'Preset',
         'selection': 'Selection',
+        'functions': 'Functions',
         'parameter': 'Parameter',
         'clipboard': 'Clipboard',
         'save': 'Save',

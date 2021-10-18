@@ -1837,6 +1837,7 @@ var script = {
         'file': 'File',
         'preset': 'Preset',
         'selection': 'Selection',
+        'functions': 'Functions',
         'parameter': 'Parameter',
         'clipboard': 'Clipboard',
         'save': 'Save',
@@ -2844,7 +2845,7 @@ var __vue_render__ = function() {
                           }
                         }
                       },
-                      [_vm._v(_vm._s(_vm.strings.selection))]
+                      [_vm._v(_vm._s(_vm.strings.functions))]
                     ),
                     _vm._v(" "),
                     _c(
