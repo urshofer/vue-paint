@@ -20,6 +20,7 @@ export default class Tool {
     }
 
 
+
     this.startPoint  = startPoint || false;
     this.mousedown = false;
     this.alreadySelected = false;
@@ -33,6 +34,14 @@ export default class Tool {
     else {
       this.draw(startPoint)
     }
+  }
+
+  isTransformationAllowed(transformation) {
+    // Currently, transformations for fixed elements are not allowed.
+    if (transformation) {
+      return this.fixedposition === false;
+    }
+    return true
   }
 
   registerOptions(options) {

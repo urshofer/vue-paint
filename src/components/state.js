@@ -93,8 +93,8 @@ export default class State {
             this.tools[_t].defaults.toolName = _t;
 
             // Overload Class
+            this.tools[_t].className = this.tools[_t].class;            
             this.tools[_t].class = _toolClasses[this.tools[_t].class];
-
         }
     }
 
@@ -166,6 +166,25 @@ export default class State {
 
     hasSelection() {
         return this.selected.length > 0;
+    }
+
+    hasSelectionBoundingBox() {
+        let _r = false
+        let _t = false
+        if (this.selected.length > 0) {
+            this.selected.forEach(s => {
+                if (s.primitive.bounds.top < _t || _t === false) {
+                    _t = s.primitive.bounds.top
+                }
+                if (s.primitive.bounds.right > _r || _r === false) {
+                    _r = s.primitive.bounds.right
+                }
+            })
+        }
+        return {
+            x: _r || 0,
+            y: _t || 0
+        }
     }
 
     hasClipboard() {
@@ -253,6 +272,18 @@ export default class State {
         return this.actveByName;
     }
 
+    getActiveClassName() {
+        if (this.active) {
+            return this.tools[this.actveByName].className
+        }
+        else
+            return ""
+    }
+
+    getClassName(toolname) {
+        return this.tools[toolname].className
+    }
+
     getActiveDefaults() {
         return this.tools[this.actveByName].defaults || null;
     }
@@ -278,6 +309,11 @@ export default class State {
             return this.context;
         }
         else return false;
+    }
+
+    isTransformationAllowed(transformation) {
+        if (this.getContext() === false) return true;
+        else return this.getContext().isTransformationAllowed(transformation)
     }
 
     getOptionByType(option, toggled) {

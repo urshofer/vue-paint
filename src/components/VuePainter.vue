@@ -23,7 +23,7 @@
           </div>
         </div> 
       </transition>
-      <div id="wrapper" class="vue-paint-wrapper">
+      <div id="wrapper" class="vue-paint-wrapper" ref="wrapper">
         <div id="fitpopup"
           class="vue-paint-editor"
           v-for="option in state.getOptionByType('textarea', true)"
@@ -55,13 +55,14 @@
             }"
           ></textarea>
         </div>
-        <canvas ref="painter" id="painter" class="vue-paint-canvas" :class="{'vue-paint-canvas-select': state.getActiveName()===''}"></canvas>
+        <canvas ref="painter" id="painter" :class="`vue-paint-canvas vue-paint-canvas-${state.getActiveClassName()} vue-paint-canvas-${state.getActiveName().replace(/ /g, '_')}`"></canvas>
       </div>
-      <div id="menu" class="vue-paint-menu">
+      <vue-draggable-resizable :parent="true" :w="'auto'" :h="'auto'" drag-handle=".drag" id="menu" class="vue-paint-menu" :z="10">
+        <div class="drag"/>
         <div>
           <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.tools}}</div>
           <a :class="`vue-paint-button vue-paint-button-selection${state.getActiveName()===''?' vue-paint-button-active':''}`" @click="state.setActive(false)">{{strings.selection}}</a>
-          <a :class="`vue-paint-button vue-paint-button-${t.replace(' ','_')}${state.getActiveName()==t?' vue-paint-button-active':''}`" v-for="t in tools" v-bind:key="`tool-${t}`" @click="state.setActive(state.getActiveName()==t ? false : t)">{{t}}</a>
+          <a :class="`vue-paint-button vue-paint-button-${state.getClassName(t)} vue-paint-button-${t.replace(/ /g, '_')}${state.getActiveName()==t?' vue-paint-button-active':''}`" v-for="t in tools" v-bind:key="`tool-${t}`" @click="state.setActive(state.getActiveName()==t ? false : t)">{{t}}</a>
         </div>
         <div>
           <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.file}}</div>
@@ -90,90 +91,85 @@
             <input @change="setScaling($event.target.value)" type="range" min="25" step="25" max="200" :value="scaling">
           </label>          
         </div>
-      </div>
-      <div id="context" class="vue-paint-context">
-        <transition name="flipin">
-          <div v-if="state.hasSelection()">
-            <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.functions}}</div>
-            <a class="vue-paint-button vue-paint-button-delete" @click="state.deleteSelection()">{{strings.delete}}  <span>🔙</span></a>
-            <a class="vue-paint-button vue-paint-button-copy" @click="state.copySelection()">{{strings.copy}} <span>cmd-c</span></a>
-            <a :class="`vue-paint-button vue-paint-button-${t[0]}${state.getTransformation()==t[0]?' vue-paint-button-active':''}`" v-for="t in transformations" v-bind:key="`transformation-${t[0]}`" @click="state.setTransformation(t[0])">{{translations[t[0]]}} <span>{{t[1]}}</span></a>
-            <a class="vue-paint-button vue-paint-button-background" @click="state.shiftSelection('back')">{{strings.background}}<span>⇞</span></a>
-            <a class="vue-paint-button vue-paint-button-foreground" @click="state.shiftSelection('front')">{{strings.foreground}}<span>⇟</span></a>
-            <div class="vue-paint-arrowbuttons">
-              <a @click="state.moveSelection('left')"><span>&larr;</span></a>
-              <a @click="state.moveSelection('up')"><span>&uarr;</span></a>
-              <a @click="state.moveSelection('down')"><span>&darr;</span></a>
-              <a @click="state.moveSelection('right')"><span>&rarr;</span></a>
-            </div>
+      </vue-draggable-resizable>
+      <vue-draggable-resizable :parent="true" :x="state.hasSelectionBoundingBox().x" :y="getContextY()"  :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
+        <div class="drag"/>
+        <div v-if="state.hasSelection()">
+          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.functions}}</div>
+          <a class="vue-paint-button vue-paint-button-delete" @click="state.deleteSelection()">{{strings.delete}}  <span>🔙</span></a>
+          <a class="vue-paint-button vue-paint-button-copy" @click="state.copySelection()">{{strings.copy}} <span>cmd-c</span></a>
+          <template  v-for="t in transformations">
+            <a v-if="state.isTransformationAllowed(t[0])" :class="`vue-paint-button vue-paint-button-${t[0]}${state.getTransformation()==t[0]?' vue-paint-button-active':''}`" v-bind:key="`transformation-${t[0]}`" @click="state.setTransformation(t[0])">{{translations[t[0]]}} <span>{{t[1]}}</span></a>
+          </template>
+          <a class="vue-paint-button vue-paint-button-background" @click="state.shiftSelection('back')">{{strings.background}}<span>⇞</span></a>
+          <a class="vue-paint-button vue-paint-button-foreground" @click="state.shiftSelection('front')">{{strings.foreground}}<span>⇟</span></a>
+          <div class="vue-paint-arrowbuttons" v-if="state.isTransformationAllowed('Move')">
+            <a @click="state.moveSelection('left')"><span>&larr;</span></a>
+            <a @click="state.moveSelection('up')"><span>&uarr;</span></a>
+            <a @click="state.moveSelection('down')"><span>&darr;</span></a>
+            <a @click="state.moveSelection('right')"><span>&rarr;</span></a>
           </div>
-        </transition>
+        </div>
+        <div v-if="state.hasClipboard()">
+          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.clipboard}}</div>
+          <a class="vue-paint-button vue-paint-button-paste" @click="state.pasteSelection()">{{strings.paste}}<span>cmd-v</span></a>
+          <a class="vue-paint-button vue-paint-button-clear" @click="state.clearSelection()">{{strings.clear}}</a>
+        </div>
+        <div v-if="state.getContext()">
+          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.parameter}}</div>
+          <template v-for="option in state.getContext().getOptions()">
+            <form v-if="option.type != 'hidden'" :id="`form-${option.property}`" v-bind:key="`form-${option.description}`">
+              <a
+                  v-if="option.type == 'textarea' || option.type == 'clipart'"
+                  :class="`vue-paint-button vue-paint-button-${option.description} ${option.toggled?' vue-paint-button-active':''}`"
+                  v-bind:key="option.parameter"
+                  @click="toggleOption(option)"
+              >
+                {{strings[option.description] || option.description}}<span>{{option.type == 'textarea' ? 'cmd-e' : 'cmd-i'}}</span>
+              </a>
 
-        <transition name="flipin">
-          <div v-if="state.hasClipboard()">
-            <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.clipboard}}</div>
-            <a class="vue-paint-button vue-paint-button-paste" @click="state.pasteSelection()">{{strings.paste}}<span>cmd-v</span></a>
-            <a class="vue-paint-button vue-paint-button-clear" @click="state.clearSelection()">{{strings.clear}}</a>
-          </div>
-        </transition>
-
-        <transition name="flipin">
-          <div v-if="state.getContext()">
-            <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.parameter}}</div>
-            <template v-for="option in state.getContext().getOptions()">
-              <form v-if="option.type != 'hidden'" :id="`form-${option.property}`" v-bind:key="`form-${option.description}`">
-                <a
-                    v-if="option.type == 'textarea' || option.type == 'clipart'"
-                    :class="`vue-paint-button vue-paint-button-${option.description} ${option.toggled?' vue-paint-button-active':''}`"
-                    v-bind:key="option.parameter"
-                    @click="toggleOption(option)"
+              <label
+                :class="`vue-paint-label vue-paint-label-${option.description}`" 
+                v-bind:key="`option-${option.description}`"
+                v-if="option.type == 'int' && option.min !== option.max">{{strings[option.description] || option.description}}: {{option.value}}
+                <input 
+                  @change="state.getContext().setOption(option.property, $event.target.value)" 
+                  type="range" 
+                  :min="option.min" 
+                  :max="option.max" 
+                  :step="option.step" 
+                  :value="option.value"
+                  name="input"
                 >
-                  {{strings[option.description] || option.description}}<span>{{option.type == 'textarea' ? 'cmd-e' : 'cmd-i'}}</span>
-                </a>
-
-                <label
-                  :class="`vue-paint-label vue-paint-label-${option.description}`" 
-                  v-bind:key="`option-${option.description}`"
-                  v-if="option.type == 'int' && option.min !== option.max">{{strings[option.description] || option.description}}: {{option.value}}
-                  <input 
-                    @change="state.getContext().setOption(option.property, $event.target.value)" 
-                    type="range" 
-                    :min="option.min" 
-                    :max="option.max" 
-                    :step="option.step" 
-                    :value="option.value"
-                    name="input"
-                  >
-                </label>
-                <label
-                  :class="`vue-paint-label vue-paint-label-${option.description}`" 
-                  v-bind:key="`option-${option.description}`"
-                  v-if="option.type == 'boolean'">{{strings[option.description] || option.description}}
-                  <input 
-                    @change="state.getContext().setOption(option.property, $event.target.checked)" 
-                    type="checkbox" 
-                    :checked="option.value"
-                    name="input"
-                  >
-                </label>              
-                <label
-                  :class="`vue-paint-label vue-paint-label-${option.description}`"
-                  v-bind:key="`option-${option.property}`"
-                  v-if="option.type == 'text'">{{strings[option.description] || option.description}}
-                  <input
-                    @keyup="state.getContext().setOption(option.property, $event.target.value)" 
-                    @focus="disableKeys" 
-                    @blur="enableKeys" 
-                    v-model="option.value"
-                    name="input"
-                    type="text"
-                  >
-                </label>
-              </form>
-            </template>
-          </div>
-        </transition>
-      </div>
+              </label>
+              <label
+                :class="`vue-paint-label vue-paint-label-${option.description}`" 
+                v-bind:key="`option-${option.description}`"
+                v-if="option.type == 'boolean'">{{strings[option.description] || option.description}}
+                <input 
+                  @change="state.getContext().setOption(option.property, $event.target.checked)" 
+                  type="checkbox" 
+                  :checked="option.value"
+                  name="input"
+                >
+              </label>              
+              <label
+                :class="`vue-paint-label vue-paint-label-${option.description}`"
+                v-bind:key="`option-${option.property}`"
+                v-if="option.type == 'text'">{{strings[option.description] || option.description}}
+                <input
+                  @keyup="state.getContext().setOption(option.property, $event.target.value)" 
+                  @focus="disableKeys" 
+                  @blur="enableKeys" 
+                  v-model="option.value"
+                  name="input"
+                  type="text"
+                >
+              </label>
+            </form>
+          </template>
+        </div>
+      </vue-draggable-resizable>
     </div>
 </template>
 
@@ -181,12 +177,16 @@
 
 import paper  from 'paper'
 import State  from './state.js'
+import VueDraggableResizable from 'vue-draggable-resizable'
 
 const DOUBLECLICK_TIME_MS = 450;
 const DOUBLECLICK_DELTA = 3;
 
 export default {
   name: 'VuePainter',
+  components: {
+    VueDraggableResizable
+  },
   props: {
     data: String,
     clipart: Array,
@@ -353,6 +353,19 @@ export default {
     this.clips = null;
   },
   methods: {
+    getContextY () {
+      if (this.$refs.context && this.$refs.painter) {
+        if (this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop < this.$refs.wrapper.clientHeight  - this.$refs.context.$el.clientHeight) {
+          return this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop
+        }
+        else {
+          return this.$refs.wrapper.clientHeight - this.$refs.context.$el.clientHeight;
+        }
+      }
+      else {
+        return 0;
+      }
+    },
     longestWord(string) {
       var str = string.split("\n");
       var longest = 0;
@@ -731,6 +744,12 @@ export default {
         }
       }
     }
+    height: 100vh;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    overflow: hidden;
     &-wrapper {
       position: absolute;
       left: 20%;
@@ -756,7 +775,7 @@ export default {
       position: absolute;
       left: 0px;
       top: 0px;
-      width: 20%;
+      width: 20% !important;
       height: auto;
       max-height: 100%;
       background: #CCC;
@@ -848,15 +867,28 @@ export default {
     }
     &-context {
       position: absolute;
-      right: 0px;
+      left: calc(20% + 1rem);
       top: 0px;
-      width: 10%;
+      width: 10% !important;
       height: auto;
       max-height: 100%;
       background: #CCC;
     }
     &-menu, &-context {
       overflow-y: auto;
+      .drag {
+        position: absolute;
+        left: 0.5em;
+        top: 0px;
+        width: 2em;
+        height: 2em;
+        z-index: 10;
+        cursor: grab;
+        &:after {
+          content: "⇱";
+          font-size: 150%;
+        }
+      }
     }
     &-menu-divider {
       font: inherit;

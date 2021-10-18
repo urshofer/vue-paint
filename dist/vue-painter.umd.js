@@ -1,11 +1,12 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('paper'), require('uuid'), require('wordwrapjs'), require('js-base64')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'paper', 'uuid', 'wordwrapjs', 'js-base64'], factory) :
-  (global = global || self, factory(global.VuePainter = {}, global.paper, global.uuid, global.wordwrap, global.jsBase64));
-}(this, (function (exports, paper, uuid, wordwrap, jsBase64) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('paper'), require('uuid'), require('wordwrapjs'), require('js-base64'), require('vue-draggable-resizable')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'paper', 'uuid', 'wordwrapjs', 'js-base64', 'vue-draggable-resizable'], factory) :
+  (global = global || self, factory(global.VuePainter = {}, global.paper, global.uuid, global.wordwrap, global.jsBase64, global.VueDraggableResizable));
+}(this, (function (exports, paper, uuid, wordwrap, jsBase64, VueDraggableResizable) { 'use strict';
 
   paper = paper && Object.prototype.hasOwnProperty.call(paper, 'default') ? paper['default'] : paper;
   wordwrap = wordwrap && Object.prototype.hasOwnProperty.call(wordwrap, 'default') ? wordwrap['default'] : wordwrap;
+  VueDraggableResizable = VueDraggableResizable && Object.prototype.hasOwnProperty.call(VueDraggableResizable, 'default') ? VueDraggableResizable['default'] : VueDraggableResizable;
 
   /**
    *  Tool Class
@@ -27,6 +28,7 @@
       }
 
 
+
       this.startPoint  = startPoint || false;
       this.mousedown = false;
       this.alreadySelected = false;
@@ -40,6 +42,14 @@
       else {
         this.draw(startPoint);
       }
+    }
+
+    isTransformationAllowed(transformation) {
+      // Currently, transformations for fixed elements are not allowed.
+      if (transformation) {
+        return this.fixedposition === false;
+      }
+      return true
     }
 
     registerOptions(options) {
@@ -1521,8 +1531,8 @@
               this.tools[_t].defaults.toolName = _t;
 
               // Overload Class
+              this.tools[_t].className = this.tools[_t].class;            
               this.tools[_t].class = _toolClasses[this.tools[_t].class];
-
           }
       }
 
@@ -1594,6 +1604,25 @@
 
       hasSelection() {
           return this.selected.length > 0;
+      }
+
+      hasSelectionBoundingBox() {
+          let _r = false;
+          let _t = false;
+          if (this.selected.length > 0) {
+              this.selected.forEach(s => {
+                  if (s.primitive.bounds.top < _t || _t === false) {
+                      _t = s.primitive.bounds.top;
+                  }
+                  if (s.primitive.bounds.right > _r || _r === false) {
+                      _r = s.primitive.bounds.right;
+                  }
+              });
+          }
+          return {
+              x: _r || 0,
+              y: _t || 0
+          }
       }
 
       hasClipboard() {
@@ -1681,6 +1710,18 @@
           return this.actveByName;
       }
 
+      getActiveClassName() {
+          if (this.active) {
+              return this.tools[this.actveByName].className
+          }
+          else
+              return ""
+      }
+
+      getClassName(toolname) {
+          return this.tools[toolname].className
+      }
+
       getActiveDefaults() {
           return this.tools[this.actveByName].defaults || null;
       }
@@ -1706,6 +1747,11 @@
               return this.context;
           }
           else return false;
+      }
+
+      isTransformationAllowed(transformation) {
+          if (this.getContext() === false) return true;
+          else return this.getContext().isTransformationAllowed(transformation)
       }
 
       getOptionByType(option, toggled) {
@@ -1793,6 +1839,9 @@
 
   var script = {
     name: 'VuePainter',
+    components: {
+      VueDraggableResizable
+    },
     props: {
       data: String,
       clipart: Array,
@@ -1959,6 +2008,19 @@
       this.clips = null;
     },
     methods: {
+      getContextY () {
+        if (this.$refs.context && this.$refs.painter) {
+          if (this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop < this.$refs.wrapper.clientHeight  - this.$refs.context.$el.clientHeight) {
+            return this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop
+          }
+          else {
+            return this.$refs.wrapper.clientHeight - this.$refs.context.$el.clientHeight;
+          }
+        }
+        else {
+          return 0;
+        }
+      },
       longestWord(string) {
         var str = string.split("\n");
         var longest = 0;
@@ -2494,7 +2556,11 @@
         _vm._v(" "),
         _c(
           "div",
-          { staticClass: "vue-paint-wrapper", attrs: { id: "wrapper" } },
+          {
+            ref: "wrapper",
+            staticClass: "vue-paint-wrapper",
+            attrs: { id: "wrapper" }
+          },
           [
             _vm._l(_vm.state.getOptionByType("textarea", true), function(option) {
               return _c(
@@ -2586,20 +2652,97 @@
             _vm._v(" "),
             _c("canvas", {
               ref: "painter",
-              staticClass: "vue-paint-canvas",
-              class: {
-                "vue-paint-canvas-select": _vm.state.getActiveName() === ""
-              },
+              class:
+                "vue-paint-canvas vue-paint-canvas-" +
+                _vm.state.getActiveClassName() +
+                " vue-paint-canvas-" +
+                _vm.state.getActiveName().replace(/ /g, "_"),
               attrs: { id: "painter" }
             })
           ],
           2
         ),
         _vm._v(" "),
-        _c("div", { staticClass: "vue-paint-menu", attrs: { id: "menu" } }, [
-          _c(
-            "div",
-            [
+        _c(
+          "vue-draggable-resizable",
+          {
+            staticClass: "vue-paint-menu",
+            attrs: {
+              parent: true,
+              w: "auto",
+              h: "auto",
+              "drag-handle": ".drag",
+              id: "menu",
+              z: 10
+            }
+          },
+          [
+            _c("div", { staticClass: "drag" }),
+            _vm._v(" "),
+            _c(
+              "div",
+              [
+                _c(
+                  "div",
+                  {
+                    staticClass: "vue-paint-menu-divider",
+                    on: {
+                      click: function($event) {
+                        return $event.target.parentElement.classList.toggle(
+                          "folded"
+                        )
+                      }
+                    }
+                  },
+                  [_vm._v(_vm._s(_vm.strings.tools))]
+                ),
+                _vm._v(" "),
+                _c(
+                  "a",
+                  {
+                    class:
+                      "vue-paint-button vue-paint-button-selection" +
+                      (_vm.state.getActiveName() === ""
+                        ? " vue-paint-button-active"
+                        : ""),
+                    on: {
+                      click: function($event) {
+                        return _vm.state.setActive(false)
+                      }
+                    }
+                  },
+                  [_vm._v(_vm._s(_vm.strings.selection))]
+                ),
+                _vm._v(" "),
+                _vm._l(_vm.tools, function(t) {
+                  return _c(
+                    "a",
+                    {
+                      key: "tool-" + t,
+                      class:
+                        "vue-paint-button vue-paint-button-" +
+                        _vm.state.getClassName(t) +
+                        " vue-paint-button-" +
+                        t.replace(/ /g, "_") +
+                        (_vm.state.getActiveName() == t
+                          ? " vue-paint-button-active"
+                          : ""),
+                      on: {
+                        click: function($event) {
+                          _vm.state.setActive(
+                            _vm.state.getActiveName() == t ? false : t
+                          );
+                        }
+                      }
+                    },
+                    [_vm._v(_vm._s(t))]
+                  )
+                })
+              ],
+              2
+            ),
+            _vm._v(" "),
+            _c("div", [
               _c(
                 "div",
                 {
@@ -2612,394 +2755,193 @@
                     }
                   }
                 },
-                [_vm._v(_vm._s(_vm.strings.tools))]
+                [_vm._v(_vm._s(_vm.strings.file))]
               ),
               _vm._v(" "),
               _c(
                 "a",
                 {
-                  class:
-                    "vue-paint-button vue-paint-button-selection" +
-                    (_vm.state.getActiveName() === ""
-                      ? " vue-paint-button-active"
-                      : ""),
+                  staticClass: "vue-paint-button vue-paint-button-save",
                   on: {
                     click: function($event) {
-                      return _vm.state.setActive(false)
+                      return _vm.saveJSON()
                     }
                   }
                 },
-                [_vm._v(_vm._s(_vm.strings.selection))]
+                [_vm._v(_vm._s(_vm.strings.save))]
               ),
               _vm._v(" "),
-              _vm._l(_vm.tools, function(t) {
-                return _c(
-                  "a",
-                  {
-                    key: "tool-" + t,
-                    class:
-                      "vue-paint-button vue-paint-button-" +
-                      t.replace(" ", "_") +
-                      (_vm.state.getActiveName() == t
-                        ? " vue-paint-button-active"
-                        : ""),
-                    on: {
-                      click: function($event) {
-                        _vm.state.setActive(
-                          _vm.state.getActiveName() == t ? false : t
-                        );
-                      }
-                    }
-                  },
-                  [_vm._v(_vm._s(t))]
-                )
-              })
-            ],
-            2
-          ),
-          _vm._v(" "),
-          _c("div", [
-            _c(
-              "div",
-              {
-                staticClass: "vue-paint-menu-divider",
-                on: {
-                  click: function($event) {
-                    return $event.target.parentElement.classList.toggle("folded")
-                  }
-                }
-              },
-              [_vm._v(_vm._s(_vm.strings.file))]
-            ),
-            _vm._v(" "),
-            _c(
-              "a",
-              {
-                staticClass: "vue-paint-button vue-paint-button-save",
-                on: {
-                  click: function($event) {
-                    return _vm.saveJSON()
-                  }
-                }
-              },
-              [_vm._v(_vm._s(_vm.strings.save))]
-            ),
-            _vm._v(" "),
-            _c(
-              "a",
-              {
-                staticClass: "vue-paint-button vue-paint-button-export",
-                on: {
-                  click: function($event) {
-                    return _vm.exportSVG()
-                  }
-                }
-              },
-              [_vm._v(_vm._s(_vm.strings.export))]
-            )
-          ]),
-          _vm._v(" "),
-          _c("div", [
-            _c(
-              "div",
-              {
-                staticClass: "vue-paint-menu-divider",
-                on: {
-                  click: function($event) {
-                    return $event.target.parentElement.classList.toggle("folded")
-                  }
-                }
-              },
-              [_vm._v(_vm._s(_vm.strings.preset))]
-            ),
-            _vm._v(" "),
-            _c(
-              "label",
-              { staticClass: "vue-paint-label vue-paint-label-stroke" },
-              [
-                _vm._v(
-                  _vm._s(_vm.strings.stroke) +
-                    " " +
-                    _vm._s(_vm.state.getStrokeWidth()) +
-                    " Px\n        "
-                ),
-                _c("input", {
-                  attrs: { type: "range", min: "0", max: "10" },
-                  domProps: { value: _vm.state.getStrokeWidth() },
+              _c(
+                "a",
+                {
+                  staticClass: "vue-paint-button vue-paint-button-export",
                   on: {
-                    change: function($event) {
-                      return _vm.state.setStrokeWidth($event.target.value)
+                    click: function($event) {
+                      return _vm.exportSVG()
                     }
                   }
-                })
-              ]
-            ),
-            _vm._v(" "),
-            _c(
-              "label",
-              { staticClass: "vue-paint-label vue-paint-label-alpha" },
-              [
-                _vm._v(
-                  _vm._s(_vm.strings.alpha) +
-                    " " +
-                    _vm._s(_vm.state.getAlpha() * 100) +
-                    "%\n        "
-                ),
-                _c("input", {
-                  attrs: { type: "range", min: "0", max: "4" },
-                  domProps: { value: _vm.state.getAlpha() * 4 },
-                  on: {
-                    change: function($event) {
-                      return _vm.state.setAlpha($event.target.value / 4)
-                    }
-                  }
-                })
-              ]
-            ),
-            _vm._v(" "),
-            _c(
-              "label",
-              { staticClass: "vue-paint-label vue-paint-label-fillcolor" },
-              [
-                _vm._v(_vm._s(_vm.strings.fillcolor) + "\n        "),
-                _c(
-                  "div",
-                  { staticClass: "vue-paint-colorlist" },
-                  _vm._l(_vm.colors, function(c) {
-                    return _c("a", {
-                      key: "bgcolor-" + c,
-                      staticClass: "color",
-                      class: { "color-active": _vm.state.getFillColor() == c },
-                      style: { "background-color": c },
-                      on: {
-                        click: function($event) {
-                          return _vm.state.setFillColor(c)
-                        }
-                      }
-                    })
-                  }),
-                  0
-                )
-              ]
-            ),
-            _vm._v(" "),
-            _c(
-              "label",
-              { staticClass: "vue-paint-label vue-paint-label-strokecolor" },
-              [
-                _vm._v(_vm._s(_vm.strings.strokecolor) + "\n        "),
-                _c(
-                  "div",
-                  { staticClass: "vue-paint-colorlist" },
-                  _vm._l(_vm.colors, function(c) {
-                    return _c("a", {
-                      key: "bgcolor-" + c,
-                      staticClass: "color",
-                      class: { "color-active": _vm.state.getStrokeColor() == c },
-                      style: { "background-color": c },
-                      on: {
-                        click: function($event) {
-                          return _vm.state.setStrokeColor(c)
-                        }
-                      }
-                    })
-                  }),
-                  0
-                )
-              ]
-            ),
-            _vm._v(" "),
-            _c(
-              "label",
-              { staticClass: "vue-paint-label vue-paint-label-stroke" },
-              [
-                _vm._v("Scaling " + _vm._s(_vm.scaling) + "%\n        "),
-                _c("input", {
-                  attrs: { type: "range", min: "25", step: "25", max: "200" },
-                  domProps: { value: _vm.scaling },
-                  on: {
-                    change: function($event) {
-                      return _vm.setScaling($event.target.value)
-                    }
-                  }
-                })
-              ]
-            )
-          ])
-        ]),
-        _vm._v(" "),
-        _c(
-          "div",
-          { staticClass: "vue-paint-context", attrs: { id: "context" } },
-          [
-            _c("transition", { attrs: { name: "flipin" } }, [
-              _vm.state.hasSelection()
-                ? _c(
-                    "div",
-                    [
-                      _c(
-                        "div",
-                        {
-                          staticClass: "vue-paint-menu-divider",
-                          on: {
-                            click: function($event) {
-                              return $event.target.parentElement.classList.toggle(
-                                "folded"
-                              )
-                            }
-                          }
-                        },
-                        [_vm._v(_vm._s(_vm.strings.functions))]
-                      ),
-                      _vm._v(" "),
-                      _c(
-                        "a",
-                        {
-                          staticClass: "vue-paint-button vue-paint-button-delete",
-                          on: {
-                            click: function($event) {
-                              return _vm.state.deleteSelection()
-                            }
-                          }
-                        },
-                        [
-                          _vm._v(_vm._s(_vm.strings.delete) + "  "),
-                          _c("span", [_vm._v("🔙")])
-                        ]
-                      ),
-                      _vm._v(" "),
-                      _c(
-                        "a",
-                        {
-                          staticClass: "vue-paint-button vue-paint-button-copy",
-                          on: {
-                            click: function($event) {
-                              return _vm.state.copySelection()
-                            }
-                          }
-                        },
-                        [
-                          _vm._v(_vm._s(_vm.strings.copy) + " "),
-                          _c("span", [_vm._v("cmd-c")])
-                        ]
-                      ),
-                      _vm._v(" "),
-                      _vm._l(_vm.transformations, function(t) {
-                        return _c(
-                          "a",
-                          {
-                            key: "transformation-" + t[0],
-                            class:
-                              "vue-paint-button vue-paint-button-" +
-                              t[0] +
-                              (_vm.state.getTransformation() == t[0]
-                                ? " vue-paint-button-active"
-                                : ""),
-                            on: {
-                              click: function($event) {
-                                return _vm.state.setTransformation(t[0])
-                              }
-                            }
-                          },
-                          [
-                            _vm._v(_vm._s(_vm.translations[t[0]]) + " "),
-                            _c("span", [_vm._v(_vm._s(t[1]))])
-                          ]
-                        )
-                      }),
-                      _vm._v(" "),
-                      _c(
-                        "a",
-                        {
-                          staticClass:
-                            "vue-paint-button vue-paint-button-background",
-                          on: {
-                            click: function($event) {
-                              return _vm.state.shiftSelection("back")
-                            }
-                          }
-                        },
-                        [
-                          _vm._v(_vm._s(_vm.strings.background)),
-                          _c("span", [_vm._v("⇞")])
-                        ]
-                      ),
-                      _vm._v(" "),
-                      _c(
-                        "a",
-                        {
-                          staticClass:
-                            "vue-paint-button vue-paint-button-foreground",
-                          on: {
-                            click: function($event) {
-                              return _vm.state.shiftSelection("front")
-                            }
-                          }
-                        },
-                        [
-                          _vm._v(_vm._s(_vm.strings.foreground)),
-                          _c("span", [_vm._v("⇟")])
-                        ]
-                      ),
-                      _vm._v(" "),
-                      _c("div", { staticClass: "vue-paint-arrowbuttons" }, [
-                        _c(
-                          "a",
-                          {
-                            on: {
-                              click: function($event) {
-                                return _vm.state.moveSelection("left")
-                              }
-                            }
-                          },
-                          [_c("span", [_vm._v("←")])]
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "a",
-                          {
-                            on: {
-                              click: function($event) {
-                                return _vm.state.moveSelection("up")
-                              }
-                            }
-                          },
-                          [_c("span", [_vm._v("↑")])]
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "a",
-                          {
-                            on: {
-                              click: function($event) {
-                                return _vm.state.moveSelection("down")
-                              }
-                            }
-                          },
-                          [_c("span", [_vm._v("↓")])]
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "a",
-                          {
-                            on: {
-                              click: function($event) {
-                                return _vm.state.moveSelection("right")
-                              }
-                            }
-                          },
-                          [_c("span", [_vm._v("→")])]
-                        )
-                      ])
-                    ],
-                    2
-                  )
-                : _vm._e()
+                },
+                [_vm._v(_vm._s(_vm.strings.export))]
+              )
             ]),
             _vm._v(" "),
-            _c("transition", { attrs: { name: "flipin" } }, [
-              _vm.state.hasClipboard()
-                ? _c("div", [
+            _c("div", [
+              _c(
+                "div",
+                {
+                  staticClass: "vue-paint-menu-divider",
+                  on: {
+                    click: function($event) {
+                      return $event.target.parentElement.classList.toggle(
+                        "folded"
+                      )
+                    }
+                  }
+                },
+                [_vm._v(_vm._s(_vm.strings.preset))]
+              ),
+              _vm._v(" "),
+              _c(
+                "label",
+                { staticClass: "vue-paint-label vue-paint-label-stroke" },
+                [
+                  _vm._v(
+                    _vm._s(_vm.strings.stroke) +
+                      " " +
+                      _vm._s(_vm.state.getStrokeWidth()) +
+                      " Px\n        "
+                  ),
+                  _c("input", {
+                    attrs: { type: "range", min: "0", max: "10" },
+                    domProps: { value: _vm.state.getStrokeWidth() },
+                    on: {
+                      change: function($event) {
+                        return _vm.state.setStrokeWidth($event.target.value)
+                      }
+                    }
+                  })
+                ]
+              ),
+              _vm._v(" "),
+              _c(
+                "label",
+                { staticClass: "vue-paint-label vue-paint-label-alpha" },
+                [
+                  _vm._v(
+                    _vm._s(_vm.strings.alpha) +
+                      " " +
+                      _vm._s(_vm.state.getAlpha() * 100) +
+                      "%\n        "
+                  ),
+                  _c("input", {
+                    attrs: { type: "range", min: "0", max: "4" },
+                    domProps: { value: _vm.state.getAlpha() * 4 },
+                    on: {
+                      change: function($event) {
+                        return _vm.state.setAlpha($event.target.value / 4)
+                      }
+                    }
+                  })
+                ]
+              ),
+              _vm._v(" "),
+              _c(
+                "label",
+                { staticClass: "vue-paint-label vue-paint-label-fillcolor" },
+                [
+                  _vm._v(_vm._s(_vm.strings.fillcolor) + "\n        "),
+                  _c(
+                    "div",
+                    { staticClass: "vue-paint-colorlist" },
+                    _vm._l(_vm.colors, function(c) {
+                      return _c("a", {
+                        key: "bgcolor-" + c,
+                        staticClass: "color",
+                        class: { "color-active": _vm.state.getFillColor() == c },
+                        style: { "background-color": c },
+                        on: {
+                          click: function($event) {
+                            return _vm.state.setFillColor(c)
+                          }
+                        }
+                      })
+                    }),
+                    0
+                  )
+                ]
+              ),
+              _vm._v(" "),
+              _c(
+                "label",
+                { staticClass: "vue-paint-label vue-paint-label-strokecolor" },
+                [
+                  _vm._v(_vm._s(_vm.strings.strokecolor) + "\n        "),
+                  _c(
+                    "div",
+                    { staticClass: "vue-paint-colorlist" },
+                    _vm._l(_vm.colors, function(c) {
+                      return _c("a", {
+                        key: "bgcolor-" + c,
+                        staticClass: "color",
+                        class: {
+                          "color-active": _vm.state.getStrokeColor() == c
+                        },
+                        style: { "background-color": c },
+                        on: {
+                          click: function($event) {
+                            return _vm.state.setStrokeColor(c)
+                          }
+                        }
+                      })
+                    }),
+                    0
+                  )
+                ]
+              ),
+              _vm._v(" "),
+              _c(
+                "label",
+                { staticClass: "vue-paint-label vue-paint-label-stroke" },
+                [
+                  _vm._v("Scaling " + _vm._s(_vm.scaling) + "%\n        "),
+                  _c("input", {
+                    attrs: { type: "range", min: "25", step: "25", max: "200" },
+                    domProps: { value: _vm.scaling },
+                    on: {
+                      change: function($event) {
+                        return _vm.setScaling($event.target.value)
+                      }
+                    }
+                  })
+                ]
+              )
+            ])
+          ]
+        ),
+        _vm._v(" "),
+        _c(
+          "vue-draggable-resizable",
+          {
+            ref: "context",
+            staticClass: "vue-paint-context",
+            attrs: {
+              parent: true,
+              x: _vm.state.hasSelectionBoundingBox().x,
+              y: _vm.getContextY(),
+              w: "auto",
+              h: "auto",
+              "drag-handle": ".drag",
+              id: "context",
+              z: 10
+            }
+          },
+          [
+            _c("div", { staticClass: "drag" }),
+            _vm._v(" "),
+            _vm.state.hasSelection()
+              ? _c(
+                  "div",
+                  [
                     _c(
                       "div",
                       {
@@ -3012,262 +2954,419 @@
                           }
                         }
                       },
-                      [_vm._v(_vm._s(_vm.strings.clipboard))]
+                      [_vm._v(_vm._s(_vm.strings.functions))]
                     ),
                     _vm._v(" "),
                     _c(
                       "a",
                       {
-                        staticClass: "vue-paint-button vue-paint-button-paste",
+                        staticClass: "vue-paint-button vue-paint-button-delete",
                         on: {
                           click: function($event) {
-                            return _vm.state.pasteSelection()
+                            return _vm.state.deleteSelection()
                           }
                         }
                       },
                       [
-                        _vm._v(_vm._s(_vm.strings.paste)),
-                        _c("span", [_vm._v("cmd-v")])
+                        _vm._v(_vm._s(_vm.strings.delete) + "  "),
+                        _c("span", [_vm._v("🔙")])
                       ]
                     ),
                     _vm._v(" "),
                     _c(
                       "a",
                       {
-                        staticClass: "vue-paint-button vue-paint-button-clear",
+                        staticClass: "vue-paint-button vue-paint-button-copy",
                         on: {
                           click: function($event) {
-                            return _vm.state.clearSelection()
+                            return _vm.state.copySelection()
                           }
                         }
                       },
-                      [_vm._v(_vm._s(_vm.strings.clear))]
-                    )
-                  ])
-                : _vm._e()
-            ]),
-            _vm._v(" "),
-            _c("transition", { attrs: { name: "flipin" } }, [
-              _vm.state.getContext()
-                ? _c(
-                    "div",
-                    [
-                      _c(
-                        "div",
-                        {
-                          staticClass: "vue-paint-menu-divider",
-                          on: {
-                            click: function($event) {
-                              return $event.target.parentElement.classList.toggle(
-                                "folded"
-                              )
-                            }
+                      [
+                        _vm._v(_vm._s(_vm.strings.copy) + " "),
+                        _c("span", [_vm._v("cmd-c")])
+                      ]
+                    ),
+                    _vm._v(" "),
+                    _vm._l(_vm.transformations, function(t) {
+                      return [
+                        _vm.state.isTransformationAllowed(t[0])
+                          ? _c(
+                              "a",
+                              {
+                                key: "transformation-" + t[0],
+                                class:
+                                  "vue-paint-button vue-paint-button-" +
+                                  t[0] +
+                                  (_vm.state.getTransformation() == t[0]
+                                    ? " vue-paint-button-active"
+                                    : ""),
+                                on: {
+                                  click: function($event) {
+                                    return _vm.state.setTransformation(t[0])
+                                  }
+                                }
+                              },
+                              [
+                                _vm._v(_vm._s(_vm.translations[t[0]]) + " "),
+                                _c("span", [_vm._v(_vm._s(t[1]))])
+                              ]
+                            )
+                          : _vm._e()
+                      ]
+                    }),
+                    _vm._v(" "),
+                    _c(
+                      "a",
+                      {
+                        staticClass:
+                          "vue-paint-button vue-paint-button-background",
+                        on: {
+                          click: function($event) {
+                            return _vm.state.shiftSelection("back")
                           }
-                        },
-                        [_vm._v(_vm._s(_vm.strings.parameter))]
-                      ),
-                      _vm._v(" "),
-                      _vm._l(_vm.state.getContext().getOptions(), function(
-                        option
-                      ) {
-                        return [
-                          option.type != "hidden"
-                            ? _c(
-                                "form",
-                                {
-                                  key: "form-" + option.description,
-                                  attrs: { id: "form-" + option.property }
-                                },
-                                [
-                                  option.type == "textarea" ||
-                                  option.type == "clipart"
-                                    ? _c(
-                                        "a",
-                                        {
-                                          key: option.parameter,
-                                          class:
-                                            "vue-paint-button vue-paint-button-" +
-                                            option.description +
-                                            " " +
-                                            (option.toggled
-                                              ? " vue-paint-button-active"
-                                              : ""),
-                                          on: {
-                                            click: function($event) {
-                                              return _vm.toggleOption(option)
-                                            }
+                        }
+                      },
+                      [
+                        _vm._v(_vm._s(_vm.strings.background)),
+                        _c("span", [_vm._v("⇞")])
+                      ]
+                    ),
+                    _vm._v(" "),
+                    _c(
+                      "a",
+                      {
+                        staticClass:
+                          "vue-paint-button vue-paint-button-foreground",
+                        on: {
+                          click: function($event) {
+                            return _vm.state.shiftSelection("front")
+                          }
+                        }
+                      },
+                      [
+                        _vm._v(_vm._s(_vm.strings.foreground)),
+                        _c("span", [_vm._v("⇟")])
+                      ]
+                    ),
+                    _vm._v(" "),
+                    _vm.state.isTransformationAllowed("Move")
+                      ? _c("div", { staticClass: "vue-paint-arrowbuttons" }, [
+                          _c(
+                            "a",
+                            {
+                              on: {
+                                click: function($event) {
+                                  return _vm.state.moveSelection("left")
+                                }
+                              }
+                            },
+                            [_c("span", [_vm._v("←")])]
+                          ),
+                          _vm._v(" "),
+                          _c(
+                            "a",
+                            {
+                              on: {
+                                click: function($event) {
+                                  return _vm.state.moveSelection("up")
+                                }
+                              }
+                            },
+                            [_c("span", [_vm._v("↑")])]
+                          ),
+                          _vm._v(" "),
+                          _c(
+                            "a",
+                            {
+                              on: {
+                                click: function($event) {
+                                  return _vm.state.moveSelection("down")
+                                }
+                              }
+                            },
+                            [_c("span", [_vm._v("↓")])]
+                          ),
+                          _vm._v(" "),
+                          _c(
+                            "a",
+                            {
+                              on: {
+                                click: function($event) {
+                                  return _vm.state.moveSelection("right")
+                                }
+                              }
+                            },
+                            [_c("span", [_vm._v("→")])]
+                          )
+                        ])
+                      : _vm._e()
+                  ],
+                  2
+                )
+              : _vm._e(),
+            _vm._v(" "),
+            _vm.state.hasClipboard()
+              ? _c("div", [
+                  _c(
+                    "div",
+                    {
+                      staticClass: "vue-paint-menu-divider",
+                      on: {
+                        click: function($event) {
+                          return $event.target.parentElement.classList.toggle(
+                            "folded"
+                          )
+                        }
+                      }
+                    },
+                    [_vm._v(_vm._s(_vm.strings.clipboard))]
+                  ),
+                  _vm._v(" "),
+                  _c(
+                    "a",
+                    {
+                      staticClass: "vue-paint-button vue-paint-button-paste",
+                      on: {
+                        click: function($event) {
+                          return _vm.state.pasteSelection()
+                        }
+                      }
+                    },
+                    [
+                      _vm._v(_vm._s(_vm.strings.paste)),
+                      _c("span", [_vm._v("cmd-v")])
+                    ]
+                  ),
+                  _vm._v(" "),
+                  _c(
+                    "a",
+                    {
+                      staticClass: "vue-paint-button vue-paint-button-clear",
+                      on: {
+                        click: function($event) {
+                          return _vm.state.clearSelection()
+                        }
+                      }
+                    },
+                    [_vm._v(_vm._s(_vm.strings.clear))]
+                  )
+                ])
+              : _vm._e(),
+            _vm._v(" "),
+            _vm.state.getContext()
+              ? _c(
+                  "div",
+                  [
+                    _c(
+                      "div",
+                      {
+                        staticClass: "vue-paint-menu-divider",
+                        on: {
+                          click: function($event) {
+                            return $event.target.parentElement.classList.toggle(
+                              "folded"
+                            )
+                          }
+                        }
+                      },
+                      [_vm._v(_vm._s(_vm.strings.parameter))]
+                    ),
+                    _vm._v(" "),
+                    _vm._l(_vm.state.getContext().getOptions(), function(option) {
+                      return [
+                        option.type != "hidden"
+                          ? _c(
+                              "form",
+                              {
+                                key: "form-" + option.description,
+                                attrs: { id: "form-" + option.property }
+                              },
+                              [
+                                option.type == "textarea" ||
+                                option.type == "clipart"
+                                  ? _c(
+                                      "a",
+                                      {
+                                        key: option.parameter,
+                                        class:
+                                          "vue-paint-button vue-paint-button-" +
+                                          option.description +
+                                          " " +
+                                          (option.toggled
+                                            ? " vue-paint-button-active"
+                                            : ""),
+                                        on: {
+                                          click: function($event) {
+                                            return _vm.toggleOption(option)
                                           }
-                                        },
-                                        [
-                                          _vm._v(
-                                            "\n              " +
-                                              _vm._s(
-                                                _vm.strings[option.description] ||
-                                                  option.description
-                                              )
-                                          ),
-                                          _c("span", [
-                                            _vm._v(
-                                              _vm._s(
-                                                option.type == "textarea"
-                                                  ? "cmd-e"
-                                                  : "cmd-i"
-                                              )
+                                        }
+                                      },
+                                      [
+                                        _vm._v(
+                                          "\n            " +
+                                            _vm._s(
+                                              _vm.strings[option.description] ||
+                                                option.description
                                             )
-                                          ])
-                                        ]
-                                      )
-                                    : _vm._e(),
-                                  _vm._v(" "),
-                                  option.type == "int" &&
-                                  option.min !== option.max
-                                    ? _c(
-                                        "label",
-                                        {
-                                          key: "option-" + option.description,
-                                          class:
-                                            "vue-paint-label vue-paint-label-" +
-                                            option.description
-                                        },
-                                        [
+                                        ),
+                                        _c("span", [
                                           _vm._v(
                                             _vm._s(
-                                              _vm.strings[option.description] ||
-                                                option.description
-                                            ) +
-                                              ": " +
-                                              _vm._s(option.value) +
-                                              "\n              "
-                                          ),
-                                          _c("input", {
-                                            attrs: {
-                                              type: "range",
-                                              min: option.min,
-                                              max: option.max,
-                                              step: option.step,
-                                              name: "input"
-                                            },
-                                            domProps: { value: option.value },
-                                            on: {
-                                              change: function($event) {
-                                                _vm.state
-                                                  .getContext()
-                                                  .setOption(
-                                                    option.property,
-                                                    $event.target.value
-                                                  );
-                                              }
-                                            }
-                                          })
-                                        ]
-                                      )
-                                    : _vm._e(),
-                                  _vm._v(" "),
-                                  option.type == "boolean"
-                                    ? _c(
-                                        "label",
-                                        {
-                                          key: "option-" + option.description,
-                                          class:
-                                            "vue-paint-label vue-paint-label-" +
-                                            option.description
-                                        },
-                                        [
-                                          _vm._v(
-                                            _vm._s(
-                                              _vm.strings[option.description] ||
-                                                option.description
-                                            ) + "\n              "
-                                          ),
-                                          _c("input", {
-                                            attrs: {
-                                              type: "checkbox",
-                                              name: "input"
-                                            },
-                                            domProps: { checked: option.value },
-                                            on: {
-                                              change: function($event) {
-                                                _vm.state
-                                                  .getContext()
-                                                  .setOption(
-                                                    option.property,
-                                                    $event.target.checked
-                                                  );
-                                              }
-                                            }
-                                          })
-                                        ]
-                                      )
-                                    : _vm._e(),
-                                  _vm._v(" "),
-                                  option.type == "text"
-                                    ? _c(
-                                        "label",
-                                        {
-                                          key: "option-" + option.property,
-                                          class:
-                                            "vue-paint-label vue-paint-label-" +
-                                            option.description
-                                        },
-                                        [
-                                          _vm._v(
-                                            _vm._s(
-                                              _vm.strings[option.description] ||
-                                                option.description
-                                            ) + "\n              "
-                                          ),
-                                          _c("input", {
-                                            directives: [
-                                              {
-                                                name: "model",
-                                                rawName: "v-model",
-                                                value: option.value,
-                                                expression: "option.value"
-                                              }
-                                            ],
-                                            attrs: {
-                                              name: "input",
-                                              type: "text"
-                                            },
-                                            domProps: { value: option.value },
-                                            on: {
-                                              keyup: function($event) {
-                                                _vm.state
-                                                  .getContext()
-                                                  .setOption(
-                                                    option.property,
-                                                    $event.target.value
-                                                  );
-                                              },
-                                              focus: _vm.disableKeys,
-                                              blur: _vm.enableKeys,
-                                              input: function($event) {
-                                                if ($event.target.composing) {
-                                                  return
-                                                }
-                                                _vm.$set(
-                                                  option,
-                                                  "value",
+                                              option.type == "textarea"
+                                                ? "cmd-e"
+                                                : "cmd-i"
+                                            )
+                                          )
+                                        ])
+                                      ]
+                                    )
+                                  : _vm._e(),
+                                _vm._v(" "),
+                                option.type == "int" && option.min !== option.max
+                                  ? _c(
+                                      "label",
+                                      {
+                                        key: "option-" + option.description,
+                                        class:
+                                          "vue-paint-label vue-paint-label-" +
+                                          option.description
+                                      },
+                                      [
+                                        _vm._v(
+                                          _vm._s(
+                                            _vm.strings[option.description] ||
+                                              option.description
+                                          ) +
+                                            ": " +
+                                            _vm._s(option.value) +
+                                            "\n            "
+                                        ),
+                                        _c("input", {
+                                          attrs: {
+                                            type: "range",
+                                            min: option.min,
+                                            max: option.max,
+                                            step: option.step,
+                                            name: "input"
+                                          },
+                                          domProps: { value: option.value },
+                                          on: {
+                                            change: function($event) {
+                                              _vm.state
+                                                .getContext()
+                                                .setOption(
+                                                  option.property,
                                                   $event.target.value
                                                 );
-                                              }
                                             }
-                                          })
-                                        ]
-                                      )
-                                    : _vm._e()
-                                ]
-                              )
-                            : _vm._e()
-                        ]
-                      })
-                    ],
-                    2
-                  )
-                : _vm._e()
-            ])
-          ],
-          1
+                                          }
+                                        })
+                                      ]
+                                    )
+                                  : _vm._e(),
+                                _vm._v(" "),
+                                option.type == "boolean"
+                                  ? _c(
+                                      "label",
+                                      {
+                                        key: "option-" + option.description,
+                                        class:
+                                          "vue-paint-label vue-paint-label-" +
+                                          option.description
+                                      },
+                                      [
+                                        _vm._v(
+                                          _vm._s(
+                                            _vm.strings[option.description] ||
+                                              option.description
+                                          ) + "\n            "
+                                        ),
+                                        _c("input", {
+                                          attrs: {
+                                            type: "checkbox",
+                                            name: "input"
+                                          },
+                                          domProps: { checked: option.value },
+                                          on: {
+                                            change: function($event) {
+                                              _vm.state
+                                                .getContext()
+                                                .setOption(
+                                                  option.property,
+                                                  $event.target.checked
+                                                );
+                                            }
+                                          }
+                                        })
+                                      ]
+                                    )
+                                  : _vm._e(),
+                                _vm._v(" "),
+                                option.type == "text"
+                                  ? _c(
+                                      "label",
+                                      {
+                                        key: "option-" + option.property,
+                                        class:
+                                          "vue-paint-label vue-paint-label-" +
+                                          option.description
+                                      },
+                                      [
+                                        _vm._v(
+                                          _vm._s(
+                                            _vm.strings[option.description] ||
+                                              option.description
+                                          ) + "\n            "
+                                        ),
+                                        _c("input", {
+                                          directives: [
+                                            {
+                                              name: "model",
+                                              rawName: "v-model",
+                                              value: option.value,
+                                              expression: "option.value"
+                                            }
+                                          ],
+                                          attrs: { name: "input", type: "text" },
+                                          domProps: { value: option.value },
+                                          on: {
+                                            keyup: function($event) {
+                                              _vm.state
+                                                .getContext()
+                                                .setOption(
+                                                  option.property,
+                                                  $event.target.value
+                                                );
+                                            },
+                                            focus: _vm.disableKeys,
+                                            blur: _vm.enableKeys,
+                                            input: function($event) {
+                                              if ($event.target.composing) {
+                                                return
+                                              }
+                                              _vm.$set(
+                                                option,
+                                                "value",
+                                                $event.target.value
+                                              );
+                                            }
+                                          }
+                                        })
+                                      ]
+                                    )
+                                  : _vm._e()
+                              ]
+                            )
+                          : _vm._e()
+                      ]
+                    })
+                  ],
+                  2
+                )
+              : _vm._e()
+          ]
         )
       ],
       1
