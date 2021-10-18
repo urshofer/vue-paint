@@ -189,7 +189,7 @@
     }
 
     toggleSelect() {
-
+      if (this.state.getActiveName() !== '') return;
       let _selected = this.primitive.selected;
 
       /* Unselect objects if shift is not pressed */
@@ -2103,7 +2103,7 @@
         console.log('initializing vue-paint…');
         this.tools = this.state.getTools();
         this.paper = paper.setup(this.$refs.painter);
-        this.paper.settings.hitTolerance = 10;
+        this.paper.settings.hitTolerance = 20;
         this.tool = new paper.Tool();
         this.state.paper = this.paper;
         let _painting;
