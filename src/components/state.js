@@ -255,6 +255,7 @@ export default class State {
 
     setActive(toolname) {
         if (toolname && this.tools[toolname]) {
+            this.unselectAll();
             this.active = this.tools[toolname].class;
             this.actveByName = toolname;
         }
