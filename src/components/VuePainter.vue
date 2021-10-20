@@ -87,19 +87,19 @@
               <a v-for="c in colors" v-bind:key="`bgcolor-${c}`" class="color" :style="{'background-color': c}" :class="{'color-active': state.getStrokeColor()==c}" @click="state.setStrokeColor(c)"></a>
             </div>
           </label>
-          <label class="vue-paint-label vue-paint-label-stroke">Scaling {{scaling}}%
+          <label class="vue-paint-label vue-paint-label-stroke">{{strings.zoom}} {{scaling}}%
             <input @change="setScaling($event.target.value)" type="range" min="25" step="25" max="200" :value="scaling">
           </label>          
         </div>
       </vue-draggable-resizable>
-      <vue-draggable-resizable v-if="state.hasSelection() || state.hasClipboard() || state.getContext()" :parent="true" :x="state.hasSelectionBoundingBox().x" :y="getContextY()"  :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
+      <vue-draggable-resizable @dragging="onContextDrag" v-if="state.hasSelection() || state.hasClipboard() || state.getContext()" :parent="true" :x="getContextX" :y="getContextY"  :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
         <div class="drag"/>
         <div v-if="state.hasSelection()">
           <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.functions}}</div>
           <a class="vue-paint-button vue-paint-button-delete" @click="state.deleteSelection()">{{strings.delete}}  <span>🔙</span></a>
           <a class="vue-paint-button vue-paint-button-copy" @click="state.copySelection()">{{strings.copy}} <span>cmd-c</span></a>
           <template  v-for="t in transformations">
-            <a v-if="state.isTransformationAllowed(t[0])" :class="`vue-paint-button vue-paint-button-${t[0]}${state.getTransformation()==t[0]?' vue-paint-button-active':''}`" v-bind:key="`transformation-${t[0]}`" @click="state.setTransformation(t[0])">{{translations[t[0]]}} <span>{{t[1]}}</span></a>
+            <a v-if="state.isTransformationAllowed(t[0])" :class="`vue-paint-button vue-paint-button-${t[0]}${state.getTransformation()==t[0]?' vue-paint-button-active':''}`" v-bind:key="`transformation-${t[0]}`" @click="state.setTransformation(t[0])">{{strings[t[0]]}} <span>{{t[1]}}</span></a>
           </template>
           <a class="vue-paint-button vue-paint-button-background" @click="state.shiftSelection('back')">{{strings.background}}<span>⇞</span></a>
           <a class="vue-paint-button vue-paint-button-foreground" @click="state.shiftSelection('front')">{{strings.foreground}}<span>⇟</span></a>
@@ -201,6 +201,26 @@ export default {
     dotColor: String
   },
   computed: {
+    getContextX () {
+      if (this.contextX !== false) return this.contextX;
+      this.contextX = this.state.hasSelectionBoundingBox().x
+      return this.contextX;
+    },
+    getContextY () {
+      if (this.contextY !== false) return this.contextY;
+      if (this.$refs.context && this.$refs.painter) {
+        if (this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop < this.$refs.wrapper.clientHeight  - this.$refs.context.$el.clientHeight) {
+          this.contextY = this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop
+        }
+        else {
+          this.contextY = this.$refs.wrapper.clientHeight - this.$refs.context.$el.clientHeight;
+        }
+      }
+      else {
+        this.contextY = 0
+      }
+      return this.contextY;
+    },    
     cssVars () {
       return {
         '--vue-paint-scaling-factor': `${this.scaling}`
@@ -251,6 +271,7 @@ export default {
         'Move': 'Move',
         'Rotate': 'Rotate',
         'Resize': 'Resize',
+        'zoom': 'Zoom',
         'background': 'Send to Back',
         'foreground': 'Bring to Front'
       },
@@ -276,7 +297,11 @@ export default {
 
       // Scaling
       scaling: 100,
-      viewSize: {}
+      viewSize: {},
+
+      // ContextPos
+      contextX: false,
+      contextY: false
     }
   },
   created() {
@@ -353,18 +378,9 @@ export default {
     this.clips = null;
   },
   methods: {
-    getContextY () {
-      if (this.$refs.context && this.$refs.painter) {
-        if (this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop < this.$refs.wrapper.clientHeight  - this.$refs.context.$el.clientHeight) {
-          return this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop
-        }
-        else {
-          return this.$refs.wrapper.clientHeight - this.$refs.context.$el.clientHeight;
-        }
-      }
-      else {
-        return 0;
-      }
+    onContextDrag(x,y) {
+      this.contextX = x
+      this.contextY = y
     },
     longestWord(string) {
       var str = string.split("\n");
