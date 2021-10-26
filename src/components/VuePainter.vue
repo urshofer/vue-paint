@@ -202,12 +202,12 @@ export default {
   },
   computed: {
     getContextX () {
-      if (this.contextX !== false) return this.contextX;
-      this.contextX = this.state.hasSelectionBoundingBox().x
+      /*if (this.contextX !== false) return this.contextX;
+      this.contextX = this.state.hasSelectionBoundingBox().x*/
       return this.contextX;
     },
     getContextY () {
-      if (this.contextY !== false) return this.contextY;
+      /*if (this.contextY !== false) return this.contextY;
       if (this.$refs.context && this.$refs.painter) {
         if (this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop < this.$refs.wrapper.clientHeight  - this.$refs.context.$el.clientHeight) {
           this.contextY = this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop
@@ -218,7 +218,7 @@ export default {
       }
       else {
         this.contextY = 0
-      }
+      }*/
       return this.contextY;
     },    
     cssVars () {
@@ -300,8 +300,8 @@ export default {
       viewSize: {},
 
       // ContextPos
-      contextX: false,
-      contextY: false
+      contextX: 300,
+      contextY: 150
     }
   },
   created() {

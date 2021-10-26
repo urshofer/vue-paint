@@ -184,8 +184,9 @@ class Tool {
     return true;
   }
 
-  toggleSelect() {
-    if (this.state.getActiveName() !== '') return;
+  toggleSelect(force) {
+    force = force || false;
+    if (this.state.getActiveName() !== '' && force === false) return;
     let _selected = this.primitive.selected;
 
     /* Unselect objects if shift is not pressed */
@@ -1099,7 +1100,7 @@ class Raster extends Tool {
 
 
   createPrimitive() {
-    console.log('createPrimitive');
+    console.log('createPrimitive!');
     let _toPoint  = this.round(this.startPoint);
     let _r = new this.paper.Raster({
       crossOrigin: 'anonymous', 
@@ -1125,7 +1126,7 @@ class Raster extends Tool {
     };
 
     this.primitive = _r;
-    this.toggleSelect();
+    this.toggleSelect(true);
     return _r;
   }
 }
@@ -1916,23 +1917,23 @@ var script = {
   },
   computed: {
     getContextX () {
-      if (this.contextX !== false) return this.contextX;
-      this.contextX = this.state.hasSelectionBoundingBox().x;
+      /*if (this.contextX !== false) return this.contextX;
+      this.contextX = this.state.hasSelectionBoundingBox().x*/
       return this.contextX;
     },
     getContextY () {
-      if (this.contextY !== false) return this.contextY;
+      /*if (this.contextY !== false) return this.contextY;
       if (this.$refs.context && this.$refs.painter) {
         if (this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop < this.$refs.wrapper.clientHeight  - this.$refs.context.$el.clientHeight) {
-          this.contextY = this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop;
+          this.contextY = this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop
         }
         else {
           this.contextY = this.$refs.wrapper.clientHeight - this.$refs.context.$el.clientHeight;
         }
       }
       else {
-        this.contextY = 0;
-      }
+        this.contextY = 0
+      }*/
       return this.contextY;
     },    
     cssVars () {
@@ -2014,8 +2015,8 @@ var script = {
       viewSize: {},
 
       // ContextPos
-      contextX: false,
-      contextY: false
+      contextX: 300,
+      contextY: 150
     }
   },
   created() {

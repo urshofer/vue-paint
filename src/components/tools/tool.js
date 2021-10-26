@@ -181,8 +181,9 @@ export default class Tool {
     return true;
   }
 
-  toggleSelect() {
-    if (this.state.getActiveName() !== '') return;
+  toggleSelect(force) {
+    force = force || false
+    if (this.state.getActiveName() !== '' && force === false) return;
     let _selected = this.primitive.selected
 
     /* Unselect objects if shift is not pressed */

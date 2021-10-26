@@ -102,7 +102,7 @@ export default class Raster extends Tool {
 
 
   createPrimitive() {
-    console.log('createPrimitive')
+    console.log('createPrimitive!')
     let _toPoint  = this.round(this.startPoint)
     let _r = new this.paper.Raster({
       crossOrigin: 'anonymous', 
@@ -128,7 +128,7 @@ export default class Raster extends Tool {
     }
 
     this.primitive = _r;
-    this.toggleSelect();
+    this.toggleSelect(true);
     return _r;
   }
 }
