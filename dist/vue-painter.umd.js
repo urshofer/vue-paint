@@ -2768,7 +2768,22 @@
                 )
               ])
             ])
-          : _vm._e(),
+          : [
+              _vm.state.getActiveName() !== "" &&
+              _vm.strings["hint:" + _vm.state.getActiveName()]
+                ? _c("div", { staticClass: "vue-paint-hint" }, [
+                    _c("div", [
+                      _vm._v(
+                        "\n        " +
+                          _vm._s(
+                            _vm.strings["hint:" + _vm.state.getActiveName()]
+                          ) +
+                          "\n      "
+                      )
+                    ])
+                  ])
+                : _vm._e()
+            ],
         _vm._v(" "),
         _c(
           "vue-draggable-resizable",
@@ -3495,7 +3510,7 @@
             )
           : _vm._e()
       ],
-      1
+      2
     )
   };
   var __vue_staticRenderFns__ = [];

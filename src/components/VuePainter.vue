@@ -63,7 +63,13 @@
           {{strings[state.getContext().showHint()] || state.getContext().showHint()}}
         </div>
       </div>
-
+      <template v-else>
+        <div v-if="state.getActiveName() !== '' && strings[`hint:${state.getActiveName()}`]" class="vue-paint-hint">
+          <div>
+            {{strings[`hint:${state.getActiveName()}`]}}
+          </div>
+        </div>      
+      </template>
 
       <vue-draggable-resizable :w="'auto'" :h="'auto'" drag-handle=".drag" id="menu" class="vue-paint-menu" :z="10">
         <div class="drag"/>
