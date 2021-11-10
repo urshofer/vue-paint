@@ -36,6 +36,18 @@ export default class Tool {
     }
   }
 
+  showHint() {
+    try {
+      if (this.getOptionByType('textarea').length && this.getOptionByType('textarea')[0].toggled) return "edittext"
+      if (this.getOptionByType('clipart').length && this.getOptionByType('clipart')[0].toggled) return "editimage"
+      if (this.fixedposition !== false) return "fixed"      
+    } catch (err) {
+      console.warn(err)
+      return false
+    }
+    return false
+  }
+
   isTransformationAllowed(transformation) {
     // Currently, transformations for fixed elements are not allowed.
     if (transformation) {

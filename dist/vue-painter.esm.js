@@ -40,6 +40,18 @@ class Tool {
     }
   }
 
+  showHint() {
+    try {
+      if (this.getOptionByType('textarea').length && this.getOptionByType('textarea')[0].toggled) return "edittext"
+      if (this.getOptionByType('clipart').length && this.getOptionByType('clipart')[0].toggled) return "editimage"
+      if (this.fixedposition !== false) return "fixed"      
+    } catch (err) {
+      console.warn(err);
+      return false
+    }
+    return false
+  }
+
   isTransformationAllowed(transformation) {
     // Currently, transformations for fixed elements are not allowed.
     if (transformation) {
@@ -2680,7 +2692,7 @@ var __vue_render__ = function() {
                   style: {
                     width:
                       _vm.state.getContext().primitive.handleBounds.width +
-                      _vm.state.getContext().primitive.fontSize +
+                      2 * _vm.state.getContext().primitive.fontSize +
                       "px",
                     "font-size":
                       _vm.state.getContext().primitive.fontSize + "px",
@@ -2739,12 +2751,26 @@ var __vue_render__ = function() {
         2
       ),
       _vm._v(" "),
+      _vm.state.getContext() && _vm.state.getContext().showHint()
+        ? _c("div", { staticClass: "vue-paint-hint" }, [
+            _c("div", [
+              _vm._v(
+                "\n      " +
+                  _vm._s(
+                    _vm.strings[_vm.state.getContext().showHint()] ||
+                      _vm.state.getContext().showHint()
+                  ) +
+                  "\n    "
+              )
+            ])
+          ])
+        : _vm._e(),
+      _vm._v(" "),
       _c(
         "vue-draggable-resizable",
         {
           staticClass: "vue-paint-menu",
           attrs: {
-            parent: true,
             w: "auto",
             h: "auto",
             "drag-handle": ".drag",
@@ -2777,7 +2803,7 @@ var __vue_render__ = function() {
                 "a",
                 {
                   class:
-                    "vue-paint-button vue-paint-button-selection" +
+                    "vue-paint-button vue-paint-button-tooltip vue-paint-button-selection" +
                     (_vm.state.getActiveName() === ""
                       ? " vue-paint-button-active"
                       : ""),
@@ -2787,7 +2813,7 @@ var __vue_render__ = function() {
                     }
                   }
                 },
-                [_vm._v(_vm._s(_vm.strings.selection))]
+                [_c("span", [_vm._v(_vm._s(_vm.strings.selection))])]
               ),
               _vm._v(" "),
               _vm._l(_vm.tools, function(t) {
@@ -2796,7 +2822,7 @@ var __vue_render__ = function() {
                   {
                     key: "tool-" + t,
                     class:
-                      "vue-paint-button vue-paint-button-" +
+                      "vue-paint-button vue-paint-button-tooltip vue-paint-button-" +
                       _vm.state.getClassName(t) +
                       " vue-paint-button-" +
                       t.replace(/ /g, "_") +
@@ -2811,7 +2837,7 @@ var __vue_render__ = function() {
                       }
                     }
                   },
-                  [_vm._v(_vm._s(t))]
+                  [_c("span", [_vm._v(_vm._s(t))])]
                 )
               })
             ],
@@ -3009,7 +3035,6 @@ var __vue_render__ = function() {
               ref: "context",
               staticClass: "vue-paint-context",
               attrs: {
-                parent: true,
                 x: _vm.getContextX,
                 y: _vm.getContextY,
                 w: "auto",
@@ -3046,7 +3071,7 @@ var __vue_render__ = function() {
                         "a",
                         {
                           staticClass:
-                            "vue-paint-button vue-paint-button-delete",
+                            "vue-paint-button vue-paint-button-shorcut vue-paint-button-delete",
                           on: {
                             click: function($event) {
                               return _vm.state.deleteSelection()
@@ -3062,7 +3087,8 @@ var __vue_render__ = function() {
                       _c(
                         "a",
                         {
-                          staticClass: "vue-paint-button vue-paint-button-copy",
+                          staticClass:
+                            "vue-paint-button vue-paint-button-shorcut vue-paint-button-copy",
                           on: {
                             click: function($event) {
                               return _vm.state.copySelection()
@@ -3083,7 +3109,7 @@ var __vue_render__ = function() {
                                 {
                                   key: "transformation-" + t[0],
                                   class:
-                                    "vue-paint-button vue-paint-button-" +
+                                    "vue-paint-button vue-paint-button-shorcut vue-paint-button-" +
                                     t[0] +
                                     (_vm.state.getTransformation() == t[0]
                                       ? " vue-paint-button-active"
@@ -3107,7 +3133,7 @@ var __vue_render__ = function() {
                         "a",
                         {
                           staticClass:
-                            "vue-paint-button vue-paint-button-background",
+                            "vue-paint-button vue-paint-button-shorcut vue-paint-button-background",
                           on: {
                             click: function($event) {
                               return _vm.state.shiftSelection("back")
@@ -3124,7 +3150,7 @@ var __vue_render__ = function() {
                         "a",
                         {
                           staticClass:
-                            "vue-paint-button vue-paint-button-foreground",
+                            "vue-paint-button vue-paint-button-shorcut vue-paint-button-foreground",
                           on: {
                             click: function($event) {
                               return _vm.state.shiftSelection("front")
@@ -3213,7 +3239,8 @@ var __vue_render__ = function() {
                     _c(
                       "a",
                       {
-                        staticClass: "vue-paint-button vue-paint-button-paste",
+                        staticClass:
+                          "vue-paint-button vue-paint-button-shorcut vue-paint-button-paste",
                         on: {
                           click: function($event) {
                             return _vm.state.pasteSelection()
@@ -3229,7 +3256,8 @@ var __vue_render__ = function() {
                     _c(
                       "a",
                       {
-                        staticClass: "vue-paint-button vue-paint-button-clear",
+                        staticClass:
+                          "vue-paint-button vue-paint-button-shorcut vue-paint-button-clear",
                         on: {
                           click: function($event) {
                             return _vm.state.clearSelection()
@@ -3279,7 +3307,7 @@ var __vue_render__ = function() {
                                         {
                                           key: option.parameter,
                                           class:
-                                            "vue-paint-button vue-paint-button-" +
+                                            "vue-paint-button vue-paint-button-shorcut vue-paint-button-" +
                                             option.description +
                                             " " +
                                             (option.toggled

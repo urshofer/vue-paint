@@ -136,6 +136,12 @@
   max-height: 100%;
   background: #CCC;
 }
+.vue-paint-hint {
+  bottom: 10px;
+  width: 50% !important;
+  left: 25%;
+  background: #CCC;
+}
 .vue-paint-menu, .vue-paint-context {
   overflow-y: auto;
 }
@@ -197,7 +203,7 @@
   padding: 0.5em;
   display: block;
 }
-.vue-paint-button span {
+.vue-paint-button-shorcut span {
   font-size: 60%;
   padding: 2px 3px 3px 3px;
   float: right;

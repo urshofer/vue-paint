@@ -46,7 +46,7 @@
             wrap="hard"
             :ref="option.property"
             :style="{
-              'width': `${state.getContext().primitive.handleBounds.width + state.getContext().primitive.fontSize}px`, 
+              'width': `${state.getContext().primitive.handleBounds.width + (2 * state.getContext().primitive.fontSize)}px`, 
               'font-size': `${state.getContext().primitive.fontSize}px`, 
               'line-height': `${state.getContext().primitive.leading}px`,
               'font-family': `${state.getContext().primitive.fontFamily}`,
@@ -57,12 +57,20 @@
         </div>
         <canvas ref="painter" id="painter" :class="`vue-paint-canvas vue-paint-canvas-${state.getActiveClassName()} vue-paint-canvas-${state.getActiveName().replace(/ /g, '_')}`"></canvas>
       </div>
-      <vue-draggable-resizable :parent="true" :w="'auto'" :h="'auto'" drag-handle=".drag" id="menu" class="vue-paint-menu" :z="10">
+      
+      <div v-if="state.getContext() && state.getContext().showHint()" class="vue-paint-hint">
+        <div>
+          {{strings[state.getContext().showHint()] || state.getContext().showHint()}}
+        </div>
+      </div>
+
+
+      <vue-draggable-resizable :w="'auto'" :h="'auto'" drag-handle=".drag" id="menu" class="vue-paint-menu" :z="10">
         <div class="drag"/>
         <div>
           <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.tools}}</div>
-          <a :class="`vue-paint-button vue-paint-button-selection${state.getActiveName()===''?' vue-paint-button-active':''}`" @click="state.setActive(false)">{{strings.selection}}</a>
-          <a :class="`vue-paint-button vue-paint-button-${state.getClassName(t)} vue-paint-button-${t.replace(/ /g, '_')}${state.getActiveName()==t?' vue-paint-button-active':''}`" v-for="t in tools" v-bind:key="`tool-${t}`" @click="state.setActive(state.getActiveName()==t ? false : t)">{{t}}</a>
+          <a :class="`vue-paint-button vue-paint-button-tooltip vue-paint-button-selection${state.getActiveName()===''?' vue-paint-button-active':''}`" @click="state.setActive(false)"><span>{{strings.selection}}</span></a>
+          <a :class="`vue-paint-button vue-paint-button-tooltip vue-paint-button-${state.getClassName(t)} vue-paint-button-${t.replace(/ /g, '_')}${state.getActiveName()==t?' vue-paint-button-active':''}`" v-for="t in tools" v-bind:key="`tool-${t}`" @click="state.setActive(state.getActiveName()==t ? false : t)"><span>{{t}}</span></a>
         </div>
         <div>
           <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.file}}</div>
@@ -92,17 +100,17 @@
           </label>          
         </div>
       </vue-draggable-resizable>
-      <vue-draggable-resizable @dragging="onContextDrag" v-if="state.hasSelection() || state.hasClipboard() || state.getContext()" :parent="true" :x="getContextX" :y="getContextY"  :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
+      <vue-draggable-resizable @dragging="onContextDrag" v-if="state.hasSelection() || state.hasClipboard() || state.getContext()" :x="getContextX" :y="getContextY"  :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
         <div class="drag"/>
         <div v-if="state.hasSelection()">
           <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.functions}}</div>
-          <a class="vue-paint-button vue-paint-button-delete" @click="state.deleteSelection()">{{strings.delete}}  <span>🔙</span></a>
-          <a class="vue-paint-button vue-paint-button-copy" @click="state.copySelection()">{{strings.copy}} <span>cmd-c</span></a>
+          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-delete" @click="state.deleteSelection()">{{strings.delete}}  <span>🔙</span></a>
+          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-copy" @click="state.copySelection()">{{strings.copy}} <span>cmd-c</span></a>
           <template  v-for="t in transformations">
-            <a v-if="state.isTransformationAllowed(t[0])" :class="`vue-paint-button vue-paint-button-${t[0]}${state.getTransformation()==t[0]?' vue-paint-button-active':''}`" v-bind:key="`transformation-${t[0]}`" @click="state.setTransformation(t[0])">{{strings[t[0]]}} <span>{{t[1]}}</span></a>
+            <a v-if="state.isTransformationAllowed(t[0])" :class="`vue-paint-button vue-paint-button-shorcut vue-paint-button-${t[0]}${state.getTransformation()==t[0]?' vue-paint-button-active':''}`" v-bind:key="`transformation-${t[0]}`" @click="state.setTransformation(t[0])">{{strings[t[0]]}} <span>{{t[1]}}</span></a>
           </template>
-          <a class="vue-paint-button vue-paint-button-background" @click="state.shiftSelection('back')">{{strings.background}}<span>⇞</span></a>
-          <a class="vue-paint-button vue-paint-button-foreground" @click="state.shiftSelection('front')">{{strings.foreground}}<span>⇟</span></a>
+          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-background" @click="state.shiftSelection('back')">{{strings.background}}<span>⇞</span></a>
+          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-foreground" @click="state.shiftSelection('front')">{{strings.foreground}}<span>⇟</span></a>
           <div class="vue-paint-arrowbuttons" v-if="state.isTransformationAllowed('Move')">
             <a @click="state.moveSelection('left')"><span>&larr;</span></a>
             <a @click="state.moveSelection('up')"><span>&uarr;</span></a>
@@ -112,8 +120,8 @@
         </div>
         <div v-if="state.hasClipboard()">
           <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.clipboard}}</div>
-          <a class="vue-paint-button vue-paint-button-paste" @click="state.pasteSelection()">{{strings.paste}}<span>cmd-v</span></a>
-          <a class="vue-paint-button vue-paint-button-clear" @click="state.clearSelection()">{{strings.clear}}</a>
+          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-paste" @click="state.pasteSelection()">{{strings.paste}}<span>cmd-v</span></a>
+          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-clear" @click="state.clearSelection()">{{strings.clear}}</a>
         </div>
         <div v-if="state.getContext()">
           <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.parameter}}</div>
@@ -121,7 +129,7 @@
             <form v-if="option.type != 'hidden'" :id="`form-${option.property}`" v-bind:key="`form-${option.description}`">
               <a
                   v-if="option.type == 'textarea' || option.type == 'clipart'"
-                  :class="`vue-paint-button vue-paint-button-${option.description} ${option.toggled?' vue-paint-button-active':''}`"
+                  :class="`vue-paint-button vue-paint-button-shorcut vue-paint-button-${option.description} ${option.toggled?' vue-paint-button-active':''}`"
                   v-bind:key="option.parameter"
                   @click="toggleOption(option)"
               >
@@ -890,6 +898,12 @@ export default {
       max-height: 100%;
       background: #CCC;
     }
+    &-hint {
+      bottom: 10px;
+      width: 50% !important;
+      left: 25%;
+      background: #CCC;
+    }
     &-menu, &-context {
       overflow-y: auto;
       .drag {
@@ -952,14 +966,16 @@ export default {
     &-button {
       padding: 0.5em;
       display: block;
-      span {
-        font-size: 60%;
-        padding: 2px 3px 3px 3px;
-        float: right;
-        width: 2rem;
-        text-align: center;
-        box-shadow: 2px 2px 2px rgba(0,0,0,0.2);
-        background: #FFF;
+      &-shorcut {
+        span {
+          font-size: 60%;
+          padding: 2px 3px 3px 3px;
+          float: right;
+          width: 2rem;
+          text-align: center;
+          box-shadow: 2px 2px 2px rgba(0,0,0,0.2);
+          background: #FFF;
+        }
       }
       &-active {
         background: #999;
