@@ -2766,7 +2766,9 @@ var __vue_render__ = function() {
           ])
         : [
             _vm.state.getActiveName() !== "" &&
-            _vm.strings["hint:" + _vm.state.getActiveName()]
+            _vm.strings[
+              "hint:" + _vm.state.getClassName(_vm.state.getActiveName())
+            ]
               ? _c("div", { staticClass: "vue-paint-hint" }, [
                   _c("div", [
                     _vm._v(
