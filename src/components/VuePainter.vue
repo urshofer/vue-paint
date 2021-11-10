@@ -64,7 +64,7 @@
         </div>
       </div>
       <template v-else>
-        <div v-if="state.getActiveName() !== '' && strings[`hint:${state.getActiveName()}`]" class="vue-paint-hint">
+        <div v-if="state.getActiveName() !== '' && strings[`hint:${state.getClassName(state.getActiveName())}`]" class="vue-paint-hint">
           <div>
             {{strings[`hint:${state.getActiveName()}`]}}
           </div>
