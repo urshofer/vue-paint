@@ -1060,24 +1060,30 @@
      */
 
     resize(delta) {
+      let _scaleX = 1 / this.primitive.bounds.width * (this.primitive.bounds.width + delta.x);
+      let _scaleY = 1 / this.primitive.bounds.height * (this.primitive.bounds.height + delta.y);
       if (this.paper.Key.isDown('shift') || this.getOption('keepAspect') === true) {
-        this.primitive.scale(
-          1 / this.primitive.bounds.width * (this.primitive.bounds.width + delta.x),
-          {
-            x: this.primitive.bounds.left,
-            y: this.primitive.bounds.top
-          }
-        );
+        if (_scaleX > 0.1) {
+          this.primitive.scale(
+            _scaleX,
+            {
+              x: this.primitive.bounds.left,
+              y: this.primitive.bounds.top
+            }
+          );
+        }
       }
       else {
-        this.primitive.scale(
-          1 / this.primitive.bounds.width * (this.primitive.bounds.width + delta.x),
-          1 / this.primitive.bounds.height * (this.primitive.bounds.height + delta.y),
-          {
-            x: this.primitive.bounds.left,
-            y: this.primitive.bounds.top
-          }
-        );
+        if (_scaleX > 0.1 && _scaleY > 0.1) {
+          this.primitive.scale(
+            _scaleX,
+            _scaleY,
+            {
+              x: this.primitive.bounds.left,
+              y: this.primitive.bounds.top
+            }
+          );
+        }
       }
     }
 
