@@ -2778,7 +2778,10 @@
                       _vm._v(
                         "\n        " +
                           _vm._s(
-                            _vm.strings["hint:" + _vm.state.getActiveName()]
+                            _vm.strings[
+                              "hint:" +
+                                _vm.state.getClassName(_vm.state.getActiveName())
+                            ]
                           ) +
                           "\n      "
                       )
