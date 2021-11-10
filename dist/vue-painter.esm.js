@@ -2774,8 +2774,10 @@ var __vue_render__ = function() {
                     _vm._v(
                       "\n        " +
                         _vm._s(
-                          "hint:" +
-                            _vm.state.getClassName(_vm.state.getActiveName())
+                          _vm.strings[
+                            "hint:" +
+                              _vm.state.getClassName(_vm.state.getActiveName())
+                          ]
                         ) +
                         "\n      "
                     )
