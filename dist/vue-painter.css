@@ -115,7 +115,7 @@
   resize: none;
   border: 1px solid transparent;
   appearance: none;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.1);
   padding: 0;
   overflow: hidden;
   color: transparent;

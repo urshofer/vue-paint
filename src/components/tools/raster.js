@@ -106,6 +106,18 @@ export default class Raster extends Tool {
     this.state.painting = true;
   }
 
+  onDoubleClick () {
+    this.state.unselectAll();
+    this.select();
+    let _e = {
+      key: 'i',
+      modifiers: {
+        meta: true
+      }
+    }
+    console.log(this.paper.tool.emit('keydown', _e))
+    return false;
+  }
 
   createPrimitive() {
     console.log('createPrimitive!')

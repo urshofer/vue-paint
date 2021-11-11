@@ -40,13 +40,13 @@
             @focus="disableKeys" 
             @blur="enableKeys" 
             :rows="option.rows" 
-            :cols="longestWord(option.value)" 
+            :cols="option.cols" 
             v-model="option.value"
             name="input"
             wrap="hard"
             :ref="option.property"
             :style="{
-              'width': `${state.getContext().primitive.handleBounds.width + (2 * state.getContext().primitive.fontSize)}px`, 
+              'width': `${option.cols + 1}ch`, 
               'font-size': `${state.getContext().primitive.fontSize}px`, 
               'line-height': `${state.getContext().primitive.leading}px`,
               'font-family': `${state.getContext().primitive.fontFamily}`,
@@ -883,7 +883,7 @@ export default {
         resize: none;
         border: 1px solid transparent;
         appearance: none;
-        background: transparent;
+        background: rgba(0,0,0,0.1);
         padding: 0;
         overflow: hidden;
         color: transparent;

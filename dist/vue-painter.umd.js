@@ -183,8 +183,14 @@
       }
     }
 
+    untoggleOptions() {
+      this.options.forEach(o => o.toggled = false);
+    }
+
     unselect() {
       this.alreadySelected = this.primitive.selected = false;
+      this.selectBorderColor(null);
+      this.untoggleOptions();
       this.state.selected = this.state.selected.filter((e) => { 
         return e != this;
       });
@@ -1120,6 +1126,18 @@
       this.state.painting = true;
     }
 
+    onDoubleClick () {
+      this.state.unselectAll();
+      this.select();
+      let _e = {
+        key: 'i',
+        modifiers: {
+          meta: true
+        }
+      };
+      console.log(this.paper.tool.emit('keydown', _e));
+      return false;
+    }
 
     createPrimitive() {
       console.log('createPrimitive!');
@@ -2700,10 +2718,7 @@
                     ref: option.property,
                     refInFor: true,
                     style: {
-                      width:
-                        _vm.state.getContext().primitive.handleBounds.width +
-                        2 * _vm.state.getContext().primitive.fontSize +
-                        "px",
+                      width: option.cols + 1 + "ch",
                       "font-size":
                         _vm.state.getContext().primitive.fontSize + "px",
                       "line-height":
@@ -2723,7 +2738,7 @@
                     },
                     attrs: {
                       rows: option.rows,
-                      cols: _vm.longestWord(option.value),
+                      cols: option.cols,
                       name: "input",
                       wrap: "hard"
                     },

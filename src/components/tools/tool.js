@@ -176,8 +176,14 @@ export default class Tool {
     }
   }
 
+  untoggleOptions() {
+    this.options.forEach(o => o.toggled = false)
+  }
+
   unselect() {
     this.alreadySelected = this.primitive.selected = false;
+    this.selectBorderColor(null)
+    this.untoggleOptions()
     this.state.selected = this.state.selected.filter((e) => { 
       return e != this;
     });
