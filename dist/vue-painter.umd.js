@@ -199,6 +199,9 @@
 
     select() {
       this.primitive.selected = true;
+      if (this.fixedposition !== false) {
+        this.selectBorderColor('grey');
+      }
       this.state.context = this;
       if (this.state.selected.find((e)=>{}) == undefined) {
         this.state.selected.push(this); 

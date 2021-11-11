@@ -192,6 +192,9 @@ export default class Tool {
 
   select() {
     this.primitive.selected = true;
+    if (this.fixedposition !== false) {
+      this.selectBorderColor('grey')
+    }
     this.state.context = this;
     if (this.state.selected.find((e)=>{e==this}) == undefined) {
       this.state.selected.push(this); 
