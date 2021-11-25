@@ -129,7 +129,7 @@
 }
 .vue-paint-context {
   position: absolute;
-  left: calc(20% + 1rem);
+  left: 0px;
   top: 0px;
   width: 10% !important;
   height: auto;

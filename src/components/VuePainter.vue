@@ -314,8 +314,8 @@ export default {
       viewSize: {},
 
       // ContextPos
-      contextX: 300,
-      contextY: 150
+      contextX: this.$root._vp_x ? this.$root._vp_x : (window.innerWidth - 300),
+      contextY: this.$root._vp_y ? this.$root._vp_y : 150
     }
   },
   created() {
@@ -393,8 +393,8 @@ export default {
   },
   methods: {
     onContextDrag(x,y) {
-      this.contextX = x
-      this.contextY = y
+      this.contextX = this.$root._vp_x = x
+      this.contextY = this.$root._vp_y = y
     },
     longestWord(string) {
       var str = string.split("\n");
@@ -897,7 +897,7 @@ export default {
     }
     &-context {
       position: absolute;
-      left: calc(20% + 1rem);
+      left: 0px;
       top: 0px;
       width: 10% !important;
       height: auto;

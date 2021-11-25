@@ -2058,8 +2058,8 @@
         viewSize: {},
 
         // ContextPos
-        contextX: 300,
-        contextY: 150
+        contextX: this.$root._vp_x ? this.$root._vp_x : (window.innerWidth - 300),
+        contextY: this.$root._vp_y ? this.$root._vp_y : 150
       }
     },
     created() {
@@ -2137,8 +2137,8 @@
     },
     methods: {
       onContextDrag(x,y) {
-        this.contextX = x;
-        this.contextY = y;
+        this.contextX = this.$root._vp_x = x;
+        this.contextY = this.$root._vp_y = y;
       },
       longestWord(string) {
         var str = string.split("\n");
