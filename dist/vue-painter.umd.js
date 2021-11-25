@@ -2406,8 +2406,12 @@
         // Import json data to stage if passed as a prop
 
         this.$nextTick(()=>{
-          if (this.json) {
-            this.state.importStack(this.json);
+          try {
+            if (this.json) {
+              this.state.importStack(this.json);
+            }
+          } catch (err) {
+            this.$emit('error', 'loading_json');
           }
         });
 
