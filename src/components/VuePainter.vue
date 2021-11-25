@@ -323,7 +323,7 @@ export default {
       try {
         this.json = JSON.parse(this.data);
       } catch(err) {
-        console.warn(err);
+        this.$emit('error', 'parse_json');
         this.json = false;
       }
     }
