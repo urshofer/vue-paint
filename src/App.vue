@@ -244,7 +244,8 @@ export default {
         'Resize': 'Skalieren',
         'zoom': 'Zoom',
         'background': 'Hintergrund',
-        'foreground': 'Vordergrund'
+        'foreground': 'Vordergrund',
+        'magnetic': 'Am Raster ausrichten'
       }
     }
   },
