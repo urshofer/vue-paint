@@ -103,7 +103,14 @@
           </label>
           <label class="vue-paint-label vue-paint-label-stroke">{{strings.zoom}} {{scaling}}%
             <input @change="setScaling($event.target.value)" type="range" min="25" step="25" max="200" :value="scaling">
-          </label>          
+          </label>
+          <label class="vue-paint-label vue-paint-label-stroke">{{strings.magnetic}}
+            <input 
+              v-model="magnetic"
+              name="magnetic"
+              type="checkbox"
+            >
+          </label>               
         </div>
       </vue-draggable-resizable>
       <vue-draggable-resizable @dragging="onContextDrag" v-if="state.hasSelection() || state.hasClipboard() || state.getContext()" :x="getContextX" :y="getContextY"  :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
@@ -214,6 +221,17 @@ export default {
     gridColor: String,
     dotColor: String
   },
+  watch: {
+    magnetic(v) {
+      try {
+        if (this.state.getContext()) {
+          this.state.getContext().setMagnetic(v)
+        }
+      } catch (err) {
+        console.warn(err)
+      }
+    }
+  },
   computed: {
     getContextX () {
       /*if (this.contextX !== false) return this.contextX;
@@ -287,7 +305,8 @@ export default {
         'Resize': 'Resize',
         'zoom': 'Zoom',
         'background': 'Send to Back',
-        'foreground': 'Bring to Front'
+        'foreground': 'Bring to Front',
+        'magnetic': 'Snap to grid'
       },
 
       // Tools
@@ -315,7 +334,10 @@ export default {
 
       // ContextPos
       contextX: this.$root._vp_x ? this.$root._vp_x : (window.innerWidth - 300),
-      contextY: this.$root._vp_y ? this.$root._vp_y : 150
+      contextY: this.$root._vp_y ? this.$root._vp_y : 150,
+
+      // Grid
+      magnetic: true
     }
   },
   created() {

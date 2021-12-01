@@ -27,6 +27,7 @@ export default class Tool {
     this.painted = false;
     this.dragging = false;
     this.draggingLastPoint = false;
+    this.magnetic = true;
     this.registerOptions(options);
     if (primitive) {
       this.init(primitive)
@@ -34,6 +35,10 @@ export default class Tool {
     else {
       this.draw(startPoint)
     }
+  }
+
+  setMagnetic(value) {
+    this.magnetic = value
   }
 
   showHint() {
@@ -123,7 +128,7 @@ export default class Tool {
   }
 
   round(point) {
-    if (!this.paper.Key.isDown('meta')) {
+    if (!this.paper.Key.isDown('meta') && this.magnetic === true) {
       point.x = Math.round(point.x / this.state.gridsize.x) * this.state.gridsize.x;
       point.y = Math.round(point.y / this.state.gridsize.y) * this.state.gridsize.y;
     }

@@ -31,6 +31,7 @@ class Tool {
     this.painted = false;
     this.dragging = false;
     this.draggingLastPoint = false;
+    this.magnetic = true;
     this.registerOptions(options);
     if (primitive) {
       this.init(primitive);
@@ -38,6 +39,10 @@ class Tool {
     else {
       this.draw(startPoint);
     }
+  }
+
+  setMagnetic(value) {
+    this.magnetic = value;
   }
 
   showHint() {
@@ -127,7 +132,7 @@ class Tool {
   }
 
   round(point) {
-    if (!this.paper.Key.isDown('meta')) {
+    if (!this.paper.Key.isDown('meta') && this.magnetic === true) {
       point.x = Math.round(point.x / this.state.gridsize.x) * this.state.gridsize.x;
       point.y = Math.round(point.y / this.state.gridsize.y) * this.state.gridsize.y;
     }
@@ -1954,6 +1959,17 @@ var script = {
     gridColor: String,
     dotColor: String
   },
+  watch: {
+    magnetic(v) {
+      try {
+        if (this.state.getContext()) {
+          this.state.getContext().setMagnetic(v);
+        }
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+  },
   computed: {
     getContextX () {
       /*if (this.contextX !== false) return this.contextX;
@@ -2027,7 +2043,8 @@ var script = {
         'Resize': 'Resize',
         'zoom': 'Zoom',
         'background': 'Send to Back',
-        'foreground': 'Bring to Front'
+        'foreground': 'Bring to Front',
+        'magnetic': 'Snap to grid'
       },
 
       // Tools
@@ -2055,7 +2072,10 @@ var script = {
 
       // ContextPos
       contextX: this.$root._vp_x ? this.$root._vp_x : (window.innerWidth - 300),
-      contextY: this.$root._vp_y ? this.$root._vp_y : 150
+      contextY: this.$root._vp_y ? this.$root._vp_y : 150,
+
+      // Grid
+      magnetic: true
     }
   },
   created() {
@@ -3065,6 +3085,51 @@ var __vue_render__ = function() {
                   on: {
                     change: function($event) {
                       return _vm.setScaling($event.target.value)
+                    }
+                  }
+                })
+              ]
+            ),
+            _vm._v(" "),
+            _c(
+              "label",
+              { staticClass: "vue-paint-label vue-paint-label-stroke" },
+              [
+                _vm._v(_vm._s(_vm.strings.magnetic) + "\n        "),
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.magnetic,
+                      expression: "magnetic"
+                    }
+                  ],
+                  attrs: { name: "magnetic", type: "checkbox" },
+                  domProps: {
+                    checked: Array.isArray(_vm.magnetic)
+                      ? _vm._i(_vm.magnetic, null) > -1
+                      : _vm.magnetic
+                  },
+                  on: {
+                    change: function($event) {
+                      var $$a = _vm.magnetic,
+                        $$el = $event.target,
+                        $$c = $$el.checked ? true : false;
+                      if (Array.isArray($$a)) {
+                        var $$v = null,
+                          $$i = _vm._i($$a, $$v);
+                        if ($$el.checked) {
+                          $$i < 0 && (_vm.magnetic = $$a.concat([$$v]));
+                        } else {
+                          $$i > -1 &&
+                            (_vm.magnetic = $$a
+                              .slice(0, $$i)
+                              .concat($$a.slice($$i + 1)));
+                        }
+                      } else {
+                        _vm.magnetic = $$c;
+                      }
                     }
                   }
                 })
