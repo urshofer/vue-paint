@@ -31,7 +31,7 @@ class Tool {
     this.painted = false;
     this.dragging = false;
     this.draggingLastPoint = false;
-    this.magnetic = true;
+
     this.registerOptions(options);
     if (primitive) {
       this.init(primitive);
@@ -39,10 +39,6 @@ class Tool {
     else {
       this.draw(startPoint);
     }
-  }
-
-  setMagnetic(value) {
-    this.magnetic = value;
   }
 
   showHint() {
@@ -132,7 +128,7 @@ class Tool {
   }
 
   round(point) {
-    if (!this.paper.Key.isDown('meta') && this.magnetic === true) {
+    if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
       point.x = Math.round(point.x / this.state.gridsize.x) * this.state.gridsize.x;
       point.y = Math.round(point.y / this.state.gridsize.y) * this.state.gridsize.y;
     }
@@ -387,7 +383,7 @@ class Tool {
             this.endRotate(delta, point);
           }
           else {
-            if (!this.paper.Key.isDown('meta')) {
+            if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
               this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
             }
           }
@@ -397,7 +393,7 @@ class Tool {
             this.endResize(delta, point);
           }
           else {
-            if (!this.paper.Key.isDown('meta')) {
+            if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
               this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize.x) * this.state.gridsize.x;
               this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize.y) * this.state.gridsize.y;
               this.primitive.bounds.left = Math.round(this.primitive.bounds.left / this.state.gridsize.x) * this.state.gridsize.x;
@@ -743,7 +739,7 @@ class Polyline extends Tool {
   }
 
   endResize() {
-    if (!this.paper.Key.isDown('meta')) {
+    if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
       this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
       this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
     }
@@ -890,7 +886,7 @@ class Star extends Tool {
   endtransformation(mode) {
     switch (mode) {
       case 'Resize':
-        if (!this.paper.Key.isDown('meta')) {
+        if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
           this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
           this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
         }
@@ -1014,7 +1010,7 @@ class Polygon extends Tool {
   endtransformation(mode) {
     switch (mode) {
       case 'Resize':
-        if (!this.paper.Key.isDown('meta')) {
+        if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
           this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
           this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
         }
@@ -1104,7 +1100,7 @@ class Raster extends Tool {
   endResize() {
     let _fX = 1 / this.primitive.bounds.width * (Math.round(this.primitive.bounds.width / this.state.gridsize.x) * this.state.gridsize.x);
     let _fY = 1 / this.primitive.bounds.height * (Math.round(this.primitive.bounds.height / this.state.gridsize.y) * this.state.gridsize.y);
-    if (this.paper.Key.isDown('meta')) {
+    if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
       _fX = 1;
       _fY = 1;
     }
@@ -1542,7 +1538,7 @@ class Arc extends Tool {
   endtransformation(mode) {
     switch (mode) {
       case 'Resize':
-        if (!this.paper.Key.isDown('meta')) {
+        if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
           this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
           this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
         }
@@ -1570,6 +1566,7 @@ class State {
         this.clips  = [];
         this.paper  = null;
         this.painting = true;
+        this.magnetic = true;
         // Register Transformation Modes
         this.allowedTransformations = ['Move', 'Resize', 'Rotate'];
         this.transformation = 'Move';
@@ -1639,6 +1636,10 @@ class State {
         }
     }
 
+    setMagnetic(value) {
+        this.magnetic = value;
+    }
+    
     addClipart(clips) {
         this.clips = clips;
     }
@@ -1963,7 +1964,7 @@ var script = {
     magnetic(v) {
       try {
         if (this.state.getContext()) {
-          this.state.getContext().setMagnetic(v);
+          this.state.setMagnetic(v);
         }
       } catch (err) {
         console.warn(err);

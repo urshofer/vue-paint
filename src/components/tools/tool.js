@@ -27,7 +27,7 @@ export default class Tool {
     this.painted = false;
     this.dragging = false;
     this.draggingLastPoint = false;
-    this.magnetic = true;
+
     this.registerOptions(options);
     if (primitive) {
       this.init(primitive)
@@ -35,10 +35,6 @@ export default class Tool {
     else {
       this.draw(startPoint)
     }
-  }
-
-  setMagnetic(value) {
-    this.magnetic = value
   }
 
   showHint() {
@@ -128,7 +124,7 @@ export default class Tool {
   }
 
   round(point) {
-    if (!this.paper.Key.isDown('meta') && this.magnetic === true) {
+    if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
       point.x = Math.round(point.x / this.state.gridsize.x) * this.state.gridsize.x;
       point.y = Math.round(point.y / this.state.gridsize.y) * this.state.gridsize.y;
     }
@@ -384,7 +380,7 @@ export default class Tool {
             this.endRotate(delta, point)
           }
           else {
-            if (!this.paper.Key.isDown('meta')) {
+            if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
               this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
             }
           }
@@ -394,7 +390,7 @@ export default class Tool {
             this.endResize(delta, point)
           }
           else {
-            if (!this.paper.Key.isDown('meta')) {
+            if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
               this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize.x) * this.state.gridsize.x;
               this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize.y) * this.state.gridsize.y;
               this.primitive.bounds.left = Math.round(this.primitive.bounds.left / this.state.gridsize.x) * this.state.gridsize.x;

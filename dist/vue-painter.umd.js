@@ -35,7 +35,7 @@
       this.painted = false;
       this.dragging = false;
       this.draggingLastPoint = false;
-      this.magnetic = true;
+
       this.registerOptions(options);
       if (primitive) {
         this.init(primitive);
@@ -43,10 +43,6 @@
       else {
         this.draw(startPoint);
       }
-    }
-
-    setMagnetic(value) {
-      this.magnetic = value;
     }
 
     showHint() {
@@ -136,7 +132,7 @@
     }
 
     round(point) {
-      if (!this.paper.Key.isDown('meta') && this.magnetic === true) {
+      if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
         point.x = Math.round(point.x / this.state.gridsize.x) * this.state.gridsize.x;
         point.y = Math.round(point.y / this.state.gridsize.y) * this.state.gridsize.y;
       }
@@ -391,7 +387,7 @@
               this.endRotate(delta, point);
             }
             else {
-              if (!this.paper.Key.isDown('meta')) {
+              if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
                 this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
               }
             }
@@ -401,7 +397,7 @@
               this.endResize(delta, point);
             }
             else {
-              if (!this.paper.Key.isDown('meta')) {
+              if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
                 this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize.x) * this.state.gridsize.x;
                 this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize.y) * this.state.gridsize.y;
                 this.primitive.bounds.left = Math.round(this.primitive.bounds.left / this.state.gridsize.x) * this.state.gridsize.x;
@@ -747,7 +743,7 @@
     }
 
     endResize() {
-      if (!this.paper.Key.isDown('meta')) {
+      if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
         this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
         this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
       }
@@ -894,7 +890,7 @@
     endtransformation(mode) {
       switch (mode) {
         case 'Resize':
-          if (!this.paper.Key.isDown('meta')) {
+          if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
             this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
             this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
           }
@@ -1018,7 +1014,7 @@
     endtransformation(mode) {
       switch (mode) {
         case 'Resize':
-          if (!this.paper.Key.isDown('meta')) {
+          if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
             this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
             this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
           }
@@ -1108,7 +1104,7 @@
     endResize() {
       let _fX = 1 / this.primitive.bounds.width * (Math.round(this.primitive.bounds.width / this.state.gridsize.x) * this.state.gridsize.x);
       let _fY = 1 / this.primitive.bounds.height * (Math.round(this.primitive.bounds.height / this.state.gridsize.y) * this.state.gridsize.y);
-      if (this.paper.Key.isDown('meta')) {
+      if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
         _fX = 1;
         _fY = 1;
       }
@@ -1546,7 +1542,7 @@
     endtransformation(mode) {
       switch (mode) {
         case 'Resize':
-          if (!this.paper.Key.isDown('meta')) {
+          if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
             this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
             this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
           }
@@ -1574,6 +1570,7 @@
           this.clips  = [];
           this.paper  = null;
           this.painting = true;
+          this.magnetic = true;
           // Register Transformation Modes
           this.allowedTransformations = ['Move', 'Resize', 'Rotate'];
           this.transformation = 'Move';
@@ -1643,6 +1640,10 @@
           }
       }
 
+      setMagnetic(value) {
+          this.magnetic = value;
+      }
+      
       addClipart(clips) {
           this.clips = clips;
       }
@@ -1967,7 +1968,7 @@
       magnetic(v) {
         try {
           if (this.state.getContext()) {
-            this.state.getContext().setMagnetic(v);
+            this.state.setMagnetic(v);
           }
         } catch (err) {
           console.warn(err);

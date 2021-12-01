@@ -29,6 +29,7 @@ export default class State {
         this.clips  = [];
         this.paper  = null;
         this.painting = true;
+        this.magnetic = true;
         // Register Transformation Modes
         this.allowedTransformations = ['Move', 'Resize', 'Rotate'];
         this.transformation = 'Move';
@@ -98,6 +99,10 @@ export default class State {
         }
     }
 
+    setMagnetic(value) {
+        this.magnetic = value
+    }
+    
     addClipart(clips) {
         this.clips = clips;
     }

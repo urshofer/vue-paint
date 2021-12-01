@@ -80,7 +80,7 @@ export default class Raster extends Tool {
   endResize() {
     let _fX = 1 / this.primitive.bounds.width * (Math.round(this.primitive.bounds.width / this.state.gridsize.x) * this.state.gridsize.x)
     let _fY = 1 / this.primitive.bounds.height * (Math.round(this.primitive.bounds.height / this.state.gridsize.y) * this.state.gridsize.y)
-    if (this.paper.Key.isDown('meta')) {
+    if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
       _fX = 1
       _fY = 1
     }
