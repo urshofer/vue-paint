@@ -8,8 +8,8 @@
         v-bind:fonts="fonts"
         v-bind:clipart="clipart"
         v-bind:data="data" 
-        v-bind:gridX="25.981"
-        v-bind:gridY="15"
+        v-bind:grids="grids"
+        v-bind:defaultGrid="defaultGrid"
         v-bind:angleStep="30"
         v-on:save="onSave"
         v-on:export="onExport"
@@ -25,13 +25,14 @@
 import VuePainter from 'vue-painter'
 import { saveAs } from 'file-saver'
 import 'vue-painter/dist/vue-painter.css'
-
+const mm2px = 4.705882352941176
 export default {
   name: 'App',
   components: {
     VuePainter
   },
   data() {
+    let gridSize = 10 * mm2px
     return {
       data: '[{"prototype":"Kreis","data":"WyJTaGFwZSIseyJhcHBseU1hdHJpeCI6ZmFsc2UsIm1hdHJpeCI6WzEsMCwwLDEsNjc1LjUwNiw2MF0sInR5cGUiOiJlbGxpcHNlIiwic2l6ZSI6WzEwMy45MjQsOTBdLCJyYWRpdXMiOls1MS45NjIsNDVdLCJmaWxsQ29sb3IiOlswLDAsMF0sInN0cm9rZUNvbG9yIjpbMSwwLDBdLCJzdHJva2VXaWR0aCI6Mn1d"},{"prototype":"Kreis","data":"WyJTaGFwZSIseyJhcHBseU1hdHJpeCI6ZmFsc2UsIm1hdHJpeCI6WzEsMCwwLDEsNjYyLjUxNTUsMzAwXSwidHlwZSI6ImVsbGlwc2UiLCJzaXplIjpbNzcuOTQzLDkwXSwicmFkaXVzIjpbMzguOTcxNSw0NV0sImZpbGxDb2xvciI6WzAsMCwwXSwic3Ryb2tlQ29sb3IiOlsxLDAsMF0sInN0cm9rZVdpZHRoIjoyfV0="},{"prototype":"Kreis","data":"WyJTaGFwZSIseyJhcHBseU1hdHJpeCI6ZmFsc2UsIm1hdHJpeCI6WzEsMCwwLDEsMzM3Ljc1Myw1NzBdLCJ0eXBlIjoiZWxsaXBzZSIsInNpemUiOlsxMDMuOTI0LDMwXSwicmFkaXVzIjpbNTEuOTYyLDE1XSwiZmlsbENvbG9yIjpbMCwwLDBdLCJzdHJva2VDb2xvciI6WzEsMCwwXSwic3Ryb2tlV2lkdGgiOjJ9XQ=="},{"prototype":"Kreis","data":"WyJTaGFwZSIseyJhcHBseU1hdHJpeCI6ZmFsc2UsIm1hdHJpeCI6WzEsMCwwLDEsNzcuOTQzLDMwNy41XSwidHlwZSI6ImVsbGlwc2UiLCJzaXplIjpbNTEuOTYyLDEwNV0sInJhZGl1cyI6WzI1Ljk4MSw1Mi41XSwiZmlsbENvbG9yIjpbMCwwLDBdLCJzdHJva2VDb2xvciI6WzEsMCwwXSwic3Ryb2tlV2lkdGgiOjJ9XQ=="},{"prototype":"Rechteck","data":"WyJTaGFwZSIseyJhcHBseU1hdHJpeCI6ZmFsc2UsIm1hdHJpeCI6WzEsMCwwLDEsNjQuOTUyNSwzNy41XSwidHlwZSI6InJlY3RhbmdsZSIsInNpemUiOls3Ny45NDMsNDVdLCJyYWRpdXMiOlswLDBdLCJmaWxsQ29sb3IiOlswLDAsMF0sInN0cm9rZUNvbG9yIjpbMSwwLDBdLCJzdHJva2VXaWR0aCI6Mn1d"},{"prototype":"Rechteck","data":"WyJTaGFwZSIseyJhcHBseU1hdHJpeCI6ZmFsc2UsIm1hdHJpeCI6WzEsMCwwLDEsMzM3Ljc1MywxNTcuNV0sInR5cGUiOiJyZWN0YW5nbGUiLCJzaXplIjpbNTE5LjYyLDE5NV0sInJhZGl1cyI6WzAsMF0sImZpbGxDb2xvciI6WzAsMCwwXSwic3Ryb2tlQ29sb3IiOlsxLDAsMF0sInN0cm9rZVdpZHRoIjoyfV0="},{"prototype":"Rechteck","data":"WyJTaGFwZSIseyJhcHBseU1hdHJpeCI6ZmFsc2UsIm1hdHJpeCI6WzEsMCwwLDEsNTg0LjU3MjUsNTYyLjVdLCJ0eXBlIjoicmVjdGFuZ2xlIiwic2l6ZSI6WzI1Ljk4MSw0NV0sInJhZGl1cyI6WzAsMF0sImZpbGxDb2xvciI6WzAsMCwwXSwic3Ryb2tlQ29sb3IiOlsxLDAsMF0sInN0cm9rZVdpZHRoIjoyfV0="},{"prototype":"Rechteck","data":"WyJTaGFwZSIseyJhcHBseU1hdHJpeCI6ZmFsc2UsIm1hdHJpeCI6WzEsMCwwLDEsMTY4Ljg3NjUsMTE1NV0sInR5cGUiOiJyZWN0YW5nbGUiLCJzaXplIjpbMTI5LjkwNSw5MF0sInJhZGl1cyI6WzAsMF0sImZpbGxDb2xvciI6WzAsMCwwXSwic3Ryb2tlQ29sb3IiOlsxLDAsMF0sInN0cm9rZVdpZHRoIjoyfV0="},{"prototype":"Rechteck","data":"WyJTaGFwZSIseyJhcHBseU1hdHJpeCI6ZmFsc2UsIm1hdHJpeCI6WzEsMCwwLDEsNTQ1LjYwMSwxMjM3LjVdLCJ0eXBlIjoicmVjdGFuZ2xlIiwic2l6ZSI6WzEwMy45MjQsMTVdLCJyYWRpdXMiOlswLDBdLCJmaWxsQ29sb3IiOlswLDAsMF0sInN0cm9rZUNvbG9yIjpbMSwwLDBdLCJzdHJva2VXaWR0aCI6Mn1d"},{"prototype":"Rechteck","data":"WyJTaGFwZSIseyJhcHBseU1hdHJpeCI6ZmFsc2UsIm1hdHJpeCI6WzEsMCwwLDEsMjIwLjgzODUsODc3LjVdLCJ0eXBlIjoicmVjdGFuZ2xlIiwic2l6ZSI6WzE4MS44NjcsMTVdLCJyYWRpdXMiOlswLDBdLCJmaWxsQ29sb3IiOlswLDAsMF0sInN0cm9rZUNvbG9yIjpbMSwwLDBdLCJzdHJva2VXaWR0aCI6Mn1d"},{"prototype":"Polyline","data":"WyJQYXRoIix7ImFwcGx5TWF0cml4Ijp0cnVlLCJzZWdtZW50cyI6W1sxNTUuODg2LDQ1MF0sWzMxMS43NzIsNTEwXSxbNDY3LjY1OCw0MzVdLFszMzcuNzUzLDI4NV0sWzI1OS44MSwzMTVdLFsxNTUuODg2LDQzNV1dLCJjbG9zZWQiOnRydWUsImZpbGxDb2xvciI6WzAsMCwwXSwic3Ryb2tlQ29sb3IiOlsxLDAsMF0sInN0cm9rZVdpZHRoIjoyLCJzdHJva2VKb2luIjoicm91bmQifV0="},{"prototype":"Linie","data":"WyJQYXRoIix7ImFwcGx5TWF0cml4Ijp0cnVlLCJzZWdtZW50cyI6W1s3Ny45NDMsNTg1XSxbMzM3Ljc1Myw2MTVdXSwiZmlsbENvbG9yIjpbMCwwLDBdLCJzdHJva2VDb2xvciI6WzEsMCwwXSwic3Ryb2tlV2lkdGgiOjIsImRhc2hBcnJheSI6WyI1IiwiNSJdfV0="}]',
       clipart: [
@@ -246,7 +247,18 @@ export default {
         'background': 'Hintergrund',
         'foreground': 'Vordergrund',
         'magnetic': 'Am Raster ausrichten'
-      }
+      },
+      grids: {
+        Isometrie: {
+          x: gridSize * 0.866,
+          y: gridSize * 0.5
+        },
+        Eben: {
+          x: gridSize * 0.5,
+          y: gridSize * 0.5
+        }
+      },
+      defaultGrid: 'Isometrie'
     }
   },
   methods: {
