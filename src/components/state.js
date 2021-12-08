@@ -123,7 +123,7 @@ export default class State {
     }
 
     isFixed(_tool) {
-        return (this.tools[_tool].defaults.fixed && this.tools[_tool].defaults.fixed.x && this.tools[_tool].defaults.fixed.y ? true : false)
+        return (this.tools[_tool].defaults.fixed && this.tools[_tool].defaults.fixed.x !== undefined && this.tools[_tool].defaults.fixed.y != undefined ? true : false)
     }
 
     exists(_element) {
