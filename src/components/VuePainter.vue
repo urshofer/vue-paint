@@ -112,6 +112,15 @@
             >
           </label>               
         </div>
+        <div>
+          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.grids}}</div>
+          <a 
+            :class="`vue-paint-button ${activeGrid == _g?' vue-paint-button-active':''}`"
+            v-for="(_gc, _g) in grids"
+            v-bind:key="`g_${_g}`"
+            @click="activeGrid = _g"><span>{{_g}}</span>
+          </a>
+        </div>        
       </vue-draggable-resizable>
       <vue-draggable-resizable @dragging="onContextDrag" v-if="state.hasSelection() || state.hasClipboard() || state.getContext()" :x="getContextX" :y="getContextY"  :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
         <div class="drag"/>
@@ -215,13 +224,17 @@ export default {
     configuration: Object,
     csscolors: Array,
     translations: Object,
-    gridX: Number,
-    gridY: Number,
+    grids: Object,
+    defaultGrid: String,
     angleStep: Number,
     gridColor: String,
     dotColor: String
   },
   watch: {
+    activeGrid() {
+      this.state.setGrid(this.gridX, this.gridY)
+      this.drawGrid()
+    },
     magnetic(v) {
       try {
         if (this.state.getContext()) {
@@ -233,6 +246,20 @@ export default {
     }
   },
   computed: {
+    gridX () {
+      try {
+        return this.grids[this.activeGrid].x
+      } catch (err) {
+        return 25
+      }
+    },
+    gridY () {
+      try {
+        return this.grids[this.activeGrid].y
+      } catch (err) {
+        return 25
+      }
+    },    
     getContextX () {
       /*if (this.contextX !== false) return this.contextX;
       this.contextX = this.state.hasSelectionBoundingBox().x*/
@@ -337,7 +364,9 @@ export default {
       contextY: this.$root._vp_y ? this.$root._vp_y : 150,
 
       // Grid
-      magnetic: true
+      magnetic: true,
+      activeGrid: this.defaultGrid,
+      gridLayer: false
     }
   },
   created() {
@@ -351,7 +380,7 @@ export default {
     }
     this.clips = this.prepareClipart(this.clipart);
     this.state = new State({
-      'gridsize'  : {x: this.gridX || 25, y: this.gridY || 25}, 
+      'gridsize'  : {x: this.gridX, y: this.gridY}, 
       'anglestep' : this.angleStep || 5, 
       'fonts'     : this.fonts,
       'tools'     : this.configuration
@@ -429,19 +458,25 @@ export default {
       return longest;
     },
     drawGrid() {
-      new this.paper.Layer();
+      if (this.gridLayer === false) {
+        this.gridLayer = new this.paper.Layer();
+      } else {
+        this.gridLayer.removeChildren()
+      }
+      this.gridLayer.activate()
       let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x) * -(180/Math.PI);
-
-      this.paper.Path.Line({
-          from: [0, this.paper.project.view.bounds.height / 2],
-          to: [this.paper.project.view.bounds.width, this.paper.project.view.bounds.height / 2],
-          strokeColor: '#CCC',
-      });
-      this.paper.Path.Line({
-          from: [this.paper.project.view.bounds.width / 2, 0],
-          to: [this.paper.project.view.bounds.width / 2, this.paper.project.view.bounds.height],
-          strokeColor: '#CCC',
-      });      
+      for (let __index = 1; __index < 4; __index++) {
+        this.paper.Path.Line({
+            from: [this.paper.project.view.bounds.width / 4 * __index, 0],
+            to: [this.paper.project.view.bounds.width / 4 * __index, this.paper.project.view.bounds.height],
+            strokeColor: '#CCC',
+        });
+        this.paper.Path.Line({
+            from: [0, this.paper.project.view.bounds.height / 4 * __index],
+            to: [this.paper.project.view.bounds.width, this.paper.project.view.bounds.height / 4 * __index],
+            strokeColor: '#CCC',
+        });
+      }
 
       if (this.state.gridsize.y != this.state.gridsize.x) {
         for (let _y = 0; _y < this.paper.project.view.bounds.height * 2; _y+=this.state.gridsize.y) {
@@ -486,6 +521,9 @@ export default {
               fillColor: this.dotColor || '#000',
           });
         }
+      }
+      if (this.layer !== null) {
+        this.layer.activate()
       }
     },
     setScaling(value) {

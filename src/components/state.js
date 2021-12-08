@@ -99,6 +99,11 @@ export default class State {
         }
     }
 
+    setGrid(x, y) {
+        this.gridsize.x = x
+        this.gridsize.y = y
+    }
+
     setMagnetic(value) {
         this.magnetic = value
     }

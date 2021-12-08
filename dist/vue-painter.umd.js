@@ -1640,6 +1640,11 @@
           }
       }
 
+      setGrid(x, y) {
+          this.gridsize.x = x;
+          this.gridsize.y = y;
+      }
+
       setMagnetic(value) {
           this.magnetic = value;
       }
@@ -1958,13 +1963,17 @@
       configuration: Object,
       csscolors: Array,
       translations: Object,
-      gridX: Number,
-      gridY: Number,
+      grids: Object,
+      defaultGrid: String,
       angleStep: Number,
       gridColor: String,
       dotColor: String
     },
     watch: {
+      activeGrid() {
+        this.state.setGrid(this.gridX, this.gridY);
+        this.drawGrid();
+      },
       magnetic(v) {
         try {
           if (this.state.getContext()) {
@@ -1976,6 +1985,20 @@
       }
     },
     computed: {
+      gridX () {
+        try {
+          return this.grids[this.activeGrid].x
+        } catch (err) {
+          return 25
+        }
+      },
+      gridY () {
+        try {
+          return this.grids[this.activeGrid].y
+        } catch (err) {
+          return 25
+        }
+      },    
       getContextX () {
         /*if (this.contextX !== false) return this.contextX;
         this.contextX = this.state.hasSelectionBoundingBox().x*/
@@ -2080,7 +2103,9 @@
         contextY: this.$root._vp_y ? this.$root._vp_y : 150,
 
         // Grid
-        magnetic: true
+        magnetic: true,
+        activeGrid: this.defaultGrid,
+        gridLayer: false
       }
     },
     created() {
@@ -2094,7 +2119,7 @@
       }
       this.clips = this.prepareClipart(this.clipart);
       this.state = new State({
-        'gridsize'  : {x: this.gridX || 25, y: this.gridY || 25}, 
+        'gridsize'  : {x: this.gridX, y: this.gridY}, 
         'anglestep' : this.angleStep || 5, 
         'fonts'     : this.fonts,
         'tools'     : this.configuration
@@ -2172,19 +2197,25 @@
         return longest;
       },
       drawGrid() {
-        new this.paper.Layer();
+        if (this.gridLayer === false) {
+          this.gridLayer = new this.paper.Layer();
+        } else {
+          this.gridLayer.removeChildren();
+        }
+        this.gridLayer.activate();
         let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x) * -(180/Math.PI);
-
-        this.paper.Path.Line({
-            from: [0, this.paper.project.view.bounds.height / 2],
-            to: [this.paper.project.view.bounds.width, this.paper.project.view.bounds.height / 2],
-            strokeColor: '#CCC',
-        });
-        this.paper.Path.Line({
-            from: [this.paper.project.view.bounds.width / 2, 0],
-            to: [this.paper.project.view.bounds.width / 2, this.paper.project.view.bounds.height],
-            strokeColor: '#CCC',
-        });      
+        for (let __index = 1; __index < 4; __index++) {
+          this.paper.Path.Line({
+              from: [this.paper.project.view.bounds.width / 4 * __index, 0],
+              to: [this.paper.project.view.bounds.width / 4 * __index, this.paper.project.view.bounds.height],
+              strokeColor: '#CCC',
+          });
+          this.paper.Path.Line({
+              from: [0, this.paper.project.view.bounds.height / 4 * __index],
+              to: [this.paper.project.view.bounds.width, this.paper.project.view.bounds.height / 4 * __index],
+              strokeColor: '#CCC',
+          });
+        }
 
         if (this.state.gridsize.y != this.state.gridsize.x) {
           for (let _y = 0; _y < this.paper.project.view.bounds.height * 2; _y+=this.state.gridsize.y) {
@@ -2229,6 +2260,9 @@
                 fillColor: this.dotColor || '#000',
             });
           }
+        }
+        if (this.layer !== null) {
+          this.layer.activate();
         }
       },
       setScaling(value) {
@@ -3140,7 +3174,46 @@
                   })
                 ]
               )
-            ])
+            ]),
+            _vm._v(" "),
+            _c(
+              "div",
+              [
+                _c(
+                  "div",
+                  {
+                    staticClass: "vue-paint-menu-divider",
+                    on: {
+                      click: function($event) {
+                        return $event.target.parentElement.classList.toggle(
+                          "folded"
+                        )
+                      }
+                    }
+                  },
+                  [_vm._v(_vm._s(_vm.strings.grids))]
+                ),
+                _vm._v(" "),
+                _vm._l(_vm.grids, function(_gc, _g) {
+                  return _c(
+                    "a",
+                    {
+                      key: "g_" + _g,
+                      class:
+                        "vue-paint-button " +
+                        (_vm.activeGrid == _g ? " vue-paint-button-active" : ""),
+                      on: {
+                        click: function($event) {
+                          _vm.activeGrid = _g;
+                        }
+                      }
+                    },
+                    [_c("span", [_vm._v(_vm._s(_g))])]
+                  )
+                })
+              ],
+              2
+            )
           ]
         ),
         _vm._v(" "),
