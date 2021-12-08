@@ -26,7 +26,7 @@ export default class Text extends Tool {
           property: "content",
           description: "Edit Text",
           type    : "textarea",
-          value   : defaults.mode =='char' ? `${defaults.toolName} ${defaults.cols} x ${defaults.rows}` : `${defaults.toolName} ${defaults.width}x${defaults.height} Pixel`,
+          value   : defaults.mode == 'char' ? `${defaults.toolName} ${defaults.cols} x ${defaults.rows}` : `${defaults.toolName} ${defaults.width}x${defaults.height} Pixel`,
           rows    : defaults.rows,
           cols    : defaults.cols,
           width   : defaults.width,
@@ -91,7 +91,7 @@ export default class Text extends Tool {
             } else {
               if (target.scrollHeight <= o.height) {
                 let _f = new FormData(form[0])
-                console.log(_f.get('input'))
+                console.log(_f.get('input').replace(/(\r\n|\n|\r)/gm, "#"))
                 this.primitive[name] = _f.get('input');
                 o.value = _f.get('input')  
               } else {
