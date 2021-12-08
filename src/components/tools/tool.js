@@ -323,7 +323,7 @@ export default class Tool {
             this.primitive.size = this.primitive.size.add(
               new this.paper.Size(
                 delta.x, 
-                this.paper.Key.isDown('shift') ? delta.x : delta.y
+                this.paper.Key.isDown('shift') ? (delta.x / this.primitive.bounds.width * this.primitive.bounds.height) : delta.y
               )
             );
             this.primitive.bounds.left = _l;

@@ -215,6 +215,12 @@
 .vue-paint-button-active {
   background: #999;
 }
+.vue-paint-button-check:before {
+  content: "☐ ";
+}
+.vue-paint-button-check-active:before {
+  content: "☒ ";
+}
 .vue-paint-arrowbuttons a {
   display: inline-block;
   width: 25%;

@@ -76,8 +76,28 @@
         <div>
           <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.tools}}</div>
           <a :class="`vue-paint-button vue-paint-button-tooltip vue-paint-button-selection${state.getActiveName()===''?' vue-paint-button-active':''}`" @click="state.setActive(false)"><span>{{strings.selection}}</span></a>
-          <a :class="`vue-paint-button vue-paint-button-tooltip vue-paint-button-${state.getClassName(t)} vue-paint-button-${t.replace(/ /g, '_')}${state.getActiveName()==t?' vue-paint-button-active':''}`" v-for="t in tools" v-bind:key="`tool-${t}`" @click="state.setActive(state.getActiveName()==t ? false : t)"><span>{{t}}</span></a>
+          <template v-for="t in tools">
+            <a
+              :class="`vue-paint-button vue-paint-button-tooltip vue-paint-button-${state.getClassName(t)} vue-paint-button-${t.replace(/ /g, '_')}${state.getActiveName()==t?' vue-paint-button-active':''}`" 
+              v-if="state.isFixed(t) === false"
+              v-bind:key="`tool-${t}`" 
+              @click="state.setActive(state.getActiveName()==t ? false : t)">
+                <span>{{t}}</span>
+            </a>
+          </template>
         </div>
+        <div>
+          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.fixedtools}}</div>
+          <template v-for="t in tools">
+            <a
+              :class="`vue-paint-button vue-paint-button-check vue-paint-button-${state.getClassName(t)} vue-paint-button-${t.replace(/ /g, '_')}${state.exists(t)?' vue-paint-button-check-active':''}`" 
+              v-if="state.isFixed(t) === true"
+              v-bind:key="`tool-${t}`" 
+              @click="addFixed(t)">
+                <span>{{t}}</span>
+            </a>
+          </template>
+        </div>        
         <div>
           <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.file}}</div>
           <a class="vue-paint-button vue-paint-button-save" @click="saveJSON()">{{strings.save}}</a>
@@ -443,6 +463,16 @@ export default {
     this.clips = null;
   },
   methods: {
+    addFixed(t) {
+      this.state.setActive(t);
+      if (this.state.exists(t) === false) {
+        let _p = new this.paper.Point(0,0)
+        let _painting = new this.state.active(this.paper, _p, this.state, null, this.state.getActiveDefaults());
+        _painting.onPaint(_p);        
+        _painting.onFinishPaint(_p);
+      }
+      this.state.setActive(false)
+    },
     onContextDrag(x,y) {
       this.contextX = this.$root._vp_x = x
       this.contextY = this.$root._vp_y = y
@@ -1049,6 +1079,16 @@ export default {
       }
       &-active {
         background: #999;
+      }
+      &-check {
+        &:before {
+          content: "☐ ";
+        }
+        &-active {
+          &:before {
+            content: "☒ ";
+          }
+        }        
       }
     }
     

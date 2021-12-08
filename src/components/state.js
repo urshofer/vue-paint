@@ -122,6 +122,14 @@ export default class State {
         return _tools;
     }
 
+    isFixed(_tool) {
+        return (this.tools[_tool].defaults.fixed && this.tools[_tool].defaults.fixed.x && this.tools[_tool].defaults.fixed.y ? true : false)
+    }
+
+    exists(_element) {
+        return (this.stack.filter(_e => _e.toolname === _element).length > 0)
+    }
+
     addStack(e) {
         if (this.stack.find((_e)=>{e==_e}) == undefined) {
             this.stack.push(e); 

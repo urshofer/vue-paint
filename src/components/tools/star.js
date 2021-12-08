@@ -124,7 +124,7 @@ export default class Star extends Tool {
   transformation(mode, point, delta) {
     switch (mode) {
       case 'Resize':
-        this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? delta.x : delta.y));
+        this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? (delta.x / this.primitive.bounds.width * this.primitive.bounds.height) : delta.y));
         break;
     }
   }

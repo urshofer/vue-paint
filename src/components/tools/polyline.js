@@ -65,7 +65,6 @@ export default class Polyline extends Tool {
   }  
 
   onFinishPaint(point) {
-      console.log('finish and fill', point)
       if (point !== undefined) {
         try {
           if (this._currentline !== null && this._currentline.remove) {
@@ -90,7 +89,6 @@ export default class Polyline extends Tool {
   }
 
   onPaint(point) {
-    console.log('start routine', point)
     this._lastPoint = this.round(point)
     this._points.push(this._lastPoint)
     this.state.painting = true;
@@ -103,7 +101,6 @@ export default class Polyline extends Tool {
       this._currentline = null
     }
     if (this._lastPoint !== null) {
-      console.log('show active line', point, this._lastPoint)      
       this._currentline = this.createIntermediateDrawing(this._movePoint)
       this._currentline.strokeColor = '#CCF';
       this._currentline.fillColor = '#CCCCFF30';
@@ -111,15 +108,14 @@ export default class Polyline extends Tool {
     }
   }
 
-  onClick(point) {
-    console.log('add Point', point)
+  onClick() {
     this._points.push(this._movePoint)
     this._lastPoint = this._movePoint
   }
 
 
   resize(delta) {
-    this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? delta.x : delta.y));
+    this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? (delta.x / this.primitive.bounds.width * this.primitive.bounds.height) : delta.y));
   }
 
   endResize() {

@@ -330,7 +330,7 @@
               this.primitive.size = this.primitive.size.add(
                 new this.paper.Size(
                   delta.x, 
-                  this.paper.Key.isDown('shift') ? delta.x : delta.y
+                  this.paper.Key.isDown('shift') ? (delta.x / this.primitive.bounds.width * this.primitive.bounds.height) : delta.y
                 )
               );
               this.primitive.bounds.left = _l;
@@ -685,7 +685,6 @@
     }  
 
     onFinishPaint(point) {
-        console.log('finish and fill', point);
         if (point !== undefined) {
           try {
             if (this._currentline !== null && this._currentline.remove) {
@@ -710,7 +709,6 @@
     }
 
     onPaint(point) {
-      console.log('start routine', point);
       this._lastPoint = this.round(point);
       this._points.push(this._lastPoint);
       this.state.painting = true;
@@ -723,7 +721,6 @@
         this._currentline = null;
       }
       if (this._lastPoint !== null) {
-        console.log('show active line', point, this._lastPoint);      
         this._currentline = this.createIntermediateDrawing(this._movePoint);
         this._currentline.strokeColor = '#CCF';
         this._currentline.fillColor = '#CCCCFF30';
@@ -731,15 +728,14 @@
       }
     }
 
-    onClick(point) {
-      console.log('add Point', point);
+    onClick() {
       this._points.push(this._movePoint);
       this._lastPoint = this._movePoint;
     }
 
 
     resize(delta) {
-      this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? delta.x : delta.y));
+      this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? (delta.x / this.primitive.bounds.width * this.primitive.bounds.height) : delta.y));
     }
 
     endResize() {
@@ -875,7 +871,7 @@
     transformation(mode, point, delta) {
       switch (mode) {
         case 'Resize':
-          this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? delta.x : delta.y));
+          this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? (delta.x / this.primitive.bounds.width * this.primitive.bounds.height) : delta.y));
           break;
       }
     }
@@ -1000,7 +996,7 @@
     transformation(mode, point, delta) {
       switch (mode) {
         case 'Resize':
-          this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? delta.x : delta.y));
+          this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? (delta.x / this.primitive.bounds.width * this.primitive.bounds.height) : delta.y));
           break;
       }
     }
@@ -1519,7 +1515,7 @@
     transformation(mode, point, delta) {
       switch (mode) {
         case 'Resize':
-          this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? delta.x : delta.y));
+          this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? (delta.x / this.primitive.bounds.width * this.primitive.bounds.height) : delta.y));
           break;
       }
     }
@@ -1661,6 +1657,14 @@
               }
           }
           return _tools;
+      }
+
+      isFixed(_tool) {
+          return (this.tools[_tool].defaults.fixed && this.tools[_tool].defaults.fixed.x && this.tools[_tool].defaults.fixed.y ? true : false)
+      }
+
+      exists(_element) {
+          return (this.stack.filter(_e => _e.toolname === _element).length > 0)
       }
 
       addStack(e) {
@@ -2182,6 +2186,16 @@
       this.clips = null;
     },
     methods: {
+      addFixed(t) {
+        this.state.setActive(t);
+        if (this.state.exists(t) === false) {
+          let _p = new this.paper.Point(0,0);
+          let _painting = new this.state.active(this.paper, _p, this.state, null, this.state.getActiveDefaults());
+          _painting.onPaint(_p);        
+          _painting.onFinishPaint(_p);
+        }
+        this.state.setActive(false);
+      },
       onContextDrag(x,y) {
         this.contextX = this.$root._vp_x = x;
         this.contextY = this.$root._vp_y = y;
@@ -2924,28 +2938,80 @@
                 ),
                 _vm._v(" "),
                 _vm._l(_vm.tools, function(t) {
-                  return _c(
-                    "a",
-                    {
-                      key: "tool-" + t,
-                      class:
-                        "vue-paint-button vue-paint-button-tooltip vue-paint-button-" +
-                        _vm.state.getClassName(t) +
-                        " vue-paint-button-" +
-                        t.replace(/ /g, "_") +
-                        (_vm.state.getActiveName() == t
-                          ? " vue-paint-button-active"
-                          : ""),
-                      on: {
-                        click: function($event) {
-                          _vm.state.setActive(
-                            _vm.state.getActiveName() == t ? false : t
-                          );
-                        }
+                  return [
+                    _vm.state.isFixed(t) === false
+                      ? _c(
+                          "a",
+                          {
+                            key: "tool-" + t,
+                            class:
+                              "vue-paint-button vue-paint-button-tooltip vue-paint-button-" +
+                              _vm.state.getClassName(t) +
+                              " vue-paint-button-" +
+                              t.replace(/ /g, "_") +
+                              (_vm.state.getActiveName() == t
+                                ? " vue-paint-button-active"
+                                : ""),
+                            on: {
+                              click: function($event) {
+                                _vm.state.setActive(
+                                  _vm.state.getActiveName() == t ? false : t
+                                );
+                              }
+                            }
+                          },
+                          [_c("span", [_vm._v(_vm._s(t))])]
+                        )
+                      : _vm._e()
+                  ]
+                })
+              ],
+              2
+            ),
+            _vm._v(" "),
+            _c(
+              "div",
+              [
+                _c(
+                  "div",
+                  {
+                    staticClass: "vue-paint-menu-divider",
+                    on: {
+                      click: function($event) {
+                        return $event.target.parentElement.classList.toggle(
+                          "folded"
+                        )
                       }
-                    },
-                    [_c("span", [_vm._v(_vm._s(t))])]
-                  )
+                    }
+                  },
+                  [_vm._v(_vm._s(_vm.strings.fixedtools))]
+                ),
+                _vm._v(" "),
+                _vm._l(_vm.tools, function(t) {
+                  return [
+                    _vm.state.isFixed(t) === true
+                      ? _c(
+                          "a",
+                          {
+                            key: "tool-" + t,
+                            class:
+                              "vue-paint-button vue-paint-button-check vue-paint-button-" +
+                              _vm.state.getClassName(t) +
+                              " vue-paint-button-" +
+                              t.replace(/ /g, "_") +
+                              (_vm.state.exists(t)
+                                ? " vue-paint-button-check-active"
+                                : ""),
+                            on: {
+                              click: function($event) {
+                                return _vm.addFixed(t)
+                              }
+                            }
+                          },
+                          [_c("span", [_vm._v(_vm._s(t))])]
+                        )
+                      : _vm._e()
+                  ]
                 })
               ],
               2
