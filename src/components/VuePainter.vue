@@ -257,9 +257,7 @@ export default {
     },
     magnetic(v) {
       try {
-        if (this.state.getContext()) {
-          this.state.setMagnetic(v)
-        }
+        this.state.setMagnetic(v)
       } catch (err) {
         console.warn(err)
       }
