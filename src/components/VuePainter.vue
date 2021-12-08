@@ -35,25 +35,48 @@
           'transform-origin': `0px 0px`
           }"
         >
-          <textarea 
-            @keyup="state.getContext().setOption(option.property, $event.target.value)" 
-            @focus="disableKeys" 
-            @blur="enableKeys" 
-            :rows="option.rows" 
-            :cols="option.cols" 
-            v-model="option.value"
-            name="input"
-            wrap="hard"
-            :ref="option.property"
-            :style="{
-              'width': `${option.cols + 1}ch`, 
-              'font-size': `${state.getContext().primitive.fontSize}px`, 
-              'line-height': `${state.getContext().primitive.leading}px`,
-              'font-family': `${state.getContext().primitive.fontFamily}`,
-              'transform': `translateX(-${state.getContext().primitive.internalBounds.width / 2}px) translateY(-${state.getContext().primitive.internalBounds.height / 2}px)`,
-              'text-align': state.getContext().primitive.justification || 'left'
-            }"
-          ></textarea>
+          <form ref="textareaform">
+            <textarea 
+              @keyup="state.getContext().setOption(option.property, $event.target.value)" 
+              @focus="disableKeys" 
+              @blur="enableKeys" 
+              :rows="option.rows" 
+              :cols="option.cols"
+              v-if="option.mode == 'char'" 
+              v-model="option.value"
+              name="input"
+              wrap="hard"
+              :ref="option.property"
+              :style="{
+                'width': `${option.cols + 1}ch`, 
+                'font-size': `${state.getContext().primitive.fontSize}px`, 
+                'line-height': `${state.getContext().primitive.leading}px`,
+                'font-family': `${state.getContext().primitive.fontFamily}`,
+                'transform': `translateX(-${state.getContext().primitive.internalBounds.width / 2}px) translateY(-${state.getContext().primitive.internalBounds.height / 2}px)`,
+                'text-align': state.getContext().primitive.justification || 'left'
+              }"
+            ></textarea>
+            <textarea 
+              @keyup="state.getContext().setOption(option.property, $event.target.value, $event.target, $refs.textareaform)" 
+              @focus="disableKeys" 
+              @blur="enableKeys" 
+              v-else
+              v-model="option.value"
+              name="input"
+              wrap="hard"
+              :ref="option.property"
+              :style="{
+                'width': `${option.width}px`, 
+                'height': `${option.height}px`, 
+                'overflow': 'hidden',
+                'font-size': `${state.getContext().primitive.fontSize}px`, 
+                'line-height': `${state.getContext().primitive.leading}px`,
+                'font-family': `${state.getContext().primitive.fontFamily}`,
+                'transform': `translateX(-${state.getContext().primitive.internalBounds.width / 2}px) translateY(-${state.getContext().primitive.internalBounds.height / 2}px)`,
+                'text-align': state.getContext().primitive.justification || 'left'
+              }"
+            ></textarea>
+          </form>
         </div>
         <canvas ref="painter" id="painter" :class="`vue-paint-canvas vue-paint-canvas-${state.getActiveClassName()} vue-paint-canvas-${state.getActiveName().replace(/ /g, '_')}`"></canvas>
       </div>
