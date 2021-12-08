@@ -5,7 +5,7 @@
           class="vue-paint-clipart-wrapper"
           v-for="option in state.getOptionByType('clipart', true)"
           :key="`${option.property}`"
-          @click="toggleOption(option);"
+          @click.stop="state.getContext().getOption(option.property) === false ? state.getContext()._delete() : ''; toggleOption(option);"
         >
           <div class="vue-paint-clipart-container">
             <div class="vue-paint-clipart-container-groups">
@@ -68,7 +68,7 @@
               :style="{
                 'width': `${option.width}px`, 
                 'height': `${option.height}px`, 
-                'overflow': 'hidden',
+                'resize': 'none',
                 'font-size': `${state.getContext().primitive.fontSize}px`, 
                 'line-height': `${state.getContext().primitive.leading}px`,
                 'font-family': `${state.getContext().primitive.fontFamily}`,

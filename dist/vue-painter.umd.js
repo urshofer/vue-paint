@@ -139,6 +139,10 @@
       return point;
     }
 
+    _delete() {
+      this.delete();
+    }
+
     delete() {
       this.state.deleteStack(this);
       this.primitive.remove();
@@ -1140,17 +1144,17 @@
     }
 
     createPrimitive() {
-      console.log('createPrimitive!');
       let _toPoint  = this.round(this.startPoint);
-      let _r = new this.paper.Raster({
+      let _r = this.primitive || new this.paper.Raster({
         crossOrigin: 'anonymous', 
         position: _toPoint, 
         smoothing: 'high'
       });
       let _initialize = () => {
-        if (this.getOption('source') !== false) {
+        console.log('createPrimitive!');
+        /*if (this.getOption('source') !== false) {
           _r.source = this.getOption('source');
-        }
+        }*/
         if (this.initialized !== true) {
           this.initialized = true;
           let _b = new this.paper.Rectangle(_toPoint.x, _toPoint.y, this.getOption('defaultWidth'), this.getOption('defaultHeight'));
@@ -1196,7 +1200,7 @@
             property: "content",
             description: "Edit Text",
             type    : "textarea",
-            value   : defaults.mode =='char' ? `${defaults.toolName} ${defaults.cols} x ${defaults.rows}` : `${defaults.toolName} ${defaults.width}x${defaults.height} Pixel`,
+            value   : defaults.mode == 'char' ? `${defaults.toolName} ${defaults.cols} x ${defaults.rows}` : `${defaults.toolName} ${defaults.width}x${defaults.height} Pixel`,
             rows    : defaults.rows,
             cols    : defaults.cols,
             width   : defaults.width,
@@ -1261,7 +1265,7 @@
               } else {
                 if (target.scrollHeight <= o.height) {
                   let _f = new FormData(form[0]);
-                  console.log(_f.get('input'));
+                  console.log(_f.get('input').replace(/(\r\n|\n|\r)/gm, "#"));
                   this.primitive[name] = _f.get('input');
                   o.value = _f.get('input');  
                 } else {
@@ -2689,7 +2693,11 @@
                 staticClass: "vue-paint-clipart-wrapper",
                 on: {
                   click: function($event) {
-                    return _vm.toggleOption(option)
+                    $event.stopPropagation();
+                    _vm.state.getContext().getOption(option.property) === false
+                      ? _vm.state.getContext()._delete()
+                      : "";
+                    _vm.toggleOption(option);
                   }
                 }
               },
@@ -2869,7 +2877,7 @@
                           style: {
                             width: option.width + "px",
                             height: option.height + "px",
-                            overflow: "hidden",
+                            resize: "none",
                             "font-size":
                               _vm.state.getContext().primitive.fontSize + "px",
                             "line-height":

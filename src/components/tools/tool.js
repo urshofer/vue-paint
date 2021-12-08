@@ -131,6 +131,10 @@ export default class Tool {
     return point;
   }
 
+  _delete() {
+    this.delete()
+  }
+
   delete() {
     this.state.deleteStack(this);
     this.primitive.remove()

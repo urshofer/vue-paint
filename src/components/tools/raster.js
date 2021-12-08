@@ -120,17 +120,17 @@ export default class Raster extends Tool {
   }
 
   createPrimitive() {
-    console.log('createPrimitive!')
     let _toPoint  = this.round(this.startPoint)
-    let _r = new this.paper.Raster({
+    let _r = this.primitive || new this.paper.Raster({
       crossOrigin: 'anonymous', 
       position: _toPoint, 
       smoothing: 'high'
     });
     let _initialize = () => {
-      if (this.getOption('source') !== false) {
+      console.log('createPrimitive!')
+      /*if (this.getOption('source') !== false) {
         _r.source = this.getOption('source');
-      }
+      }*/
       if (this.initialized !== true) {
         this.initialized = true;
         let _b = new this.paper.Rectangle(_toPoint.x, _toPoint.y, this.getOption('defaultWidth'), this.getOption('defaultHeight'))
