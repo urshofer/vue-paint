@@ -1192,7 +1192,7 @@ class Text extends Tool {
           property: "content",
           description: "Edit Text",
           type    : "textarea",
-          value   : defaults.mode =='char' ? `${defaults.toolName} ${defaults.cols} x ${defaults.rows}` : `${defaults.toolName} ${defaults.width}mm x ${defaults.height}mm`,
+          value   : defaults.mode =='char' ? `${defaults.toolName} ${defaults.cols} x ${defaults.rows}` : `${defaults.toolName} ${defaults.width}x${defaults.height} Pixel`,
           rows    : defaults.rows,
           cols    : defaults.cols,
           width   : defaults.width,
