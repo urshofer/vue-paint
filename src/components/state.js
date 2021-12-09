@@ -10,6 +10,8 @@ import Grid   from './tools/grid.js'
 import Arc  from './tools/arc.js'
 import { Base64 } from 'js-base64'
 
+var _vp_clipboard = [];        
+
 export default class State {
     constructor (options) {
         options = options || {};
@@ -24,10 +26,7 @@ export default class State {
         this.fonts      = options.fonts || [];
         this.selected   = [];
         this.context = false;
-        // Clipboard
-        console.log(options.root)
-        options.root._vp_clipboard = options.root._vp_clipboard || [];        
-        this.copy   = options.root._vp_clipboard;
+        this.copy   = _vp_clipboard;
         this.stack  = [];
         this.clips  = [];
         this.paper  = null;

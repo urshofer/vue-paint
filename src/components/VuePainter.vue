@@ -426,8 +426,7 @@ export default {
       'gridsize'  : {x: this.gridX, y: this.gridY}, 
       'anglestep' : this.angleStep || 5, 
       'fonts'     : this.fonts,
-      'tools'     : this.configuration,
-      'root'      : this.$root
+      'tools'     : this.configuration
     });
   },
   mounted() {
