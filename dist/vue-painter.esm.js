@@ -1804,6 +1804,9 @@ class State {
     }
 
     copySelection() {
+        this.selected.forEach(s => {
+            s._json = s.primitive.exportJSON();
+        });
         this.root.$set(this.root, 'vp_clipboard', this.selected);        
     }
 
@@ -1816,7 +1819,10 @@ class State {
             this.unselectAll();
             this.root.vp_clipboard.forEach(s => {
                 try {
-                    let _clone = new this.tools[s.toolname].class(this.paper, s.startPoint, this, s.primitive.clone(), this.tools[s.toolname].defaults);
+                    //let _primitive = new this.paper.Item();
+                    //console.log(_primitive, s._json)
+                    let _primitive = this.paper.project.activeLayer.importJSON(s._json);
+                    let _clone = new this.tools[s.toolname].class(this.paper, s.startPoint, this, _primitive, this.tools[s.toolname].defaults);
                     if (_clone) {
                         _clone._pos = s._pos;
                         _clone.move('right');
