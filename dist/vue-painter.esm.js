@@ -1819,8 +1819,6 @@ class State {
             this.unselectAll();
             this.root.vp_clipboard.forEach(s => {
                 try {
-                    //let _primitive = new this.paper.Item();
-                    //console.log(_primitive, s._json)
                     let _primitive = this.paper.project.activeLayer.importJSON(s._json);
                     let _clone = new this.tools[s.toolname].class(this.paper, s.startPoint, this, _primitive, this.tools[s.toolname].defaults);
                     if (_clone) {
@@ -1831,7 +1829,10 @@ class State {
                         _clone.select();
                     }
                 } catch (err) {
-                    console.warn(err);
+                    throw {
+                        name: "PasteException",
+                        message: err.message
+                    }
                 }
             });
             this.copySelection();
@@ -2467,7 +2468,7 @@ var script = {
             return false;
           }      
           if (event.key == 'v' && event.modifiers.meta) {
-            this.state.pasteSelection();
+            this.pasteSelection();
             return false;
           }
           this.transformations.forEach(t => {
@@ -2501,6 +2502,13 @@ var script = {
         }
       });
 
+    },
+    pasteSelection() {
+      try {
+        this.state.pasteSelection();
+      } catch (err) {
+        this.$emit('error', 'paste_selection');
+      }
     },
     saveJSON() {
       this.$emit('save', this.state.exportStack());
@@ -3591,7 +3599,7 @@ var __vue_render__ = function() {
                           "vue-paint-button vue-paint-button-shorcut vue-paint-button-paste",
                         on: {
                           click: function($event) {
-                            return _vm.state.pasteSelection()
+                            return _vm.pasteSelection()
                           }
                         }
                       },

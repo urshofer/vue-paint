@@ -265,8 +265,6 @@ export default class State {
             this.unselectAll();
             this.root.vp_clipboard.forEach(s => {
                 try {
-                    //let _primitive = new this.paper.Item();
-                    //console.log(_primitive, s._json)
                     let _primitive = this.paper.project.activeLayer.importJSON(s._json)
                     let _clone = new this.tools[s.toolname].class(this.paper, s.startPoint, this, _primitive, this.tools[s.toolname].defaults);
                     if (_clone) {
@@ -277,7 +275,10 @@ export default class State {
                         _clone.select();
                     }
                 } catch (err) {
-                    console.warn(err)
+                    throw {
+                        name: "PasteException",
+                        message: err.message
+                    }
                 }
             });
             this.copySelection();

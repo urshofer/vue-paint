@@ -187,7 +187,7 @@
         </div>
         <div v-if="$root.vp_clipboard.length > 0" :class="{'folded': folded[6]}">
           <div class="vue-paint-menu-divider" @click="folded[6] = !folded[6]; $event.target.parentElement.classList.toggle('folded')">{{strings.clipboard}}</div>
-          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-paste" @click="state.pasteSelection()">{{strings.paste}}<span>cmd-v</span></a>
+          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-paste" @click="pasteSelection()">{{strings.paste}}<span>cmd-v</span></a>
           <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-clear" @click="state.clearSelection()">{{strings.clear}}</a>
         </div>
         <div v-if="state.getContext()" :class="{'folded': folded[7]}">
@@ -738,7 +738,7 @@ export default {
             return false;
           }      
           if (event.key == 'v' && event.modifiers.meta) {
-            this.state.pasteSelection()
+            this.pasteSelection()
             return false;
           }
           this.transformations.forEach(t => {
@@ -772,6 +772,13 @@ export default {
         }
       });
 
+    },
+    pasteSelection() {
+      try {
+        this.state.pasteSelection()
+      } catch (err) {
+        this.$emit('error', 'paste_selection');
+      }
     },
     saveJSON() {
       this.$emit('save', this.state.exportStack());
