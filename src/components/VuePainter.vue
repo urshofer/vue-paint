@@ -98,8 +98,8 @@
 
       <vue-draggable-resizable :w="'auto'" :h="'auto'" drag-handle=".drag" id="menu" class="vue-paint-menu" :z="10">
         <div class="drag"/>
-        <div>
-          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.tools}}</div>
+        <div :class="{'folded': folded[0]}">
+          <div class="vue-paint-menu-divider" @click="folded[0] = !folded[0]; $event.target.parentElement.classList.toggle('folded')">{{strings.tools}}</div>
           <a :class="`vue-paint-button vue-paint-button-tooltip vue-paint-button-selection${state.getActiveName()===''?' vue-paint-button-active':''}`" @click="state.setActive(false)"><span>{{strings.selection}}</span></a>
           <template v-for="t in tools">
             <a
@@ -111,8 +111,8 @@
             </a>
           </template>
         </div>
-        <div>
-          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.fixedtools}}</div>
+        <div :class="{'folded': folded[1]}">
+          <div class="vue-paint-menu-divider" @click="folded[1] = !folded[1]; $event.target.parentElement.classList.toggle('folded')">{{strings.fixedtools}}</div>
           <template v-for="t in tools">
             <a
               :class="`vue-paint-button vue-paint-button-check vue-paint-button-${state.getClassName(t)} vue-paint-button-${t.replace(/ /g, '_')}${state.exists(t)?' vue-paint-button-check-active':''}`" 
@@ -123,13 +123,13 @@
             </a>
           </template>
         </div>        
-        <div>
-          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.file}}</div>
+        <div :class="{'folded': folded[2]}">
+          <div class="vue-paint-menu-divider" @click="folded[2] = !folded[2]; $event.target.parentElement.classList.toggle('folded')">{{strings.file}}</div>
           <a class="vue-paint-button vue-paint-button-save" @click="saveJSON()">{{strings.save}}</a>
           <a class="vue-paint-button vue-paint-button-export" @click="exportSVG()">{{strings.export}}</a>
         </div>
-        <div>
-          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.preset}}</div>
+        <div :class="{'folded': folded[3]}">
+          <div class="vue-paint-menu-divider" @click="folded[3] = !folded[3]; $event.target.parentElement.classList.toggle('folded')">{{strings.preset}}</div>
           <label class="vue-paint-label vue-paint-label-stroke">{{strings.stroke}} {{state.getStrokeWidth()}} Px
             <input @change="state.setStrokeWidth($event.target.value)" type="range" min="0" max="10" :value="state.getStrokeWidth()">
           </label>
@@ -157,8 +157,8 @@
             >
           </label>               
         </div>
-        <div>
-          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.grids}}</div>
+        <div :class="{'folded': folded[4]}">
+          <div class="vue-paint-menu-divider" @click="folded[4] = !folded[4]; $event.target.parentElement.classList.toggle('folded')">{{strings.grids}}</div>
           <a 
             :class="`vue-paint-button ${activeGrid == _g?' vue-paint-button-active':''}`"
             v-for="(_gc, _g) in grids"
@@ -169,8 +169,8 @@
       </vue-draggable-resizable>
       <vue-draggable-resizable @dragging="onContextDrag" v-if="state.hasSelection() || state.hasClipboard() || state.getContext()" :x="getContextX" :y="getContextY"  :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
         <div class="drag"/>
-        <div v-if="state.hasSelection()">
-          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.functions}}</div>
+        <div v-if="state.hasSelection()" :class="{'folded': folded[5]}">
+          <div class="vue-paint-menu-divider" @click="folded[5] = !folded[5]; $event.target.parentElement.classList.toggle('folded')">{{strings.functions}}</div>
           <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-delete" @click="state.deleteSelection()">{{strings.delete}}  <span>🔙</span></a>
           <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-copy" @click="state.copySelection()">{{strings.copy}} <span>cmd-c</span></a>
           <template  v-for="t in transformations">
@@ -185,13 +185,13 @@
             <a @click="state.moveSelection('right')"><span>&rarr;</span></a>
           </div>
         </div>
-        <div v-if="state.hasClipboard()">
-          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.clipboard}}</div>
+        <div v-if="state.hasClipboard()" :class="{'folded': folded[6]}">
+          <div class="vue-paint-menu-divider" @click="folded[6] = !folded[6]; $event.target.parentElement.classList.toggle('folded')">{{strings.clipboard}}</div>
           <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-paste" @click="state.pasteSelection()">{{strings.paste}}<span>cmd-v</span></a>
           <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-clear" @click="state.clearSelection()">{{strings.clear}}</a>
         </div>
-        <div v-if="state.getContext()">
-          <div class="vue-paint-menu-divider" @click="$event.target.parentElement.classList.toggle('folded')">{{strings.parameter}}</div>
+        <div v-if="state.getContext()" :class="{'folded': folded[7]}">
+          <div class="vue-paint-menu-divider" @click="folded[7] = !folded[7]; $event.target.parentElement.classList.toggle('folded')">{{strings.parameter}}</div>
           <template v-for="option in state.getContext().getOptions()">
             <form v-if="option.type != 'hidden'" :id="`form-${option.property}`" v-bind:key="`form-${option.description}`">
               <a
@@ -333,6 +333,7 @@ export default {
 
     let style = document.createElement('style');
     document.head.appendChild(style);
+    this.$root.folded = this.$root.folded || [false,true,true,true,true,false,true,true]
 
     return {
       // Data
@@ -405,6 +406,7 @@ export default {
       // ContextPos
       contextX: this.$root._vp_x ? this.$root._vp_x : (window.innerWidth - 300),
       contextY: this.$root._vp_y ? this.$root._vp_y : 150,
+      folded: this.$root.folded,
 
       // Grid
       magnetic: true,

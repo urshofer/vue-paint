@@ -2055,6 +2055,7 @@ var script = {
 
     let style = document.createElement('style');
     document.head.appendChild(style);
+    this.$root.folded = this.$root.folded || [false,true,true,true,true,false,true,true];
 
     return {
       // Data
@@ -2127,6 +2128,7 @@ var script = {
       // ContextPos
       contextX: this.$root._vp_x ? this.$root._vp_x : (window.innerWidth - 300),
       contextY: this.$root._vp_y ? this.$root._vp_y : 150,
+      folded: this.$root.folded,
 
       // Grid
       magnetic: true,
@@ -2996,6 +2998,7 @@ var __vue_render__ = function() {
           _vm._v(" "),
           _c(
             "div",
+            { class: { folded: _vm.folded[0] } },
             [
               _c(
                 "div",
@@ -3003,9 +3006,8 @@ var __vue_render__ = function() {
                   staticClass: "vue-paint-menu-divider",
                   on: {
                     click: function($event) {
-                      return $event.target.parentElement.classList.toggle(
-                        "folded"
-                      )
+                      _vm.folded[0] = !_vm.folded[0];
+                      $event.target.parentElement.classList.toggle("folded");
                     }
                   }
                 },
@@ -3063,6 +3065,7 @@ var __vue_render__ = function() {
           _vm._v(" "),
           _c(
             "div",
+            { class: { folded: _vm.folded[1] } },
             [
               _c(
                 "div",
@@ -3070,9 +3073,8 @@ var __vue_render__ = function() {
                   staticClass: "vue-paint-menu-divider",
                   on: {
                     click: function($event) {
-                      return $event.target.parentElement.classList.toggle(
-                        "folded"
-                      )
+                      _vm.folded[1] = !_vm.folded[1];
+                      $event.target.parentElement.classList.toggle("folded");
                     }
                   }
                 },
@@ -3109,16 +3111,15 @@ var __vue_render__ = function() {
             2
           ),
           _vm._v(" "),
-          _c("div", [
+          _c("div", { class: { folded: _vm.folded[2] } }, [
             _c(
               "div",
               {
                 staticClass: "vue-paint-menu-divider",
                 on: {
                   click: function($event) {
-                    return $event.target.parentElement.classList.toggle(
-                      "folded"
-                    )
+                    _vm.folded[2] = !_vm.folded[2];
+                    $event.target.parentElement.classList.toggle("folded");
                   }
                 }
               },
@@ -3152,16 +3153,15 @@ var __vue_render__ = function() {
             )
           ]),
           _vm._v(" "),
-          _c("div", [
+          _c("div", { class: { folded: _vm.folded[3] } }, [
             _c(
               "div",
               {
                 staticClass: "vue-paint-menu-divider",
                 on: {
                   click: function($event) {
-                    return $event.target.parentElement.classList.toggle(
-                      "folded"
-                    )
+                    _vm.folded[3] = !_vm.folded[3];
+                    $event.target.parentElement.classList.toggle("folded");
                   }
                 }
               },
@@ -3336,6 +3336,7 @@ var __vue_render__ = function() {
           _vm._v(" "),
           _c(
             "div",
+            { class: { folded: _vm.folded[4] } },
             [
               _c(
                 "div",
@@ -3343,9 +3344,8 @@ var __vue_render__ = function() {
                   staticClass: "vue-paint-menu-divider",
                   on: {
                     click: function($event) {
-                      return $event.target.parentElement.classList.toggle(
-                        "folded"
-                      )
+                      _vm.folded[4] = !_vm.folded[4];
+                      $event.target.parentElement.classList.toggle("folded");
                     }
                   }
                 },
@@ -3400,6 +3400,7 @@ var __vue_render__ = function() {
               _vm.state.hasSelection()
                 ? _c(
                     "div",
+                    { class: { folded: _vm.folded[5] } },
                     [
                       _c(
                         "div",
@@ -3407,9 +3408,10 @@ var __vue_render__ = function() {
                           staticClass: "vue-paint-menu-divider",
                           on: {
                             click: function($event) {
-                              return $event.target.parentElement.classList.toggle(
+                              _vm.folded[5] = !_vm.folded[5];
+                              $event.target.parentElement.classList.toggle(
                                 "folded"
-                              )
+                              );
                             }
                           }
                         },
@@ -3569,16 +3571,17 @@ var __vue_render__ = function() {
                 : _vm._e(),
               _vm._v(" "),
               _vm.state.hasClipboard()
-                ? _c("div", [
+                ? _c("div", { class: { folded: _vm.folded[6] } }, [
                     _c(
                       "div",
                       {
                         staticClass: "vue-paint-menu-divider",
                         on: {
                           click: function($event) {
-                            return $event.target.parentElement.classList.toggle(
+                            _vm.folded[6] = !_vm.folded[6];
+                            $event.target.parentElement.classList.toggle(
                               "folded"
-                            )
+                            );
                           }
                         }
                       },
@@ -3621,6 +3624,7 @@ var __vue_render__ = function() {
               _vm.state.getContext()
                 ? _c(
                     "div",
+                    { class: { folded: _vm.folded[7] } },
                     [
                       _c(
                         "div",
@@ -3628,9 +3632,10 @@ var __vue_render__ = function() {
                           staticClass: "vue-paint-menu-divider",
                           on: {
                             click: function($event) {
-                              return $event.target.parentElement.classList.toggle(
+                              _vm.folded[7] = !_vm.folded[7];
+                              $event.target.parentElement.classList.toggle(
                                 "folded"
-                              )
+                              );
                             }
                           }
                         },
