@@ -1583,8 +1583,8 @@
           this.selected   = [];
           this.context = false;
           // Clipboard
-          root._vp_clipboard = root._vp_clipboard || [];        
-          this.copy   = root._vp_clipboard;
+          this.root = root;
+          this.root.vp_clipboard = this.root.vp_clipboard || [];        
           this.stack  = [];
           this.clips  = [];
           this.paper  = null;
@@ -1766,7 +1766,8 @@
       }
 
       hasClipboard() {
-          return this.copy.length > 0;
+          console.log(this.root.vp_clipboard);
+          return this.root.vp_clipboard.length > 0;
       }
 
       unselectAll() {
@@ -1807,17 +1808,17 @@
       }
 
       copySelection() {
-          this.copy = this.selected;
+          this.root.$set(this.root, 'vp_clipboard', this.selected);        
       }
 
       clearSelection() {
-          this.copy = [];
+          this.root.$set(this.root, 'vp_clipboard', []);
       }
 
       pasteSelection() {
-          if (this.copy.length > 0) {
+          if (this.root.vp_clipboard.length > 0) {
               this.unselectAll();
-              this.copy.forEach(s => {
+              this.root.vp_clipboard.forEach(s => {
                   try {
                       let _clone = new this.tools[s.toolname].class(s.paper, s.startPoint, this, s.primitive.clone(), this.tools[s.toolname].defaults);
                       if (_clone) {
@@ -3369,7 +3370,7 @@
         ),
         _vm._v(" "),
         _vm.state.hasSelection() ||
-        _vm.state.hasClipboard() ||
+        _vm.$root.vp_clipboard.length > 0 ||
         _vm.state.getContext()
           ? _c(
               "vue-draggable-resizable",
@@ -3563,7 +3564,7 @@
                     )
                   : _vm._e(),
                 _vm._v(" "),
-                _vm.state.hasClipboard()
+                _vm.$root.vp_clipboard.length > 0
                   ? _c("div", { class: { folded: _vm.folded[6] } }, [
                       _c(
                         "div",

@@ -167,7 +167,7 @@
           </a>
         </div>        
       </vue-draggable-resizable>
-      <vue-draggable-resizable @dragging="onContextDrag" :x="contextX" :y="contextY" v-if="state.hasSelection() || state.hasClipboard() || state.getContext()" :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
+      <vue-draggable-resizable @dragging="onContextDrag" :x="contextX" :y="contextY" v-if="state.hasSelection() || $root.vp_clipboard.length > 0 || state.getContext()" :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
         <div class="drag"/>
         <div v-if="state.hasSelection()" :class="{'folded': folded[5]}">
           <div class="vue-paint-menu-divider" @click="folded[5] = !folded[5]; $event.target.parentElement.classList.toggle('folded')">{{strings.functions}}</div>
@@ -185,7 +185,7 @@
             <a @click="state.moveSelection('right')"><span>&rarr;</span></a>
           </div>
         </div>
-        <div v-if="state.hasClipboard()" :class="{'folded': folded[6]}">
+        <div v-if="$root.vp_clipboard.length > 0" :class="{'folded': folded[6]}">
           <div class="vue-paint-menu-divider" @click="folded[6] = !folded[6]; $event.target.parentElement.classList.toggle('folded')">{{strings.clipboard}}</div>
           <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-paste" @click="state.pasteSelection()">{{strings.paste}}<span>cmd-v</span></a>
           <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-clear" @click="state.clearSelection()">{{strings.clear}}</a>

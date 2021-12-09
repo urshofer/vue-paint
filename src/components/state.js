@@ -25,8 +25,8 @@ export default class State {
         this.selected   = [];
         this.context = false;
         // Clipboard
-        root._vp_clipboard = root._vp_clipboard || [];        
-        this.copy   = root._vp_clipboard;
+        this.root = root
+        this.root.vp_clipboard = this.root.vp_clipboard || [];        
         this.stack  = [];
         this.clips  = [];
         this.paper  = null;
@@ -208,7 +208,8 @@ export default class State {
     }
 
     hasClipboard() {
-        return this.copy.length > 0;
+        console.log(this.root.vp_clipboard)
+        return this.root.vp_clipboard.length > 0;
     }
 
     unselectAll() {
@@ -249,17 +250,17 @@ export default class State {
     }
 
     copySelection() {
-        this.copy = this.selected;
+        this.root.$set(this.root, 'vp_clipboard', this.selected)        
     }
 
     clearSelection() {
-        this.copy = [];
+        this.root.$set(this.root, 'vp_clipboard', [])
     }
 
     pasteSelection() {
-        if (this.copy.length > 0) {
+        if (this.root.vp_clipboard.length > 0) {
             this.unselectAll();
-            this.copy.forEach(s => {
+            this.root.vp_clipboard.forEach(s => {
                 try {
                     let _clone = new this.tools[s.toolname].class(s.paper, s.startPoint, this, s.primitive.clone(), this.tools[s.toolname].defaults);
                     if (_clone) {
