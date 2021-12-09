@@ -91,7 +91,7 @@ export default class Text extends Tool {
             } else {
               if (target.scrollHeight <= o.height) {
                 let _f = new FormData(form[0])
-                console.log(_f.get('input').replace(/(\r\n|\n|\r)/gm, "#"))
+                //console.log(_f.get('input'))
                 this.primitive[name] = _f.get('input');
                 o.value = _f.get('input')  
               } else {

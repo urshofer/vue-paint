@@ -69,6 +69,8 @@
                 'width': `${option.width}px`, 
                 'height': `${option.height}px`, 
                 'resize': 'none',
+                'white-space': 'pre-wrap',
+                'word-wrap': 'break-word',
                 'font-size': `${state.getContext().primitive.fontSize}px`, 
                 'line-height': `${state.getContext().primitive.leading}px`,
                 'font-family': `${state.getContext().primitive.fontFamily}`,

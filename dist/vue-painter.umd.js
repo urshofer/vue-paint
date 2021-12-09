@@ -1265,7 +1265,7 @@
               } else {
                 if (target.scrollHeight <= o.height) {
                   let _f = new FormData(form[0]);
-                  console.log(_f.get('input').replace(/(\r\n|\n|\r)/gm, "#"));
+                  //console.log(_f.get('input'))
                   this.primitive[name] = _f.get('input');
                   o.value = _f.get('input');  
                 } else {
@@ -1582,7 +1582,7 @@
           this.fonts      = options.fonts || [];
           this.selected   = [];
           this.context = false;
-          this.copy   = [];
+          this.copy   = options.copy || [];
           this.stack  = [];
           this.clips  = [];
           this.paper  = null;
@@ -1816,13 +1816,18 @@
           if (this.copy.length > 0) {
               this.unselectAll();
               this.copy.forEach(s => {
-                  console.log(this, s);
-                  let _clone = new this.tools[s.toolname].class(s.paper, s.startPoint, this, s.primitive.clone(), this.tools[s.toolname].defaults);
-                  _clone._pos = s._pos;
-                  _clone.move('right');
-                  _clone.move('down');
-                  _clone.shift('front');
-                  _clone.select();
+                  try {
+                      let _clone = new this.tools[s.toolname].class(s.paper, s.startPoint, this, s.primitive.clone(), this.tools[s.toolname].defaults);
+                      if (_clone) {
+                          _clone._pos = s._pos;
+                          _clone.move('right');
+                          _clone.move('down');
+                          _clone.shift('front');
+                          _clone.select();
+                      }
+                  } catch (err) {
+                      console.warn(err);
+                  }
               });
               this.copySelection();
           }
@@ -2878,6 +2883,8 @@
                             width: option.width + "px",
                             height: option.height + "px",
                             resize: "none",
+                            "white-space": "pre-wrap",
+                            "word-wrap": "break-word",
                             "font-size":
                               _vm.state.getContext().primitive.fontSize + "px",
                             "line-height":
