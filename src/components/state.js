@@ -11,7 +11,7 @@ import Arc  from './tools/arc.js'
 import { Base64 } from 'js-base64'
 
 export default class State {
-    constructor (options) {
+    constructor (options, root) {
         options = options || {};
         this.active     = null;
         this.actveByName = "";
@@ -25,8 +25,8 @@ export default class State {
         this.selected   = [];
         this.context = false;
         // Clipboard
-        options.root._vp_clipboard = options.root._vp_clipboard || [];        
-        this.copy   = options.root._vp_clipboard;
+        root._vp_clipboard = root._vp_clipboard || [];        
+        this.copy   = root._vp_clipboard;
         this.stack  = [];
         this.clips  = [];
         this.paper  = null;
