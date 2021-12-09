@@ -1564,10 +1564,9 @@ class Arc extends Tool {
   }
 }
 
-var _vp_clipboard = [];        
-
 class State {
     constructor (options) {
+        window._vp_clipboard = window._vp_clipboard || [];
         options = options || {};
         this.active     = null;
         this.actveByName = "";
@@ -1580,7 +1579,7 @@ class State {
         this.fonts      = options.fonts || [];
         this.selected   = [];
         this.context = false;
-        this.copy   = _vp_clipboard;
+        this.copy   = window._vp_clipboard;
         this.stack  = [];
         this.clips  = [];
         this.paper  = null;
