@@ -1583,6 +1583,7 @@
           this.selected   = [];
           this.context = false;
           // Clipboard
+          console.log(options.root);
           options.root._vp_clipboard = options.root._vp_clipboard || [];        
           this.copy   = options.root._vp_clipboard;
           this.stack  = [];
