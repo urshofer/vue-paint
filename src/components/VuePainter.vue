@@ -96,7 +96,7 @@
         </div>      
       </template>
 
-      <vue-draggable-resizable :w="'auto'" :h="'auto'" drag-handle=".drag" id="menu" class="vue-paint-menu" :z="10">
+      <vue-draggable-resizable @dragging="onMenuDrag" :x="menuX" :y="menuY" :w="'auto'" :h="'auto'" drag-handle=".drag" id="menu" class="vue-paint-menu" :z="10">
         <div class="drag"/>
         <div :class="{'folded': folded[0]}">
           <div class="vue-paint-menu-divider" @click="folded[0] = !folded[0]; $event.target.parentElement.classList.toggle('folded')">{{strings.tools}}</div>
@@ -167,7 +167,7 @@
           </a>
         </div>        
       </vue-draggable-resizable>
-      <vue-draggable-resizable @dragging="onContextDrag" v-if="state.hasSelection() || state.hasClipboard() || state.getContext()" :x="getContextX" :y="getContextY"  :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
+      <vue-draggable-resizable @dragging="onContextDrag" :x="contextX" :y="contextY" v-if="state.hasSelection() || state.hasClipboard() || state.getContext()" :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
         <div class="drag"/>
         <div v-if="state.hasSelection()" :class="{'folded': folded[5]}">
           <div class="vue-paint-menu-divider" @click="folded[5] = !folded[5]; $event.target.parentElement.classList.toggle('folded')">{{strings.functions}}</div>
@@ -303,26 +303,6 @@ export default {
         return 25
       }
     },    
-    getContextX () {
-      /*if (this.contextX !== false) return this.contextX;
-      this.contextX = this.state.hasSelectionBoundingBox().x*/
-      return this.contextX;
-    },
-    getContextY () {
-      /*if (this.contextY !== false) return this.contextY;
-      if (this.$refs.context && this.$refs.painter) {
-        if (this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop < this.$refs.wrapper.clientHeight  - this.$refs.context.$el.clientHeight) {
-          this.contextY = this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop
-        }
-        else {
-          this.contextY = this.$refs.wrapper.clientHeight - this.$refs.context.$el.clientHeight;
-        }
-      }
-      else {
-        this.contextY = 0
-      }*/
-      return this.contextY;
-    },    
     cssVars () {
       return {
         '--vue-paint-scaling-factor': `${this.scaling}`
@@ -406,6 +386,8 @@ export default {
       // ContextPos
       contextX: this.$root._vp_x ? this.$root._vp_x : (window.innerWidth - 300),
       contextY: this.$root._vp_y ? this.$root._vp_y : 150,
+      menuX: this.$root._vp_mx ? this.$root._vp_mx : 10,
+      menuY: this.$root._vp_my ? this.$root._vp_my : 150,      
       folded: this.$root.folded,
 
       // Grid
@@ -502,6 +484,10 @@ export default {
       this.contextX = this.$root._vp_x = x
       this.contextY = this.$root._vp_y = y
     },
+    onMenuDrag(x,y) {
+      this.menuX = this.$root._vp_mx = x
+      this.menuY = this.$root._vp_my = y
+    },    
     longestWord(string) {
       var str = string.split("\n");
       var longest = 0;

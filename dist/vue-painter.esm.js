@@ -2025,26 +2025,6 @@ var script = {
         return 25
       }
     },    
-    getContextX () {
-      /*if (this.contextX !== false) return this.contextX;
-      this.contextX = this.state.hasSelectionBoundingBox().x*/
-      return this.contextX;
-    },
-    getContextY () {
-      /*if (this.contextY !== false) return this.contextY;
-      if (this.$refs.context && this.$refs.painter) {
-        if (this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop < this.$refs.wrapper.clientHeight  - this.$refs.context.$el.clientHeight) {
-          this.contextY = this.state.hasSelectionBoundingBox().y - this.$refs.wrapper.scrollTop
-        }
-        else {
-          this.contextY = this.$refs.wrapper.clientHeight - this.$refs.context.$el.clientHeight;
-        }
-      }
-      else {
-        this.contextY = 0
-      }*/
-      return this.contextY;
-    },    
     cssVars () {
       return {
         '--vue-paint-scaling-factor': `${this.scaling}`
@@ -2128,6 +2108,8 @@ var script = {
       // ContextPos
       contextX: this.$root._vp_x ? this.$root._vp_x : (window.innerWidth - 300),
       contextY: this.$root._vp_y ? this.$root._vp_y : 150,
+      menuX: this.$root._vp_mx ? this.$root._vp_mx : 10,
+      menuY: this.$root._vp_my ? this.$root._vp_my : 150,      
       folded: this.$root.folded,
 
       // Grid
@@ -2224,6 +2206,10 @@ var script = {
       this.contextX = this.$root._vp_x = x;
       this.contextY = this.$root._vp_y = y;
     },
+    onMenuDrag(x,y) {
+      this.menuX = this.$root._vp_mx = x;
+      this.menuY = this.$root._vp_my = y;
+    },    
     longestWord(string) {
       var str = string.split("\n");
       var longest = 0;
@@ -2986,12 +2972,15 @@ var __vue_render__ = function() {
         {
           staticClass: "vue-paint-menu",
           attrs: {
+            x: _vm.menuX,
+            y: _vm.menuY,
             w: "auto",
             h: "auto",
             "drag-handle": ".drag",
             id: "menu",
             z: 10
-          }
+          },
+          on: { dragging: _vm.onMenuDrag }
         },
         [
           _c("div", { staticClass: "drag" }),
@@ -3384,8 +3373,8 @@ var __vue_render__ = function() {
               ref: "context",
               staticClass: "vue-paint-context",
               attrs: {
-                x: _vm.getContextX,
-                y: _vm.getContextY,
+                x: _vm.contextX,
+                y: _vm.contextY,
                 w: "auto",
                 h: "auto",
                 "drag-handle": ".drag",
