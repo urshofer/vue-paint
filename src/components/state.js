@@ -264,17 +264,24 @@ export default class State {
         if (this.root.vp_clipboard.length > 0) {
             this.unselectAll();
             this.root.vp_clipboard.forEach(s => {
-                try {
-                    let _primitive = this.paper.project.activeLayer.importJSON(s._json)
-                    let _clone = new this.tools[s.toolname].class(this.paper, s.startPoint, this, _primitive, this.tools[s.toolname].defaults);
-                    if (_clone) {
-                        _clone._pos = s._pos
-                        _clone.move('right');
-                        _clone.move('down');
-                        _clone.shift('front');
-                        _clone.select();
+                if (this.tools[s.toolname]) {
+                    try {
+                        let _primitive = this.paper.project.activeLayer.importJSON(s._json)
+                        let _clone = new this.tools[s.toolname].class(this.paper, s.startPoint, this, _primitive, this.tools[s.toolname].defaults);
+                        if (_clone) {
+                            _clone._pos = s._pos
+                            _clone.move('right');
+                            _clone.move('down');
+                            _clone.shift('front');
+                            _clone.select();
+                        }
+                    } catch (err) {
+                        throw {
+                            name: "PasteException",
+                            message: err.message
+                        }
                     }
-                } catch (err) {
+                } else {
                     throw {
                         name: "PasteException",
                         message: err.message
