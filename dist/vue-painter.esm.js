@@ -1816,7 +1816,7 @@ class State {
             this.unselectAll();
             this.root.vp_clipboard.forEach(s => {
                 try {
-                    let _clone = new this.tools[s.toolname].class(s.paper, s.startPoint, this, s.primitive.clone(), this.tools[s.toolname].defaults);
+                    let _clone = new this.tools[s.toolname].class(this.paper, s.startPoint, this, s.primitive.clone(), this.tools[s.toolname].defaults);
                     if (_clone) {
                         _clone._pos = s._pos;
                         _clone.move('right');
