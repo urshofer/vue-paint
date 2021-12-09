@@ -1582,7 +1582,7 @@
           this.fonts      = options.fonts || [];
           this.selected   = [];
           this.context = false;
-          this.copy   = options.copy || [];
+          this.copy   = options.clipboard || [];
           this.stack  = [];
           this.clips  = [];
           this.paper  = null;
@@ -2150,7 +2150,8 @@
         'gridsize'  : {x: this.gridX, y: this.gridY}, 
         'anglestep' : this.angleStep || 5, 
         'fonts'     : this.fonts,
-        'tools'     : this.configuration
+        'tools'     : this.configuration,
+        'clipboard' : this.$root._vp_clipboard
       });
     },
     mounted() {

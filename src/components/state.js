@@ -24,7 +24,7 @@ export default class State {
         this.fonts      = options.fonts || [];
         this.selected   = [];
         this.context = false;
-        this.copy   = options.copy || [];
+        this.copy   = options.clipboard || [];
         this.stack  = [];
         this.clips  = [];
         this.paper  = null;
