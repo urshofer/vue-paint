@@ -427,7 +427,7 @@ export default {
       'anglestep' : this.angleStep || 5, 
       'fonts'     : this.fonts,
       'tools'     : this.configuration,
-      'clipboard' : this.$root._vp_clipboard
+      'root'      : this.$root
     });
   },
   mounted() {

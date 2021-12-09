@@ -1578,7 +1578,9 @@ class State {
         this.fonts      = options.fonts || [];
         this.selected   = [];
         this.context = false;
-        this.copy   = options.clipboard || [];
+        // Clipboard
+        options.root._vp_clipboard = options.root._vp_clipboard || [];        
+        this.copy   = options.root._vp_clipboard;
         this.stack  = [];
         this.clips  = [];
         this.paper  = null;
@@ -2147,7 +2149,7 @@ var script = {
       'anglestep' : this.angleStep || 5, 
       'fonts'     : this.fonts,
       'tools'     : this.configuration,
-      'clipboard' : this.$root._vp_clipboard
+      'root'      : this.$root
     });
   },
   mounted() {
