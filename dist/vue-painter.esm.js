@@ -1566,7 +1566,6 @@ class Arc extends Tool {
 
 class State {
     constructor (options) {
-        window._vp_clipboard = window._vp_clipboard || [];
         options = options || {};
         this.active     = null;
         this.actveByName = "";
@@ -1579,7 +1578,9 @@ class State {
         this.fonts      = options.fonts || [];
         this.selected   = [];
         this.context = false;
-        this.copy   = window._vp_clipboard;
+        // Clipboard
+        options.root._vp_clipboard = options.root._vp_clipboard || [];        
+        this.copy   = options.root._vp_clipboard;
         this.stack  = [];
         this.clips  = [];
         this.paper  = null;
@@ -2131,7 +2132,8 @@ var script = {
       'gridsize'  : {x: this.gridX, y: this.gridY}, 
       'anglestep' : this.angleStep || 5, 
       'fonts'     : this.fonts,
-      'tools'     : this.configuration
+      'tools'     : this.configuration,
+      'root'      : this.$root
     });
   },
   mounted() {
