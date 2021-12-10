@@ -1719,7 +1719,7 @@ class State {
                 this.setActive(o.prototype);
                 if (this.active !== null) {
                     let _primitive = this.paper.project.activeLayer.importJSON(Base64.decode(o.data));
-                    console.log(_primitive._class, _primitive.source, _primitive.bounds);
+                    console.log(_primitive._class, _primitive.source, _primitive.bounds, _primitive.isInserted());
                     new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
                 }
             });
@@ -1841,7 +1841,7 @@ class State {
                 } else {
                     throw {
                         name: "PasteException",
-                        message: err.message
+                        message: 'unknown tool'
                     }
                 }
             });
