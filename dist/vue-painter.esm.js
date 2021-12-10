@@ -1718,10 +1718,13 @@ class State {
             json.forEach(o => {
                 this.setActive(o.prototype);
                 if (this.active !== null) {
-                    let _primitive = this.paper.project.activeLayer.importJSON(Base64.decode(o.data));
-                    if (_primitive._class == "Raster") {
-                        console.log('--- Raster ---', _primitive.matrix);
-                    }
+                    let _decoded = Base64.decode(o.data);
+                    let _parsed = JSON.parse(_decoded);
+                    console.log(_parsed[0], _parsed[1].matrix);
+                    let _primitive = this.paper.project.activeLayer.importJSON(_decoded);
+                    //if (_primitive._class == "Raster") {
+                    //    console.log('--- Raster ---', _primitive.matrix);
+                    //}
                     new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
                 }
             });
