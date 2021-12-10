@@ -163,14 +163,16 @@ export default class State {
         if (json) {
             json.forEach(o => {
                 this.setActive(o.prototype)
-                if (this.active !== null) {
-                    let _decoded = Base64.decode(o.data);
-                    let _parsed = JSON.parse(_decoded);
+                let _doinsert = true
+                let _decoded = Base64.decode(o.data);
+                let _parsed = JSON.parse(_decoded);
+                if (_parsed[0] === 'Raster' && _parsed[1].matrix[4] === null && _parsed[1].matrix[5] === null) {
+                    _doinsert = false
+                    console.warn('not inserting image. wrong matrix')
+                } 
+                if (this.active !== null && _parsed && _doinsert === true) {
                     console.log(_parsed[0], _parsed[1].matrix)
                     let _primitive = this.paper.project.activeLayer.importJSON(_decoded)
-                    //if (_primitive._class == "Raster") {
-                    //    console.log('--- Raster ---', _primitive.matrix);
-                    //}
                     new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
                 }
             })
