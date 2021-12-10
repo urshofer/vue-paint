@@ -1724,6 +1724,14 @@
                   this.setActive(o.prototype);
                   if (this.active !== null) {
                       let _primitive = this.paper.project.activeLayer.importJSON(jsBase64.Base64.decode(o.data));
+                      if (_primitive.class == "Raster") {
+                          _primitive.on('load', function(e) {
+                              console.log('--- LOAD ---', e);
+                          });
+                          _primitive.on('errror', function(e) {
+                              console.log('--- ERROR ---', e);
+                          });
+                      }
                       new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
                   }
               });
