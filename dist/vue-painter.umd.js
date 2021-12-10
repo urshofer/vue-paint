@@ -1729,7 +1729,6 @@
                       console.warn('not inserting image. wrong matrix');
                   } 
                   if (this.active !== null && _parsed && _doinsert === true) {
-                      console.log(_parsed[0], _parsed[1].matrix);
                       let _primitive = this.paper.project.activeLayer.importJSON(_decoded);
                       new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
                   }
