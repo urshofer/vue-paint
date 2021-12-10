@@ -102,9 +102,27 @@
       this.primitive.selectedColor = color;
     }
 
+    applyDash(name, value) {
+      if (name === 'dash' && this.primitive) {
+        this.options.forEach(o => {
+          if (o.property == name) {
+            o.value = value;            
+          }
+        });
+        if (value === true)
+          this.primitive.dashArray = [this.getOption('dashlength'), this.getOption('gaplength')];
+        else 
+          this.primitive.dashArray = [];
+      }    
+      if (this.getOption('dash') === true) {
+        this.primitive.dashArray = [this.getOption('dashlength'), this.getOption('gaplength')];
+      }
+      console.log(this.primitive.dashArray);
+    }
 
     setOption(name, value) {
       let redraw = false;
+      this.applyDash(name, value);
       this.options.forEach(o => {
         if (o.property == name) {
           try {
@@ -499,7 +517,31 @@
           min     : defaults.radiusMin,
           max     : defaults.radiusMax,
           step    : defaults.radiusStep
-        }
+        },
+        {
+          property: "dashlength",
+          description: "Dash",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "gaplength",
+          description: "Gap",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "dash",
+          description: "Dashed",
+          type    : "boolean",
+          value   : false
+        }      
       ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
     }
@@ -523,7 +565,32 @@
       defaults.fixed = defaults.fixed || false;
       defaults.toolName = defaults.toolName || 'Circle';
 
-      let options = [];
+      let options = [
+        {
+          property: "dashlength",
+          description: "Dash",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "gaplength",
+          description: "Gap",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "dash",
+          description: "Dashed",
+          type    : "boolean",
+          value   : false
+        }             
+      ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
     }
 
@@ -576,44 +643,6 @@
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
     }
 
-    setOption(name, value) {
-      if (name === 'dash' && this.primitive) {
-          this.options.forEach(o => {
-            if (o.property == name) {
-              o.value = value;            
-            }
-          });
-          if (value === true)
-            this.primitive.dashArray = [this.getOption('dashlength'), this.getOption('gaplength')];
-          else 
-            this.primitive.dashArray = [];
-      } else {
-        this.options.forEach(o => {
-          if (o.property == name) {
-            try {
-              // Function Call
-              if (o.function === true) {
-                if (o.type === 'boolean') {
-                  this.primitive[name](o.options[o.value === true ? 0 : 1]);
-                }
-              } 
-              // Parameter Call
-              else {
-                this.primitive[name] = value;
-              }
-              o.value = value;            
-            }
-            catch (err) {
-              console.warn(err);
-            }
-          }
-        });
-        if (this.getOption('dash') === true) {
-          this.primitive.dashArray = [this.getOption('dashlength'), this.getOption('gaplength')];
-        }
-      }
-    }
-
     createPrimitive(point) {
       let _toPoint  = this.round(point);
       if (Math.abs(this.startPoint.x - _toPoint.x) >= this.state.gridsize.x / 2 || Math.abs(this.startPoint.y - _toPoint.y) >= this.state.gridsize.y / 2) {
@@ -648,7 +677,31 @@
             {type: 'geometric', factor: 0},
             {type: 'geometric', factor: 1}
           ]
-        }   
+        },
+        {
+          property: "dashlength",
+          description: "Dash",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "gaplength",
+          description: "Gap",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "dash",
+          description: "Dashed",
+          type    : "boolean",
+          value   : false
+        }                
       ];
       
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
@@ -786,8 +839,31 @@
           max     : defaults.starsizeMax,
           step    : defaults.starsizeStep,
           redraw  : true
-      }
-
+        },
+        {
+          property: "dashlength",
+          description: "Dash",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "gaplength",
+          description: "Gap",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "dash",
+          description: "Dashed",
+          type    : "boolean",
+          value   : false
+        }             
     ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
 
@@ -805,6 +881,7 @@
 
     setOption(name, value) {
       let redraw = false;
+      this.applyDash(name, value);
       this.options.forEach(o => {
         if (o.property == name) {
           try {
@@ -921,7 +998,31 @@
             max     : defaults.sidesMax,
             step    : defaults.sidesStep,
             redraw  : true
-        }
+        },
+        {
+          property: "dashlength",
+          description: "Dash",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "gaplength",
+          description: "Gap",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "dash",
+          description: "Dashed",
+          type    : "boolean",
+          value   : false
+        }      
     ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
 
@@ -938,6 +1039,7 @@
 
     setOption(name, value) {
       let redraw = false;
+      this.applyDash(name, value);
       this.options.forEach(o => {
         if (o.property == name) {
           try {
@@ -1059,7 +1161,6 @@
           type    : "hidden",
           value   : defaults.defaultHeight
         }      
-
       ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
     }
@@ -1370,7 +1471,31 @@
               type    : "boolean",
               value   : defaults.gridSquare,
               redraw  : true
-            }   
+          },
+          {
+            property: "dashlength",
+            description: "Dash",
+            type    : "int",
+            value   : 2,
+            min     : 0,
+            max     : 10,
+            step    : 1
+          },
+          {
+            property: "gaplength",
+            description: "Gap",
+            type    : "int",
+            value   : 2,
+            min     : 0,
+            max     : 10,
+            step    : 1
+          },
+          {
+            property: "dash",
+            description: "Dashed",
+            type    : "boolean",
+            value   : false
+          }                  
       ];
 
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
@@ -1425,6 +1550,7 @@
 
     setOption(name, value) {
       let redraw = false;
+      this.applyDash(name, value);
       this.options.forEach(o => {
         if (o.property == name) {
           try {
@@ -1464,7 +1590,31 @@
             max     : defaults.angleMax,
             step    : defaults.angleStep,
             redraw  : true
-        }
+        },
+        {
+          property: "dashlength",
+          description: "Dash",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "gaplength",
+          description: "Gap",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "dash",
+          description: "Dashed",
+          type    : "boolean",
+          value   : false
+        }             
     ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
 
@@ -1481,6 +1631,7 @@
 
     setOption(name, value) {
       let redraw = false;
+      this.applyDash(name, value);
       this.options.forEach(o => {
         if (o.property == name) {
           try {
@@ -2465,6 +2616,7 @@
         };
         
         this.tool.onKeyDown = (event) => {
+          console.log(event);
           if (this.keyHandlingActive === true) {
             if (event.key == 'delete' || event.key == 'backspace') {
                 this.state.deleteSelection();

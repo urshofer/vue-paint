@@ -5,7 +5,32 @@ export default class Circle extends Tool {
     defaults.fixed = defaults.fixed || false
     defaults.toolName = defaults.toolName || 'Circle'
 
-    let options = []
+    let options = [
+      {
+        property: "dashlength",
+        description: "Dash",
+        type    : "int",
+        value   : 2,
+        min     : 0,
+        max     : 10,
+        step    : 1
+      },
+      {
+        property: "gaplength",
+        description: "Gap",
+        type    : "int",
+        value   : 2,
+        min     : 0,
+        max     : 10,
+        step    : 1
+      },
+      {
+        property: "dash",
+        description: "Dashed",
+        type    : "boolean",
+        value   : false
+      }             
+    ]
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed)
   }
 

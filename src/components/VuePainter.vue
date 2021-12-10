@@ -715,6 +715,7 @@ export default {
       }
       
       this.tool.onKeyDown = (event) => {
+        console.log(event)
         if (this.keyHandlingActive === true) {
           if (event.key == 'delete' || event.key == 'backspace') {
               this.state.deleteSelection()

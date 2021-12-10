@@ -35,7 +35,6 @@ export default class Raster extends Tool {
         type    : "hidden",
         value   : defaults.defaultHeight
       }      
-
     ]
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed)
   }

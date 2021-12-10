@@ -18,7 +18,31 @@ export default class Square extends Tool {
         min     : defaults.radiusMin,
         max     : defaults.radiusMax,
         step    : defaults.radiusStep
-      }
+      },
+      {
+        property: "dashlength",
+        description: "Dash",
+        type    : "int",
+        value   : 2,
+        min     : 0,
+        max     : 10,
+        step    : 1
+      },
+      {
+        property: "gaplength",
+        description: "Gap",
+        type    : "int",
+        value   : 2,
+        min     : 0,
+        max     : 10,
+        step    : 1
+      },
+      {
+        property: "dash",
+        description: "Dashed",
+        type    : "boolean",
+        value   : false
+      }      
     ];
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed)
   }

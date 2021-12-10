@@ -34,44 +34,6 @@ export default class Line extends Tool {
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed)
   }
 
-  setOption(name, value) {
-    if (name === 'dash' && this.primitive) {
-        this.options.forEach(o => {
-          if (o.property == name) {
-            o.value = value;            
-          }
-        })
-        if (value === true)
-          this.primitive.dashArray = [this.getOption('dashlength'), this.getOption('gaplength')];
-        else 
-          this.primitive.dashArray = [];
-    } else {
-      this.options.forEach(o => {
-        if (o.property == name) {
-          try {
-            // Function Call
-            if (o.function === true) {
-              if (o.type === 'boolean') {
-                this.primitive[name](o.options[o.value === true ? 0 : 1]);
-              }
-            } 
-            // Parameter Call
-            else {
-              this.primitive[name] = value;
-            }
-            o.value = value;            
-          }
-          catch (err) {
-            console.warn(err);
-          }
-        }
-      })
-      if (this.getOption('dash') === true) {
-        this.primitive.dashArray = [this.getOption('dashlength'), this.getOption('gaplength')];
-      }
-    }
-  }
-
   createPrimitive(point) {
     let _toPoint  = this.round(point)
     if (Math.abs(this.startPoint.x - _toPoint.x) >= this.state.gridsize.x / 2 || Math.abs(this.startPoint.y - _toPoint.y) >= this.state.gridsize.y / 2) {

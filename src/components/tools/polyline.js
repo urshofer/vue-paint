@@ -24,7 +24,31 @@ export default class Polyline extends Tool {
           {type: 'geometric', factor: 0},
           {type: 'geometric', factor: 1}
         ]
-      }   
+      },
+      {
+        property: "dashlength",
+        description: "Dash",
+        type    : "int",
+        value   : 2,
+        min     : 0,
+        max     : 10,
+        step    : 1
+      },
+      {
+        property: "gaplength",
+        description: "Gap",
+        type    : "int",
+        value   : 2,
+        min     : 0,
+        max     : 10,
+        step    : 1
+      },
+      {
+        property: "dash",
+        description: "Dashed",
+        type    : "boolean",
+        value   : false
+      }                
     ];
     
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed)

@@ -20,7 +20,31 @@ export default class Arc extends Tool {
           max     : defaults.angleMax,
           step    : defaults.angleStep,
           redraw  : true
-      }
+      },
+      {
+        property: "dashlength",
+        description: "Dash",
+        type    : "int",
+        value   : 2,
+        min     : 0,
+        max     : 10,
+        step    : 1
+      },
+      {
+        property: "gaplength",
+        description: "Gap",
+        type    : "int",
+        value   : 2,
+        min     : 0,
+        max     : 10,
+        step    : 1
+      },
+      {
+        property: "dash",
+        description: "Dashed",
+        type    : "boolean",
+        value   : false
+      }             
   ];
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed)
 
@@ -37,6 +61,7 @@ export default class Arc extends Tool {
 
   setOption(name, value) {
     let redraw = false;
+    this.applyDash(name, value)
     this.options.forEach(o => {
       if (o.property == name) {
         try {

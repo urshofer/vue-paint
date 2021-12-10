@@ -94,9 +94,27 @@ export default class Tool {
     this.primitive.selectedColor = color;
   }
 
+  applyDash(name, value) {
+    if (name === 'dash' && this.primitive) {
+      this.options.forEach(o => {
+        if (o.property == name) {
+          o.value = value;            
+        }
+      })
+      if (value === true)
+        this.primitive.dashArray = [this.getOption('dashlength'), this.getOption('gaplength')];
+      else 
+        this.primitive.dashArray = [];
+    }    
+    if (this.getOption('dash') === true) {
+      this.primitive.dashArray = [this.getOption('dashlength'), this.getOption('gaplength')];
+    }
+    console.log(this.primitive.dashArray)
+  }
 
   setOption(name, value) {
     let redraw = false;
+    this.applyDash(name, value)
     this.options.forEach(o => {
       if (o.property == name) {
         try {
