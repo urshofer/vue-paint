@@ -1716,9 +1716,12 @@ class State {
     importStack(json) {
         if (json) {
             json.forEach(o => {
-              let _primitive = this.paper.project.activeLayer.importJSON(Base64.decode(o.data));
-              this.setActive(o.prototype);
-              new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
+                this.setActive(o.prototype);
+                if (this.active !== null) {
+                    let _primitive = this.paper.project.activeLayer.importJSON(Base64.decode(o.data));
+                    console.log(_primitive._class, _primitive.source);
+                    new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
+                }
             });
             this.setActive('');
         }
