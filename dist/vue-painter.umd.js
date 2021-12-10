@@ -1723,7 +1723,12 @@
                   this.setActive(o.prototype);
                   if (this.active !== null) {
                       let _primitive = this.paper.project.activeLayer.importJSON(jsBase64.Base64.decode(o.data));
-                      console.log(_primitive._class, _primitive.source, _primitive.bounds);
+                      console.log(_primitive._class, _primitive.source, _primitive.position, _primitive.bounds, _primitive.isInserted());
+                      if (_primitive.class == "Raster") {
+                          _primitive.onLoad = function(l) {
+                              console.log('The image has finished loading.', l);
+                          };
+                      }
                       new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
                   }
               });
@@ -1845,7 +1850,7 @@
                   } else {
                       throw {
                           name: "PasteException",
-                          message: err.message
+                          message: 'unknown tool'
                       }
                   }
               });

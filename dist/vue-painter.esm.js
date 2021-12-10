@@ -1719,7 +1719,12 @@ class State {
                 this.setActive(o.prototype);
                 if (this.active !== null) {
                     let _primitive = this.paper.project.activeLayer.importJSON(Base64.decode(o.data));
-                    console.log(_primitive._class, _primitive.source, _primitive.bounds, _primitive.isInserted());
+                    console.log(_primitive._class, _primitive.source, _primitive.position, _primitive.bounds, _primitive.isInserted());
+                    if (_primitive.class == "Raster") {
+                        _primitive.onLoad = function(l) {
+                            console.log('The image has finished loading.', l);
+                        };
+                    }
                     new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
                 }
             });
