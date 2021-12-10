@@ -291,7 +291,7 @@ export default class Tool {
     if (this.primitive != null) {
       this.originalPos = this.primitive.position;
       this.state.addStack(this);
-      console.log(`${this.primitive._class} finished painting`, this.primitive)
+      console.log(`${this.primitive._class} finished painting`, this.primitive.bounds)
     }
   }
 
