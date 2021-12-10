@@ -294,7 +294,7 @@ class Tool {
     if (this.primitive != null) {
       this.originalPos = this.primitive.position;
       this.state.addStack(this);
-      console.log('finished painting', this.primitive);
+      console.log(`${this.primitive._class} finished painting`, this.primitive);
     }
   }
 
@@ -1720,12 +1720,6 @@ class State {
                 this.setActive(o.prototype);
                 if (this.active !== null) {
                     let _primitive = this.paper.project.activeLayer.importJSON(Base64.decode(o.data));
-                    console.log(_primitive._class, _primitive.source, _primitive.position, _primitive.bounds, _primitive.isInserted());
-                    if (_primitive.class == "Raster") {
-                        _primitive.onLoad = function(l) {
-                            console.log('The image has finished loading.', l);
-                        };
-                    }
                     new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
                 }
             });
