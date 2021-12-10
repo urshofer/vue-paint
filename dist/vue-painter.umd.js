@@ -1723,7 +1723,7 @@
                   this.setActive(o.prototype);
                   if (this.active !== null) {
                       let _primitive = this.paper.project.activeLayer.importJSON(jsBase64.Base64.decode(o.data));
-                      console.log(_primitive._class, _primitive.source);
+                      console.log(_primitive._class, _primitive.source, _primitive.bounds);
                       new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
                   }
               });
