@@ -1723,7 +1723,7 @@
                   this.setActive(o.prototype);
                   if (this.active !== null) {
                       let _primitive = this.paper.project.activeLayer.importJSON(jsBase64.Base64.decode(o.data));
-                      if (_primitive.class == "Raster") {
+                      if (_primitive._class == "Raster") {
                           console.log('--- Raster ---', _primitive.width, _primitive.height);
                       }
                       new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
