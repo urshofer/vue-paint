@@ -2425,19 +2425,16 @@ var script = {
       }
       this.gridLayer.activate();
       let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x) * -(180/Math.PI);
-      for (let __index = 1; __index < 4; __index++) {
-        this.paper.Path.Line({
-            from: [this.paper.project.view.bounds.width / 4 * __index, 0],
-            to: [this.paper.project.view.bounds.width / 4 * __index, this.paper.project.view.bounds.height],
-            strokeColor: this.gridLineColor,
-        });
-        this.paper.Path.Line({
-            from: [0, this.paper.project.view.bounds.height / 4 * __index],
-            to: [this.paper.project.view.bounds.width, this.paper.project.view.bounds.height / 4 * __index],
-            strokeColor: this.gridLineColor,
-        });
-      }
-
+      this.paper.Path.Line({
+          from: [this.paper.project.view.bounds.width / 2, 0],
+          to: [this.paper.project.view.bounds.width / 2, this.paper.project.view.bounds.height],
+          strokeColor: this.gridLineColor,
+      });
+      this.paper.Path.Line({
+          from: [0, this.paper.project.view.bounds.height / 2],
+          to: [this.paper.project.view.bounds.width, this.paper.project.view.bounds.height / 2],
+          strokeColor: this.gridLineColor,
+      });
       if (this.horizontalRulers && this.horizontalRulers.length) {
         this.horizontalRulers.forEach(h => {
           this.paper.Path.Line({
