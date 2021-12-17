@@ -21,6 +21,13 @@
   height: 100%;
   overflow: auto;
 }
+.vue-paint-mockup {
+  position: absolute;
+  bottom: 0px;
+  width: 100%;
+  border: 1px solid green;
+  height: 2em;
+}
 .vue-paint-canvas {
   position: absolute;
   left: 0px;

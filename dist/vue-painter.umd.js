@@ -2181,6 +2181,10 @@
         type: String,
         default: '#000'
       },
+      mockup: {
+        type: [Boolean, Array],
+        default: false
+      },    
       horizontalRulers: {
         type: [Boolean, Array],
         default: false
@@ -3153,7 +3157,23 @@
                 " vue-paint-canvas-" +
                 _vm.state.getActiveName().replace(/ /g, "_"),
               attrs: { id: "painter" }
-            })
+            }),
+            _vm._v(" "),
+            _vm.mockup && _vm.mockup.length
+              ? _c(
+                  "div",
+                  { staticClass: "vue-paint-mockup" },
+                  _vm._l(_vm.mockup, function(m, m_id) {
+                    return _c("div", {
+                      key: "mock-" + m_id,
+                      class:
+                        "vue-paint-mockup-item vue-paint-mockup-item-" + m_id,
+                      domProps: { innerHTML: _vm._s(m) }
+                    })
+                  }),
+                  0
+                )
+              : _vm._e()
           ],
           2
         ),

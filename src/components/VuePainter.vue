@@ -81,6 +81,9 @@
           </form>
         </div>
         <canvas ref="painter" id="painter" :class="`vue-paint-canvas vue-paint-canvas-${state.getActiveClassName()} vue-paint-canvas-${state.getActiveName().replace(/ /g, '_')}`"></canvas>
+        <div class="vue-paint-mockup" v-if="mockup && mockup.length">
+          <div :class="`vue-paint-mockup-item vue-paint-mockup-item-${m_id}`" v-bind:key="`mock-${m_id}`" v-for="(m, m_id) in mockup" v-html="m"/>
+        </div>
       </div>
       
       <div v-if="state.getContext() && state.getContext().showHint()" class="vue-paint-hint">
@@ -280,6 +283,10 @@ export default {
       type: String,
       default: '#000'
     },
+    mockup: {
+      type: [Boolean, Array],
+      default: false
+    },    
     horizontalRulers: {
       type: [Boolean, Array],
       default: false
@@ -939,6 +946,13 @@ export default {
       width: 70%;
       height: 100%;
       overflow: auto;
+    }
+    &-mockup {
+      position: absolute;
+      bottom: 0px;
+      width: 100%;
+      border: 1px solid green;
+      height: 2em;
     }
     &-canvas {
       position: absolute;
