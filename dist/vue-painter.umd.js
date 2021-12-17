@@ -2173,8 +2173,30 @@
       grids: Object,
       defaultGrid: String,
       angleStep: Number,
-      gridColor: String,
-      dotColor: String
+      gridColor: {
+        type: String,
+        default: '#CCF'
+      },
+      dotColor: {
+        type: String,
+        default: '#000'
+      },
+      horizontalRulers: {
+        type: [Boolean, Array],
+        default: false
+      },
+      verticalRulers: {
+        type: [Boolean, Array],
+        default: false
+      },
+      rulerColor: {
+        type: String,
+        default: '#0FF'
+      },
+      gridLineColor: {
+        type: String,
+        default: '#CCC'
+      }
     },
     watch: {
       activeGrid() {
@@ -2411,12 +2433,32 @@
           this.paper.Path.Line({
               from: [this.paper.project.view.bounds.width / 4 * __index, 0],
               to: [this.paper.project.view.bounds.width / 4 * __index, this.paper.project.view.bounds.height],
-              strokeColor: '#CCC',
+              strokeColor: this.gridLineColor,
           });
           this.paper.Path.Line({
               from: [0, this.paper.project.view.bounds.height / 4 * __index],
               to: [this.paper.project.view.bounds.width, this.paper.project.view.bounds.height / 4 * __index],
-              strokeColor: '#CCC',
+              strokeColor: this.gridLineColor,
+          });
+        }
+
+        if (this.horizontalRulers && this.horizontalRulers.length) {
+          this.horizontalRulers.forEach(h => {
+            this.paper.Path.Line({
+              from: [0, h],
+              to: [this.paper.project.view.bounds.width, h],
+              strokeColor: this.rulerColor,
+            });
+          });
+        }
+
+        if (this.verticalRulers && this.verticalRulers.length) {
+          this.verticalRulers.forEach(v => {
+            this.paper.Path.Line({
+                from: [v, 0],
+                to: [v, this.paper.project.view.bounds.height],
+                strokeColor: this.rulerColor,
+            });
           });
         }
 
@@ -2425,14 +2467,14 @@
             let _l = this.paper.Path.Line({
                 from: [0, _y],
                 to: [this.paper.project.view.bounds.width * 2, _y],
-                strokeColor: this.gridColor || '#CCF',
+                strokeColor: this.gridColor,
                 dashArray: [1, 2]
             });
             _l.rotate(_rotation, [0,_y]);
             _l = this.paper.Path.Line({
                 from: [this.paper.project.view.bounds.width * -2, _y],
                 to: [this.paper.project.view.bounds.width, _y],
-                strokeColor: this.gridColor || '#CCF',
+                strokeColor: this.gridColor,
                 dashArray: [1, 2]
             });
             _l.rotate(_rotation * -1, [Math.floor(this.paper.project.view.bounds.width / this.state.gridsize.x) * this.state.gridsize.x,_y]);        
@@ -2442,7 +2484,7 @@
             this.paper.Path.Line({
                 from: [0, _y],
                 to: [this.paper.project.view.bounds.width, _y],
-                strokeColor: this.gridColor || '#CCF',
+                strokeColor: this.gridColor,
                 dashArray: [1, 2]
             });
           }
@@ -2450,7 +2492,7 @@
             this.paper.Path.Line({
                 from: [_x, 0],
                 to: [_x, this.paper.project.view.bounds.height],
-                strokeColor: this.gridColor || '#CCF',
+                strokeColor: this.gridColor,
                 dashArray: [1, 2]
             });
           }        
@@ -2460,7 +2502,7 @@
             new this.paper.Path.Circle({
                 center: [_x, _y],
                 radius: 1,
-                fillColor: this.dotColor || '#000',
+                fillColor: this.dotColor,
             });
           }
         }
