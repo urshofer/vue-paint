@@ -15,6 +15,7 @@
         v-bind:rulerColor="'#F0F'"
         v-bind:defaultGrid="defaultGrid"
         v-bind:angleStep="30"
+        v-bind:mockup="['left', 'right']"
         v-on:save="onSave"
         v-on:export="onExport"
       />
