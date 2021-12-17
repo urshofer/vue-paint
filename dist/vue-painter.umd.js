@@ -3162,7 +3162,10 @@
             _vm.mockup && _vm.mockup.length
               ? _c(
                   "div",
-                  { staticClass: "vue-paint-mockup" },
+                  {
+                    class:
+                      "vue-paint-mockup vue-paint-mockup-" + _vm.mockup.length
+                  },
                   _vm._l(_vm.mockup, function(m, m_id) {
                     return _c("div", {
                       key: "mock-" + m_id,

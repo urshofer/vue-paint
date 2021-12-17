@@ -81,7 +81,7 @@
           </form>
         </div>
         <canvas ref="painter" id="painter" :class="`vue-paint-canvas vue-paint-canvas-${state.getActiveClassName()} vue-paint-canvas-${state.getActiveName().replace(/ /g, '_')}`"></canvas>
-        <div class="vue-paint-mockup" v-if="mockup && mockup.length">
+        <div :class="`vue-paint-mockup vue-paint-mockup-${mockup.length}`" v-if="mockup && mockup.length">
           <div :class="`vue-paint-mockup-item vue-paint-mockup-item-${m_id}`" v-bind:key="`mock-${m_id}`" v-for="(m, m_id) in mockup" v-html="m"/>
         </div>
       </div>
