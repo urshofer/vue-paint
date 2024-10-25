@@ -10,8 +10,9 @@
   },
   "dependencies": {
     "file-saver": "^2.0.5",
-    "vue-painter": "git+https://github.com/urshofer/vue-paint.git#rollup",
-    "vue": "^2.6.11"
+    "vue": "^2.6.11",
+    "vue-draggable-resizable": "^3.0.0",
+    "vue-painter": "git+https://github.com/urshofer/vue-paint.git#rollup"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.0",
