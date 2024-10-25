@@ -958,8 +958,8 @@ export default {
       position: absolute;
       left: 0px;
       top: 0px;
-      width: 750px;
-      height: 1500px;
+      width: 100%;
+      height: 100%;
       background: transparent;
       z-index: 3;
       cursor: crosshair;

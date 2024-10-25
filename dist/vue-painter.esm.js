@@ -2891,7 +2891,7 @@ function normalizeComponent(template, style, script, scopeId, isFunctionalTempla
 /* script */
 const __vue_script__ = script;
 /* template */
-var __vue_render__ = function() {
+var __vue_render__ = function () {
   var _vm = this;
   var _h = _vm.$createElement;
   var _c = _vm._self._c || _h;
@@ -2902,45 +2902,45 @@ var __vue_render__ = function() {
       _c(
         "transition",
         { attrs: { name: "flipin" } },
-        _vm._l(_vm.state.getOptionByType("clipart", true), function(option) {
+        _vm._l(_vm.state.getOptionByType("clipart", true), function (option) {
           return _c(
             "div",
             {
               key: "" + option.property,
               staticClass: "vue-paint-clipart-wrapper",
               on: {
-                click: function($event) {
+                click: function ($event) {
                   $event.stopPropagation();
                   _vm.state.getContext().getOption(option.property) === false
                     ? _vm.state.getContext()._delete()
                     : "";
                   _vm.toggleOption(option);
-                }
-              }
+                },
+              },
             },
             [
               _c("div", { staticClass: "vue-paint-clipart-container" }, [
                 _c(
                   "div",
                   { staticClass: "vue-paint-clipart-container-groups" },
-                  _vm._l(_vm.clips.groups, function(group) {
+                  _vm._l(_vm.clips.groups, function (group) {
                     return _c(
                       "div",
                       {
                         key: "g-" + group,
-                        staticClass: "vue-paint-clipart-container-group"
+                        staticClass: "vue-paint-clipart-container-group",
                       },
                       [
                         _c("a", {
                           attrs: { href: "#" },
                           domProps: { innerHTML: _vm._s(group) },
                           on: {
-                            click: function($event) {
+                            click: function ($event) {
                               $event.stopPropagation();
                               _vm.clips.selected = group;
-                            }
-                          }
-                        })
+                            },
+                          },
+                        }),
                       ]
                     )
                   }),
@@ -2950,12 +2950,12 @@ var __vue_render__ = function() {
                 _c(
                   "div",
                   { staticClass: "vue-paint-clipart-container-items" },
-                  _vm._l(_vm.clips.clips[_vm.clips.selected], function(clip) {
+                  _vm._l(_vm.clips.clips[_vm.clips.selected], function (clip) {
                     return _c(
                       "div",
                       {
                         key: "g-" + clip.thumb,
-                        staticClass: "vue-paint-clipart-container-item"
+                        staticClass: "vue-paint-clipart-container-item",
                       },
                       [
                         _c(
@@ -2963,23 +2963,23 @@ var __vue_render__ = function() {
                           {
                             attrs: { href: "#" },
                             on: {
-                              click: function($event) {
+                              click: function ($event) {
                                 $event.stopPropagation();
                                 _vm.state
                                   .getContext()
                                   .setOption(option.property, clip.source);
                                 _vm.toggleOption(option);
-                              }
-                            }
+                              },
+                            },
                           },
                           [_c("img", { attrs: { src: clip.thumb } })]
-                        )
+                        ),
                       ]
                     )
                   }),
                   0
-                )
-              ])
+                ),
+              ]),
             ]
           )
         }),
@@ -2991,159 +2991,162 @@ var __vue_render__ = function() {
         {
           ref: "wrapper",
           staticClass: "vue-paint-wrapper",
-          attrs: { id: "wrapper" }
+          attrs: { id: "wrapper" },
         },
         [
-          _vm._l(_vm.state.getOptionByType("textarea", true), function(option) {
-            return _c(
-              "div",
-              {
-                key: "" + option.property,
-                staticClass: "vue-paint-editor",
-                style: {
-                  left:
-                    (_vm.state.getContext().primitive.position.x *
-                      _vm.scaling) /
-                      100 +
-                    "px",
-                  top:
-                    (_vm.state.getContext().primitive.position.y *
-                      _vm.scaling) /
-                      100 +
-                    "px",
-                  transform:
-                    "scale(" +
-                    _vm.scaling / 100 +
-                    ") rotate(" +
-                    _vm.state.getContext().primitive.rotation +
-                    "deg)",
-                  "transform-origin": "0px 0px"
+          _vm._l(
+            _vm.state.getOptionByType("textarea", true),
+            function (option) {
+              return _c(
+                "div",
+                {
+                  key: "" + option.property,
+                  staticClass: "vue-paint-editor",
+                  style: {
+                    left:
+                      (_vm.state.getContext().primitive.position.x *
+                        _vm.scaling) /
+                        100 +
+                      "px",
+                    top:
+                      (_vm.state.getContext().primitive.position.y *
+                        _vm.scaling) /
+                        100 +
+                      "px",
+                    transform:
+                      "scale(" +
+                      _vm.scaling / 100 +
+                      ") rotate(" +
+                      _vm.state.getContext().primitive.rotation +
+                      "deg)",
+                    "transform-origin": "0px 0px",
+                  },
+                  attrs: { id: "fitpopup" },
                 },
-                attrs: { id: "fitpopup" }
-              },
-              [
-                _c("form", { ref: "textareaform", refInFor: true }, [
-                  option.mode == "char"
-                    ? _c("textarea", {
-                        directives: [
-                          {
-                            name: "model",
-                            rawName: "v-model",
-                            value: option.value,
-                            expression: "option.value"
-                          }
-                        ],
-                        ref: option.property,
-                        refInFor: true,
-                        style: {
-                          width: option.cols + 1 + "ch",
-                          "font-size":
-                            _vm.state.getContext().primitive.fontSize + "px",
-                          "line-height":
-                            _vm.state.getContext().primitive.leading + "px",
-                          "font-family":
-                            "" + _vm.state.getContext().primitive.fontFamily,
-                          transform:
-                            "translateX(-" +
-                            _vm.state.getContext().primitive.internalBounds
-                              .width /
-                              2 +
-                            "px) translateY(-" +
-                            _vm.state.getContext().primitive.internalBounds
-                              .height /
-                              2 +
-                            "px)",
-                          "text-align":
-                            _vm.state.getContext().primitive.justification ||
-                            "left"
-                        },
-                        attrs: {
-                          rows: option.rows,
-                          cols: option.cols,
-                          name: "input",
-                          wrap: "hard"
-                        },
-                        domProps: { value: option.value },
-                        on: {
-                          keyup: function($event) {
-                            _vm.state
-                              .getContext()
-                              .setOption(option.property, $event.target.value);
+                [
+                  _c("form", { ref: "textareaform", refInFor: true }, [
+                    option.mode == "char"
+                      ? _c("textarea", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: option.value,
+                              expression: "option.value",
+                            },
+                          ],
+                          ref: option.property,
+                          refInFor: true,
+                          style: {
+                            width: option.cols + 1 + "ch",
+                            "font-size":
+                              _vm.state.getContext().primitive.fontSize + "px",
+                            "line-height":
+                              _vm.state.getContext().primitive.leading + "px",
+                            "font-family":
+                              "" + _vm.state.getContext().primitive.fontFamily,
+                            transform:
+                              "translateX(-" +
+                              _vm.state.getContext().primitive.internalBounds
+                                .width /
+                                2 +
+                              "px) translateY(-" +
+                              _vm.state.getContext().primitive.internalBounds
+                                .height /
+                                2 +
+                              "px)",
+                            "text-align":
+                              _vm.state.getContext().primitive.justification ||
+                              "left",
                           },
-                          focus: _vm.disableKeys,
-                          blur: _vm.enableKeys,
-                          input: function($event) {
-                            if ($event.target.composing) {
-                              return
-                            }
-                            _vm.$set(option, "value", $event.target.value);
-                          }
-                        }
-                      })
-                    : _c("textarea", {
-                        directives: [
-                          {
-                            name: "model",
-                            rawName: "v-model",
-                            value: option.value,
-                            expression: "option.value"
-                          }
-                        ],
-                        ref: option.property,
-                        refInFor: true,
-                        style: {
-                          width: option.width + "px",
-                          height: option.height + "px",
-                          resize: "none",
-                          "white-space": "pre-wrap",
-                          "word-wrap": "break-word",
-                          "font-size":
-                            _vm.state.getContext().primitive.fontSize + "px",
-                          "line-height":
-                            _vm.state.getContext().primitive.leading + "px",
-                          "font-family":
-                            "" + _vm.state.getContext().primitive.fontFamily,
-                          transform:
-                            "translateX(-" +
-                            _vm.state.getContext().primitive.internalBounds
-                              .width /
-                              2 +
-                            "px) translateY(-" +
-                            _vm.state.getContext().primitive.internalBounds
-                              .height /
-                              2 +
-                            "px)",
-                          "text-align":
-                            _vm.state.getContext().primitive.justification ||
-                            "left"
-                        },
-                        attrs: { name: "input", wrap: "hard" },
-                        domProps: { value: option.value },
-                        on: {
-                          keyup: function($event) {
-                            _vm.state
-                              .getContext()
-                              .setOption(
-                                option.property,
-                                $event.target.value,
-                                $event.target,
-                                _vm.$refs.textareaform
-                              );
+                          attrs: {
+                            rows: option.rows,
+                            cols: option.cols,
+                            name: "input",
+                            wrap: "hard",
                           },
-                          focus: _vm.disableKeys,
-                          blur: _vm.enableKeys,
-                          input: function($event) {
-                            if ($event.target.composing) {
-                              return
-                            }
-                            _vm.$set(option, "value", $event.target.value);
-                          }
-                        }
-                      })
-                ])
-              ]
-            )
-          }),
+                          domProps: { value: option.value },
+                          on: {
+                            keyup: function ($event) {
+                              _vm.state
+                                .getContext()
+                                .setOption(option.property, $event.target.value);
+                            },
+                            focus: _vm.disableKeys,
+                            blur: _vm.enableKeys,
+                            input: function ($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.$set(option, "value", $event.target.value);
+                            },
+                          },
+                        })
+                      : _c("textarea", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: option.value,
+                              expression: "option.value",
+                            },
+                          ],
+                          ref: option.property,
+                          refInFor: true,
+                          style: {
+                            width: option.width + "px",
+                            height: option.height + "px",
+                            resize: "none",
+                            "white-space": "pre-wrap",
+                            "word-wrap": "break-word",
+                            "font-size":
+                              _vm.state.getContext().primitive.fontSize + "px",
+                            "line-height":
+                              _vm.state.getContext().primitive.leading + "px",
+                            "font-family":
+                              "" + _vm.state.getContext().primitive.fontFamily,
+                            transform:
+                              "translateX(-" +
+                              _vm.state.getContext().primitive.internalBounds
+                                .width /
+                                2 +
+                              "px) translateY(-" +
+                              _vm.state.getContext().primitive.internalBounds
+                                .height /
+                                2 +
+                              "px)",
+                            "text-align":
+                              _vm.state.getContext().primitive.justification ||
+                              "left",
+                          },
+                          attrs: { name: "input", wrap: "hard" },
+                          domProps: { value: option.value },
+                          on: {
+                            keyup: function ($event) {
+                              _vm.state
+                                .getContext()
+                                .setOption(
+                                  option.property,
+                                  $event.target.value,
+                                  $event.target,
+                                  _vm.$refs.textareaform
+                                );
+                            },
+                            focus: _vm.disableKeys,
+                            blur: _vm.enableKeys,
+                            input: function ($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.$set(option, "value", $event.target.value);
+                            },
+                          },
+                        }),
+                  ]),
+                ]
+              )
+            }
+          ),
           _vm._v(" "),
           _c("canvas", {
             ref: "painter",
@@ -3152,7 +3155,7 @@ var __vue_render__ = function() {
               _vm.state.getActiveClassName() +
               " vue-paint-canvas-" +
               _vm.state.getActiveName().replace(/ /g, "_"),
-            attrs: { id: "painter" }
+            attrs: { id: "painter" },
           }),
           _vm._v(" "),
           _vm.mockup && _vm.mockup.length
@@ -3160,19 +3163,19 @@ var __vue_render__ = function() {
                 "div",
                 {
                   class:
-                    "vue-paint-mockup vue-paint-mockup-" + _vm.mockup.length
+                    "vue-paint-mockup vue-paint-mockup-" + _vm.mockup.length,
                 },
-                _vm._l(_vm.mockup, function(m, m_id) {
+                _vm._l(_vm.mockup, function (m, m_id) {
                   return _c("div", {
                     key: "mock-" + m_id,
                     class:
                       "vue-paint-mockup-item vue-paint-mockup-item-" + m_id,
-                    domProps: { innerHTML: _vm._s(m) }
+                    domProps: { innerHTML: _vm._s(m) },
                   })
                 }),
                 0
               )
-            : _vm._e()
+            : _vm._e(),
         ],
         2
       ),
@@ -3187,8 +3190,8 @@ var __vue_render__ = function() {
                       _vm.state.getContext().showHint()
                   ) +
                   "\n    "
-              )
-            ])
+              ),
+            ]),
           ])
         : [
             _vm.state.getActiveName() !== "" &&
@@ -3206,10 +3209,10 @@ var __vue_render__ = function() {
                           ]
                         ) +
                         "\n      "
-                    )
-                  ])
+                    ),
+                  ]),
                 ])
-              : _vm._e()
+              : _vm._e(),
           ],
       _vm._v(" "),
       _c(
@@ -3223,9 +3226,9 @@ var __vue_render__ = function() {
             h: "auto",
             "drag-handle": ".drag",
             id: "menu",
-            z: 10
+            z: 10,
           },
-          on: { dragging: _vm.onMenuDrag }
+          on: { dragging: _vm.onMenuDrag },
         },
         [
           _c("div", { staticClass: "drag" }),
@@ -3239,11 +3242,11 @@ var __vue_render__ = function() {
                 {
                   staticClass: "vue-paint-menu-divider",
                   on: {
-                    click: function($event) {
+                    click: function ($event) {
                       _vm.folded[0] = !_vm.folded[0];
                       $event.target.parentElement.classList.toggle("folded");
-                    }
-                  }
+                    },
+                  },
                 },
                 [_vm._v(_vm._s(_vm.strings.tools))]
               ),
@@ -3257,15 +3260,15 @@ var __vue_render__ = function() {
                       ? " vue-paint-button-active"
                       : ""),
                   on: {
-                    click: function($event) {
+                    click: function ($event) {
                       return _vm.state.setActive(false)
-                    }
-                  }
+                    },
+                  },
                 },
                 [_c("span", [_vm._v(_vm._s(_vm.strings.selection))])]
               ),
               _vm._v(" "),
-              _vm._l(_vm.tools, function(t) {
+              _vm._l(_vm.tools, function (t) {
                 return [
                   _vm.state.isFixed(t) === false
                     ? _c(
@@ -3281,18 +3284,18 @@ var __vue_render__ = function() {
                               ? " vue-paint-button-active"
                               : ""),
                           on: {
-                            click: function($event) {
+                            click: function ($event) {
                               _vm.state.setActive(
                                 _vm.state.getActiveName() == t ? false : t
                               );
-                            }
-                          }
+                            },
+                          },
                         },
                         [_c("span", [_vm._v(_vm._s(t))])]
                       )
-                    : _vm._e()
+                    : _vm._e(),
                 ]
-              })
+              }),
             ],
             2
           ),
@@ -3306,16 +3309,16 @@ var __vue_render__ = function() {
                 {
                   staticClass: "vue-paint-menu-divider",
                   on: {
-                    click: function($event) {
+                    click: function ($event) {
                       _vm.folded[1] = !_vm.folded[1];
                       $event.target.parentElement.classList.toggle("folded");
-                    }
-                  }
+                    },
+                  },
                 },
                 [_vm._v(_vm._s(_vm.strings.fixedtools))]
               ),
               _vm._v(" "),
-              _vm._l(_vm.tools, function(t) {
+              _vm._l(_vm.tools, function (t) {
                 return [
                   _vm.state.isFixed(t) === true
                     ? _c(
@@ -3331,16 +3334,16 @@ var __vue_render__ = function() {
                               ? " vue-paint-button-check-active"
                               : ""),
                           on: {
-                            click: function($event) {
+                            click: function ($event) {
                               return _vm.addFixed(t)
-                            }
-                          }
+                            },
+                          },
                         },
                         [_c("span", [_vm._v(_vm._s(t))])]
                       )
-                    : _vm._e()
+                    : _vm._e(),
                 ]
-              })
+              }),
             ],
             2
           ),
@@ -3351,11 +3354,11 @@ var __vue_render__ = function() {
               {
                 staticClass: "vue-paint-menu-divider",
                 on: {
-                  click: function($event) {
+                  click: function ($event) {
                     _vm.folded[2] = !_vm.folded[2];
                     $event.target.parentElement.classList.toggle("folded");
-                  }
-                }
+                  },
+                },
               },
               [_vm._v(_vm._s(_vm.strings.file))]
             ),
@@ -3365,10 +3368,10 @@ var __vue_render__ = function() {
               {
                 staticClass: "vue-paint-button vue-paint-button-save",
                 on: {
-                  click: function($event) {
+                  click: function ($event) {
                     return _vm.saveJSON()
-                  }
-                }
+                  },
+                },
               },
               [_vm._v(_vm._s(_vm.strings.save))]
             ),
@@ -3378,13 +3381,13 @@ var __vue_render__ = function() {
               {
                 staticClass: "vue-paint-button vue-paint-button-export",
                 on: {
-                  click: function($event) {
+                  click: function ($event) {
                     return _vm.exportSVG()
-                  }
-                }
+                  },
+                },
               },
               [_vm._v(_vm._s(_vm.strings.export))]
-            )
+            ),
           ]),
           _vm._v(" "),
           _c("div", { class: { folded: _vm.folded[3] } }, [
@@ -3393,11 +3396,11 @@ var __vue_render__ = function() {
               {
                 staticClass: "vue-paint-menu-divider",
                 on: {
-                  click: function($event) {
+                  click: function ($event) {
                     _vm.folded[3] = !_vm.folded[3];
                     $event.target.parentElement.classList.toggle("folded");
-                  }
-                }
+                  },
+                },
               },
               [_vm._v(_vm._s(_vm.strings.preset))]
             ),
@@ -3416,11 +3419,11 @@ var __vue_render__ = function() {
                   attrs: { type: "range", min: "0", max: "10" },
                   domProps: { value: _vm.state.getStrokeWidth() },
                   on: {
-                    change: function($event) {
+                    change: function ($event) {
                       return _vm.state.setStrokeWidth($event.target.value)
-                    }
-                  }
-                })
+                    },
+                  },
+                }),
               ]
             ),
             _vm._v(" "),
@@ -3438,11 +3441,11 @@ var __vue_render__ = function() {
                   attrs: { type: "range", min: "0", max: "4" },
                   domProps: { value: _vm.state.getAlpha() * 4 },
                   on: {
-                    change: function($event) {
+                    change: function ($event) {
                       return _vm.state.setAlpha($event.target.value / 4)
-                    }
-                  }
-                })
+                    },
+                  },
+                }),
               ]
             ),
             _vm._v(" "),
@@ -3454,21 +3457,21 @@ var __vue_render__ = function() {
                 _c(
                   "div",
                   { staticClass: "vue-paint-colorlist" },
-                  _vm._l(_vm.colors, function(c) {
+                  _vm._l(_vm.colors, function (c) {
                     return _c("a", {
                       key: "bgcolor-" + c,
                       staticClass: "color",
                       class: { "color-active": _vm.state.getFillColor() == c },
                       style: { "background-color": c },
                       on: {
-                        click: function($event) {
+                        click: function ($event) {
                           return _vm.state.setFillColor(c)
-                        }
-                      }
+                        },
+                      },
                     })
                   }),
                   0
-                )
+                ),
               ]
             ),
             _vm._v(" "),
@@ -3480,23 +3483,23 @@ var __vue_render__ = function() {
                 _c(
                   "div",
                   { staticClass: "vue-paint-colorlist" },
-                  _vm._l(_vm.colors, function(c) {
+                  _vm._l(_vm.colors, function (c) {
                     return _c("a", {
                       key: "bgcolor-" + c,
                       staticClass: "color",
                       class: {
-                        "color-active": _vm.state.getStrokeColor() == c
+                        "color-active": _vm.state.getStrokeColor() == c,
                       },
                       style: { "background-color": c },
                       on: {
-                        click: function($event) {
+                        click: function ($event) {
                           return _vm.state.setStrokeColor(c)
-                        }
-                      }
+                        },
+                      },
                     })
                   }),
                   0
-                )
+                ),
               ]
             ),
             _vm._v(" "),
@@ -3514,11 +3517,11 @@ var __vue_render__ = function() {
                   attrs: { type: "range", min: "25", step: "25", max: "200" },
                   domProps: { value: _vm.scaling },
                   on: {
-                    change: function($event) {
+                    change: function ($event) {
                       return _vm.setScaling($event.target.value)
-                    }
-                  }
-                })
+                    },
+                  },
+                }),
               ]
             ),
             _vm._v(" "),
@@ -3533,17 +3536,17 @@ var __vue_render__ = function() {
                       name: "model",
                       rawName: "v-model",
                       value: _vm.magnetic,
-                      expression: "magnetic"
-                    }
+                      expression: "magnetic",
+                    },
                   ],
                   attrs: { name: "magnetic", type: "checkbox" },
                   domProps: {
                     checked: Array.isArray(_vm.magnetic)
                       ? _vm._i(_vm.magnetic, null) > -1
-                      : _vm.magnetic
+                      : _vm.magnetic,
                   },
                   on: {
-                    change: function($event) {
+                    change: function ($event) {
                       var $$a = _vm.magnetic,
                         $$el = $event.target,
                         $$c = $$el.checked ? true : false;
@@ -3561,11 +3564,11 @@ var __vue_render__ = function() {
                       } else {
                         _vm.magnetic = $$c;
                       }
-                    }
-                  }
-                })
+                    },
+                  },
+                }),
               ]
-            )
+            ),
           ]),
           _vm._v(" "),
           _c(
@@ -3577,16 +3580,16 @@ var __vue_render__ = function() {
                 {
                   staticClass: "vue-paint-menu-divider",
                   on: {
-                    click: function($event) {
+                    click: function ($event) {
                       _vm.folded[4] = !_vm.folded[4];
                       $event.target.parentElement.classList.toggle("folded");
-                    }
-                  }
+                    },
+                  },
                 },
                 [_vm._v(_vm._s(_vm.strings.grids))]
               ),
               _vm._v(" "),
-              _vm._l(_vm.grids, function(_gc, _g) {
+              _vm._l(_vm.grids, function (_gc, _g) {
                 return _c(
                   "a",
                   {
@@ -3595,17 +3598,17 @@ var __vue_render__ = function() {
                       "vue-paint-button " +
                       (_vm.activeGrid == _g ? " vue-paint-button-active" : ""),
                     on: {
-                      click: function($event) {
+                      click: function ($event) {
                         _vm.activeGrid = _g;
-                      }
-                    }
+                      },
+                    },
                   },
                   [_c("span", [_vm._v(_vm._s(_g))])]
                 )
-              })
+              }),
             ],
             2
-          )
+          ),
         ]
       ),
       _vm._v(" "),
@@ -3624,9 +3627,9 @@ var __vue_render__ = function() {
                 h: "auto",
                 "drag-handle": ".drag",
                 id: "context",
-                z: 10
+                z: 10,
               },
-              on: { dragging: _vm.onContextDrag }
+              on: { dragging: _vm.onContextDrag },
             },
             [
               _c("div", { staticClass: "drag" }),
@@ -3641,13 +3644,13 @@ var __vue_render__ = function() {
                         {
                           staticClass: "vue-paint-menu-divider",
                           on: {
-                            click: function($event) {
+                            click: function ($event) {
                               _vm.folded[5] = !_vm.folded[5];
                               $event.target.parentElement.classList.toggle(
                                 "folded"
                               );
-                            }
-                          }
+                            },
+                          },
                         },
                         [_vm._v(_vm._s(_vm.strings.functions))]
                       ),
@@ -3658,14 +3661,14 @@ var __vue_render__ = function() {
                           staticClass:
                             "vue-paint-button vue-paint-button-shorcut vue-paint-button-delete",
                           on: {
-                            click: function($event) {
+                            click: function ($event) {
                               return _vm.state.deleteSelection()
-                            }
-                          }
+                            },
+                          },
                         },
                         [
                           _vm._v(_vm._s(_vm.strings.delete) + "  "),
-                          _c("span", [_vm._v("🔙")])
+                          _c("span", [_vm._v("🔙")]),
                         ]
                       ),
                       _vm._v(" "),
@@ -3675,18 +3678,18 @@ var __vue_render__ = function() {
                           staticClass:
                             "vue-paint-button vue-paint-button-shorcut vue-paint-button-copy",
                           on: {
-                            click: function($event) {
+                            click: function ($event) {
                               return _vm.state.copySelection()
-                            }
-                          }
+                            },
+                          },
                         },
                         [
                           _vm._v(_vm._s(_vm.strings.copy) + " "),
-                          _c("span", [_vm._v("cmd-c")])
+                          _c("span", [_vm._v("cmd-c")]),
                         ]
                       ),
                       _vm._v(" "),
-                      _vm._l(_vm.transformations, function(t) {
+                      _vm._l(_vm.transformations, function (t) {
                         return [
                           _vm.state.isTransformationAllowed(t[0])
                             ? _c(
@@ -3700,17 +3703,17 @@ var __vue_render__ = function() {
                                       ? " vue-paint-button-active"
                                       : ""),
                                   on: {
-                                    click: function($event) {
+                                    click: function ($event) {
                                       return _vm.state.setTransformation(t[0])
-                                    }
-                                  }
+                                    },
+                                  },
                                 },
                                 [
                                   _vm._v(_vm._s(_vm.strings[t[0]]) + " "),
-                                  _c("span", [_vm._v(_vm._s(t[1]))])
+                                  _c("span", [_vm._v(_vm._s(t[1]))]),
                                 ]
                               )
-                            : _vm._e()
+                            : _vm._e(),
                         ]
                       }),
                       _vm._v(" "),
@@ -3720,14 +3723,14 @@ var __vue_render__ = function() {
                           staticClass:
                             "vue-paint-button vue-paint-button-shorcut vue-paint-button-background",
                           on: {
-                            click: function($event) {
+                            click: function ($event) {
                               return _vm.state.shiftSelection("back")
-                            }
-                          }
+                            },
+                          },
                         },
                         [
                           _vm._v(_vm._s(_vm.strings.background)),
-                          _c("span", [_vm._v("⇞")])
+                          _c("span", [_vm._v("⇞")]),
                         ]
                       ),
                       _vm._v(" "),
@@ -3737,14 +3740,14 @@ var __vue_render__ = function() {
                           staticClass:
                             "vue-paint-button vue-paint-button-shorcut vue-paint-button-foreground",
                           on: {
-                            click: function($event) {
+                            click: function ($event) {
                               return _vm.state.shiftSelection("front")
-                            }
-                          }
+                            },
+                          },
                         },
                         [
                           _vm._v(_vm._s(_vm.strings.foreground)),
-                          _c("span", [_vm._v("⇟")])
+                          _c("span", [_vm._v("⇟")]),
                         ]
                       ),
                       _vm._v(" "),
@@ -3754,10 +3757,10 @@ var __vue_render__ = function() {
                               "a",
                               {
                                 on: {
-                                  click: function($event) {
+                                  click: function ($event) {
                                     return _vm.state.moveSelection("left")
-                                  }
-                                }
+                                  },
+                                },
                               },
                               [_c("span", [_vm._v("←")])]
                             ),
@@ -3766,10 +3769,10 @@ var __vue_render__ = function() {
                               "a",
                               {
                                 on: {
-                                  click: function($event) {
+                                  click: function ($event) {
                                     return _vm.state.moveSelection("up")
-                                  }
-                                }
+                                  },
+                                },
                               },
                               [_c("span", [_vm._v("↑")])]
                             ),
@@ -3778,10 +3781,10 @@ var __vue_render__ = function() {
                               "a",
                               {
                                 on: {
-                                  click: function($event) {
+                                  click: function ($event) {
                                     return _vm.state.moveSelection("down")
-                                  }
-                                }
+                                  },
+                                },
                               },
                               [_c("span", [_vm._v("↓")])]
                             ),
@@ -3790,15 +3793,15 @@ var __vue_render__ = function() {
                               "a",
                               {
                                 on: {
-                                  click: function($event) {
+                                  click: function ($event) {
                                     return _vm.state.moveSelection("right")
-                                  }
-                                }
+                                  },
+                                },
                               },
                               [_c("span", [_vm._v("→")])]
-                            )
+                            ),
                           ])
-                        : _vm._e()
+                        : _vm._e(),
                     ],
                     2
                   )
@@ -3811,13 +3814,13 @@ var __vue_render__ = function() {
                       {
                         staticClass: "vue-paint-menu-divider",
                         on: {
-                          click: function($event) {
+                          click: function ($event) {
                             _vm.folded[6] = !_vm.folded[6];
                             $event.target.parentElement.classList.toggle(
                               "folded"
                             );
-                          }
-                        }
+                          },
+                        },
                       },
                       [_vm._v(_vm._s(_vm.strings.clipboard))]
                     ),
@@ -3828,14 +3831,14 @@ var __vue_render__ = function() {
                         staticClass:
                           "vue-paint-button vue-paint-button-shorcut vue-paint-button-paste",
                         on: {
-                          click: function($event) {
+                          click: function ($event) {
                             return _vm.pasteSelection()
-                          }
-                        }
+                          },
+                        },
                       },
                       [
                         _vm._v(_vm._s(_vm.strings.paste)),
-                        _c("span", [_vm._v("cmd-v")])
+                        _c("span", [_vm._v("cmd-v")]),
                       ]
                     ),
                     _vm._v(" "),
@@ -3845,13 +3848,13 @@ var __vue_render__ = function() {
                         staticClass:
                           "vue-paint-button vue-paint-button-shorcut vue-paint-button-clear",
                         on: {
-                          click: function($event) {
+                          click: function ($event) {
                             return _vm.state.clearSelection()
-                          }
-                        }
+                          },
+                        },
                       },
                       [_vm._v(_vm._s(_vm.strings.clear))]
-                    )
+                    ),
                   ])
                 : _vm._e(),
               _vm._v(" "),
@@ -3865,219 +3868,225 @@ var __vue_render__ = function() {
                         {
                           staticClass: "vue-paint-menu-divider",
                           on: {
-                            click: function($event) {
+                            click: function ($event) {
                               _vm.folded[7] = !_vm.folded[7];
                               $event.target.parentElement.classList.toggle(
                                 "folded"
                               );
-                            }
-                          }
+                            },
+                          },
                         },
                         [_vm._v(_vm._s(_vm.strings.parameter))]
                       ),
                       _vm._v(" "),
-                      _vm._l(_vm.state.getContext().getOptions(), function(
-                        option
-                      ) {
-                        return [
-                          option.type != "hidden"
-                            ? _c(
-                                "form",
-                                {
-                                  key: "form-" + option.description,
-                                  attrs: { id: "form-" + option.property }
-                                },
-                                [
-                                  option.type == "textarea" ||
-                                  option.type == "clipart"
-                                    ? _c(
-                                        "a",
-                                        {
-                                          key: option.parameter,
-                                          class:
-                                            "vue-paint-button vue-paint-button-shorcut vue-paint-button-" +
-                                            option.description +
-                                            " " +
-                                            (option.toggled
-                                              ? " vue-paint-button-active"
-                                              : ""),
-                                          on: {
-                                            click: function($event) {
-                                              return _vm.toggleOption(option)
-                                            }
-                                          }
-                                        },
-                                        [
-                                          _vm._v(
-                                            "\n            " +
+                      _vm._l(
+                        _vm.state.getContext().getOptions(),
+                        function (option) {
+                          return [
+                            option.type != "hidden"
+                              ? _c(
+                                  "form",
+                                  {
+                                    key: "form-" + option.description,
+                                    attrs: { id: "form-" + option.property },
+                                  },
+                                  [
+                                    option.type == "textarea" ||
+                                    option.type == "clipart"
+                                      ? _c(
+                                          "a",
+                                          {
+                                            key: option.parameter,
+                                            class:
+                                              "vue-paint-button vue-paint-button-shorcut vue-paint-button-" +
+                                              option.description +
+                                              " " +
+                                              (option.toggled
+                                                ? " vue-paint-button-active"
+                                                : ""),
+                                            on: {
+                                              click: function ($event) {
+                                                return _vm.toggleOption(option)
+                                              },
+                                            },
+                                          },
+                                          [
+                                            _vm._v(
+                                              "\n            " +
+                                                _vm._s(
+                                                  _vm.strings[
+                                                    option.description
+                                                  ] || option.description
+                                                )
+                                            ),
+                                            _c("span", [
+                                              _vm._v(
+                                                _vm._s(
+                                                  option.type == "textarea"
+                                                    ? "cmd-e"
+                                                    : "cmd-i"
+                                                )
+                                              ),
+                                            ]),
+                                          ]
+                                        )
+                                      : _vm._e(),
+                                    _vm._v(" "),
+                                    option.type == "int" &&
+                                    option.min !== option.max
+                                      ? _c(
+                                          "label",
+                                          {
+                                            key: "option-" + option.description,
+                                            class:
+                                              "vue-paint-label vue-paint-label-" +
+                                              option.description,
+                                          },
+                                          [
+                                            _vm._v(
                                               _vm._s(
                                                 _vm.strings[
                                                   option.description
                                                 ] || option.description
-                                              )
-                                          ),
-                                          _c("span", [
+                                              ) +
+                                                ": " +
+                                                _vm._s(option.value) +
+                                                "\n            "
+                                            ),
+                                            _c("input", {
+                                              attrs: {
+                                                type: "range",
+                                                min: option.min,
+                                                max: option.max,
+                                                step: option.step,
+                                                name: "input",
+                                              },
+                                              domProps: { value: option.value },
+                                              on: {
+                                                change: function ($event) {
+                                                  _vm.state
+                                                    .getContext()
+                                                    .setOption(
+                                                      option.property,
+                                                      $event.target.value
+                                                    );
+                                                },
+                                              },
+                                            }),
+                                          ]
+                                        )
+                                      : _vm._e(),
+                                    _vm._v(" "),
+                                    option.type == "boolean"
+                                      ? _c(
+                                          "label",
+                                          {
+                                            key: "option-" + option.description,
+                                            class:
+                                              "vue-paint-label vue-paint-label-" +
+                                              option.description,
+                                          },
+                                          [
                                             _vm._v(
                                               _vm._s(
-                                                option.type == "textarea"
-                                                  ? "cmd-e"
-                                                  : "cmd-i"
-                                              )
-                                            )
-                                          ])
-                                        ]
-                                      )
-                                    : _vm._e(),
-                                  _vm._v(" "),
-                                  option.type == "int" &&
-                                  option.min !== option.max
-                                    ? _c(
-                                        "label",
-                                        {
-                                          key: "option-" + option.description,
-                                          class:
-                                            "vue-paint-label vue-paint-label-" +
-                                            option.description
-                                        },
-                                        [
-                                          _vm._v(
-                                            _vm._s(
-                                              _vm.strings[option.description] ||
-                                                option.description
-                                            ) +
-                                              ": " +
-                                              _vm._s(option.value) +
-                                              "\n            "
-                                          ),
-                                          _c("input", {
-                                            attrs: {
-                                              type: "range",
-                                              min: option.min,
-                                              max: option.max,
-                                              step: option.step,
-                                              name: "input"
-                                            },
-                                            domProps: { value: option.value },
-                                            on: {
-                                              change: function($event) {
-                                                _vm.state
-                                                  .getContext()
-                                                  .setOption(
-                                                    option.property,
-                                                    $event.target.value
-                                                  );
-                                              }
-                                            }
-                                          })
-                                        ]
-                                      )
-                                    : _vm._e(),
-                                  _vm._v(" "),
-                                  option.type == "boolean"
-                                    ? _c(
-                                        "label",
-                                        {
-                                          key: "option-" + option.description,
-                                          class:
-                                            "vue-paint-label vue-paint-label-" +
-                                            option.description
-                                        },
-                                        [
-                                          _vm._v(
-                                            _vm._s(
-                                              _vm.strings[option.description] ||
-                                                option.description
-                                            ) + "\n            "
-                                          ),
-                                          _c("input", {
-                                            attrs: {
-                                              type: "checkbox",
-                                              name: "input"
-                                            },
-                                            domProps: { checked: option.value },
-                                            on: {
-                                              change: function($event) {
-                                                _vm.state
-                                                  .getContext()
-                                                  .setOption(
-                                                    option.property,
-                                                    $event.target.checked
-                                                  );
-                                              }
-                                            }
-                                          })
-                                        ]
-                                      )
-                                    : _vm._e(),
-                                  _vm._v(" "),
-                                  option.type == "text"
-                                    ? _c(
-                                        "label",
-                                        {
-                                          key: "option-" + option.property,
-                                          class:
-                                            "vue-paint-label vue-paint-label-" +
-                                            option.description
-                                        },
-                                        [
-                                          _vm._v(
-                                            _vm._s(
-                                              _vm.strings[option.description] ||
-                                                option.description
-                                            ) + "\n            "
-                                          ),
-                                          _c("input", {
-                                            directives: [
-                                              {
-                                                name: "model",
-                                                rawName: "v-model",
-                                                value: option.value,
-                                                expression: "option.value"
-                                              }
-                                            ],
-                                            attrs: {
-                                              name: "input",
-                                              type: "text"
-                                            },
-                                            domProps: { value: option.value },
-                                            on: {
-                                              keyup: function($event) {
-                                                _vm.state
-                                                  .getContext()
-                                                  .setOption(
-                                                    option.property,
-                                                    $event.target.value
-                                                  );
+                                                _vm.strings[
+                                                  option.description
+                                                ] || option.description
+                                              ) + "\n            "
+                                            ),
+                                            _c("input", {
+                                              attrs: {
+                                                type: "checkbox",
+                                                name: "input",
                                               },
-                                              focus: _vm.disableKeys,
-                                              blur: _vm.enableKeys,
-                                              input: function($event) {
-                                                if ($event.target.composing) {
-                                                  return
-                                                }
-                                                _vm.$set(
-                                                  option,
-                                                  "value",
-                                                  $event.target.value
-                                                );
-                                              }
-                                            }
-                                          })
-                                        ]
-                                      )
-                                    : _vm._e()
-                                ]
-                              )
-                            : _vm._e()
-                        ]
-                      })
+                                              domProps: {
+                                                checked: option.value,
+                                              },
+                                              on: {
+                                                change: function ($event) {
+                                                  _vm.state
+                                                    .getContext()
+                                                    .setOption(
+                                                      option.property,
+                                                      $event.target.checked
+                                                    );
+                                                },
+                                              },
+                                            }),
+                                          ]
+                                        )
+                                      : _vm._e(),
+                                    _vm._v(" "),
+                                    option.type == "text"
+                                      ? _c(
+                                          "label",
+                                          {
+                                            key: "option-" + option.property,
+                                            class:
+                                              "vue-paint-label vue-paint-label-" +
+                                              option.description,
+                                          },
+                                          [
+                                            _vm._v(
+                                              _vm._s(
+                                                _vm.strings[
+                                                  option.description
+                                                ] || option.description
+                                              ) + "\n            "
+                                            ),
+                                            _c("input", {
+                                              directives: [
+                                                {
+                                                  name: "model",
+                                                  rawName: "v-model",
+                                                  value: option.value,
+                                                  expression: "option.value",
+                                                },
+                                              ],
+                                              attrs: {
+                                                name: "input",
+                                                type: "text",
+                                              },
+                                              domProps: { value: option.value },
+                                              on: {
+                                                keyup: function ($event) {
+                                                  _vm.state
+                                                    .getContext()
+                                                    .setOption(
+                                                      option.property,
+                                                      $event.target.value
+                                                    );
+                                                },
+                                                focus: _vm.disableKeys,
+                                                blur: _vm.enableKeys,
+                                                input: function ($event) {
+                                                  if ($event.target.composing) {
+                                                    return
+                                                  }
+                                                  _vm.$set(
+                                                    option,
+                                                    "value",
+                                                    $event.target.value
+                                                  );
+                                                },
+                                              },
+                                            }),
+                                          ]
+                                        )
+                                      : _vm._e(),
+                                  ]
+                                )
+                              : _vm._e(),
+                          ]
+                        }
+                      ),
                     ],
                     2
                   )
-                : _vm._e()
+                : _vm._e(),
             ]
           )
-        : _vm._e()
+        : _vm._e(),
     ],
     2
   )
