@@ -18,7 +18,8 @@
     "js-base64": "^3.6.0",
     "paper": "^0.12.15",
     "uuid": "^8.3.2",
-    "wordwrapjs": "^5.0.2"
+    "vue-draggable-resizable": "^2.3.0",
+    "wordwrapjs": "5.0.2"
   },
   "devDependencies": {
     "@rollup/plugin-buble": "^0.21.3",

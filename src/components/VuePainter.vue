@@ -1,11 +1,11 @@
 <template>
-    <div class="vue-paint">
+    <div class="vue-paint" :style="cssVars">
       <transition name="flipin">
         <div 
           class="vue-paint-clipart-wrapper"
           v-for="option in state.getOptionByType('clipart', true)"
           :key="`${option.property}`"
-          @click="toggleOption(option);"
+          @click.stop="state.getContext().getOption(option.property) === false ? state.getContext()._delete() : ''; toggleOption(option);"
         >
           <div class="vue-paint-clipart-container">
             <div class="vue-paint-clipart-container-groups">
@@ -23,45 +23,116 @@
           </div>
         </div> 
       </transition>
-      <div id="wrapper" class="vue-paint-wrapper">
+      <div id="wrapper" class="vue-paint-wrapper" ref="wrapper">
         <div id="fitpopup"
           class="vue-paint-editor"
           v-for="option in state.getOptionByType('textarea', true)"
           :key="`${option.property}`"
           :style="{
-          'left': `${state.getContext().primitive.position.x - (state.getContext().primitive.bounds.width/2)}px`,
-          'top': `${state.getContext().primitive.position.y - (state.getContext().primitive.bounds.height/2)}px`,
+          'left': `${state.getContext().primitive.position.x * scaling / 100}px`,
+          'top': `${state.getContext().primitive.position.y * scaling / 100}px`,
+          'transform': `scale(${scaling / 100}) rotate(${state.getContext().primitive.rotation}deg)`,
+          'transform-origin': `0px 0px`
           }"
         >
-          <textarea 
-            @keyup="state.getContext().setOption(option.property, $event.target.value)" 
-            @focus="disableKeys" 
-            @blur="enableKeys" 
-            :rows="option.rows" 
-            :cols="Math.round(option.cols * 1.75)" 
-            v-model="option.value"
-            name="input"
-            wrap="hard"
-            :ref="option.property"
-            :style="{'font-size': `${state.getContext().primitive.fontSize}px`, 'line-height': `${state.getContext().primitive.leading}px`}"
-          ></textarea>
+          <form ref="textareaform">
+            <textarea 
+              @keyup="state.getContext().setOption(option.property, $event.target.value)" 
+              @focus="disableKeys" 
+              @blur="enableKeys" 
+              :rows="option.rows" 
+              :cols="option.cols"
+              v-if="option.mode == 'char'" 
+              v-model="option.value"
+              name="input"
+              wrap="hard"
+              :ref="option.property"
+              :style="{
+                'width': `${option.cols + 1}ch`, 
+                'font-size': `${state.getContext().primitive.fontSize}px`, 
+                'line-height': `${state.getContext().primitive.leading}px`,
+                'font-family': `${state.getContext().primitive.fontFamily}`,
+                'transform': `translateX(-${state.getContext().primitive.internalBounds.width / 2}px) translateY(-${state.getContext().primitive.internalBounds.height / 2}px)`,
+                'text-align': state.getContext().primitive.justification || 'left'
+              }"
+            ></textarea>
+            <textarea 
+              @keyup="state.getContext().setOption(option.property, $event.target.value, $event.target, $refs.textareaform)" 
+              @focus="disableKeys" 
+              @blur="enableKeys" 
+              v-else
+              v-model="option.value"
+              name="input"
+              wrap="hard"
+              :ref="option.property"
+              :style="{
+                'width': `${option.width}px`, 
+                'height': `${option.height}px`, 
+                'resize': 'none',
+                'white-space': 'pre-wrap',
+                'word-wrap': 'break-word',
+                'font-size': `${state.getContext().primitive.fontSize}px`, 
+                'line-height': `${state.getContext().primitive.leading}px`,
+                'font-family': `${state.getContext().primitive.fontFamily}`,
+                'transform': `translateX(-${state.getContext().primitive.internalBounds.width / 2}px) translateY(-${state.getContext().primitive.internalBounds.height / 2}px)`,
+                'text-align': state.getContext().primitive.justification || 'left'
+              }"
+            ></textarea>
+          </form>
         </div>
-        <div id="grid" ref="grid" class="vue-paint-grid"/>
-        <div id="grid" ref="grid2" class="vue-paint-grid-rotated"/>
-        <canvas ref="painter" id="painter" class="vue-paint-canvas" resize></canvas>
+        <canvas ref="painter" id="painter" :class="`vue-paint-canvas vue-paint-canvas-${state.getActiveClassName()} vue-paint-canvas-${state.getActiveName().replace(/ /g, '_')}`"></canvas>
+        <div :class="`vue-paint-mockup vue-paint-mockup-${mockup.length}`" v-if="mockup && mockup.length">
+          <div :class="`vue-paint-mockup-item vue-paint-mockup-item-${m_id}`" v-bind:key="`mock-${m_id}`" v-for="(m, m_id) in mockup" v-html="m"/>
+        </div>
       </div>
-      <div id="menu" class="vue-paint-menu">
+      
+      <div v-if="state.getContext() && state.getContext().showHint()" class="vue-paint-hint">
         <div>
-          <div class="vue-paint-menu-divider">{{strings.tools}}</div>
-          <a :class="`vue-paint-button vue-paint-button-${t}${state.getActiveName()==t?' active':''}`" v-for="t in tools" v-bind:key="`tool-${t}`" @click="state.setActive(state.getActiveName()==t ? false : t)">{{t}}</a>
+          {{strings[state.getContext().showHint()] || state.getContext().showHint()}}
         </div>
-        <div>
-          <div class="vue-paint-menu-divider">{{strings.file}}</div>
+      </div>
+      <template v-else>
+        <div v-if="state.getActiveName() !== '' && strings[`hint:${state.getClassName(state.getActiveName())}`]" class="vue-paint-hint">
+          <div>
+            {{strings[`hint:${state.getClassName(state.getActiveName())}`]}}
+          </div>
+        </div>      
+      </template>
+
+      <vue-draggable-resizable @dragging="onMenuDrag" :x="menuX" :y="menuY" :w="'auto'" :h="'auto'" drag-handle=".drag" id="menu" class="vue-paint-menu" :z="10">
+        <div class="drag"/>
+        <div :class="{'folded': folded[0]}">
+          <div class="vue-paint-menu-divider" @click="folded[0] = !folded[0]; $event.target.parentElement.classList.toggle('folded')">{{strings.tools}}</div>
+          <a :class="`vue-paint-button vue-paint-button-tooltip vue-paint-button-selection${state.getActiveName()===''?' vue-paint-button-active':''}`" @click="state.setActive(false)"><span>{{strings.selection}}</span></a>
+          <template v-for="t in tools">
+            <a
+              :class="`vue-paint-button vue-paint-button-tooltip vue-paint-button-${state.getClassName(t)} vue-paint-button-${t.replace(/ /g, '_')}${state.getActiveName()==t?' vue-paint-button-active':''}`" 
+              v-if="state.isFixed(t) === false"
+              v-bind:key="`tool-${t}`" 
+              @click="state.setActive(state.getActiveName()==t ? false : t)">
+                <span>{{t}}</span>
+            </a>
+          </template>
+        </div>
+        <div :class="{'folded': folded[1]}">
+          <div class="vue-paint-menu-divider" @click="folded[1] = !folded[1]; $event.target.parentElement.classList.toggle('folded')">{{strings.fixedtools}}</div>
+          <template v-for="t in tools">
+            <a
+              :class="`vue-paint-button vue-paint-button-check vue-paint-button-${state.getClassName(t)} vue-paint-button-${t.replace(/ /g, '_')}${state.exists(t)?' vue-paint-button-check-active':''}`" 
+              v-if="state.isFixed(t) === true"
+              v-bind:key="`tool-${t}`" 
+              @click="addFixed(t)">
+                <span>{{t}}</span>
+            </a>
+          </template>
+        </div>        
+        <div :class="{'folded': folded[2]}">
+          <div class="vue-paint-menu-divider" @click="folded[2] = !folded[2]; $event.target.parentElement.classList.toggle('folded')">{{strings.file}}</div>
           <a class="vue-paint-button vue-paint-button-save" @click="saveJSON()">{{strings.save}}</a>
           <a class="vue-paint-button vue-paint-button-export" @click="exportSVG()">{{strings.export}}</a>
         </div>
-        <div>
-          <div class="vue-paint-menu-divider">{{strings.preset}}</div>
+        <div :class="{'folded': folded[3]}">
+          <div class="vue-paint-menu-divider" @click="folded[3] = !folded[3]; $event.target.parentElement.classList.toggle('folded')">{{strings.preset}}</div>
           <label class="vue-paint-label vue-paint-label-stroke">{{strings.stroke}} {{state.getStrokeWidth()}} Px
             <input @change="state.setStrokeWidth($event.target.value)" type="range" min="0" max="10" :value="state.getStrokeWidth()">
           </label>
@@ -78,41 +149,57 @@
               <a v-for="c in colors" v-bind:key="`bgcolor-${c}`" class="color" :style="{'background-color': c}" :class="{'color-active': state.getStrokeColor()==c}" @click="state.setStrokeColor(c)"></a>
             </div>
           </label>
+          <label class="vue-paint-label vue-paint-label-stroke">{{strings.zoom}} {{scaling}}%
+            <input @change="setScaling($event.target.value)" type="range" min="25" step="25" max="200" :value="scaling">
+          </label>
+          <label class="vue-paint-label vue-paint-label-stroke">{{strings.magnetic}}
+            <input 
+              v-model="magnetic"
+              name="magnetic"
+              type="checkbox"
+            >
+          </label>               
         </div>
-      </div>
-      <div id="context" class="vue-paint-context">
-        <transition name="flipin">
-          <div v-if="state.hasSelection()">
-            <div class="vue-paint-menu-divider">{{strings.selection}}</div>
-            <a class="vue-paint-button vue-paint-button-delete" @click="state.deleteSelection()">{{strings.delete}}  <span>🔙</span></a>
-            <a class="vue-paint-button vue-paint-button-copy" @click="state.copySelection()">{{strings.copy}} <span>cmd-c</span></a>
-            <a :class="`vue-paint-button vue-paint-button-${t[0]}${state.getTransformation()==t[0]?' active':''}`" v-for="t in transformations" v-bind:key="`transformation-${t[0]}`" @click="state.setTransformation(t[0])">{{translations[t[0]]}} <span>{{t[1]}}</span></a>
-            <a class="vue-paint-button vue-paint-button-background" @click="state.shiftSelection('back')">{{strings.background}}<span>⇞</span></a>
-            <a class="vue-paint-button vue-paint-button-foreground" @click="state.shiftSelection('front')">{{strings.foreground}}<span>⇟</span></a>
-            <div class="vue-paint-arrowbuttons">
-              <a @click="state.moveSelection('left')"><span>&larr;</span></a>
-              <a @click="state.moveSelection('up')"><span>&uarr;</span></a>
-              <a @click="state.moveSelection('down')"><span>&darr;</span></a>
-              <a @click="state.moveSelection('right')"><span>&rarr;</span></a>
-            </div>
+        <div :class="{'folded': folded[4]}">
+          <div class="vue-paint-menu-divider" @click="folded[4] = !folded[4]; $event.target.parentElement.classList.toggle('folded')">{{strings.grids}}</div>
+          <a 
+            :class="`vue-paint-button ${activeGrid == _g?' vue-paint-button-active':''}`"
+            v-for="(_gc, _g) in grids"
+            v-bind:key="`g_${_g}`"
+            @click="activeGrid = _g"><span>{{_g}}</span>
+          </a>
+        </div>        
+      </vue-draggable-resizable>
+      <vue-draggable-resizable @dragging="onContextDrag" :x="contextX" :y="contextY" v-if="state.hasSelection() || $root.vp_clipboard.length > 0 || state.getContext()" :w="'auto'" :h="'auto'" drag-handle=".drag" id="context" class="vue-paint-context" ref="context" :z="10">
+        <div class="drag"/>
+        <div v-if="state.hasSelection()" :class="{'folded': folded[5]}">
+          <div class="vue-paint-menu-divider" @click="folded[5] = !folded[5]; $event.target.parentElement.classList.toggle('folded')">{{strings.functions}}</div>
+          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-delete" @click="state.deleteSelection()">{{strings.delete}}  <span>🔙</span></a>
+          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-copy" @click="state.copySelection()">{{strings.copy}} <span>cmd-c</span></a>
+          <template  v-for="t in transformations">
+            <a v-if="state.isTransformationAllowed(t[0])" :class="`vue-paint-button vue-paint-button-shorcut vue-paint-button-${t[0]}${state.getTransformation()==t[0]?' vue-paint-button-active':''}`" v-bind:key="`transformation-${t[0]}`" @click="state.setTransformation(t[0])">{{strings[t[0]]}} <span>{{t[1]}}</span></a>
+          </template>
+          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-background" @click="state.shiftSelection('back')">{{strings.background}}<span>⇞</span></a>
+          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-foreground" @click="state.shiftSelection('front')">{{strings.foreground}}<span>⇟</span></a>
+          <div class="vue-paint-arrowbuttons" v-if="state.isTransformationAllowed('Move')">
+            <a @click="state.moveSelection('left')"><span>&larr;</span></a>
+            <a @click="state.moveSelection('up')"><span>&uarr;</span></a>
+            <a @click="state.moveSelection('down')"><span>&darr;</span></a>
+            <a @click="state.moveSelection('right')"><span>&rarr;</span></a>
           </div>
-        </transition>
-
-        <transition name="flipin">
-          <div v-if="state.hasClipboard()">
-            <div class="vue-paint-menu-divider">{{strings.clipboard}}</div>
-            <a class="vue-paint-button vue-paint-button-paste" @click="state.pasteSelection()">{{strings.paste}}<span>cmd-v</span></a>
-            <a class="vue-paint-button vue-paint-button-clear" @click="state.clearSelection()">{{strings.clear}}</a>
-          </div>
-        </transition>
-
-        <transition name="flipin">
-          <div v-if="state.getContext()">
-            <div class="vue-paint-menu-divider">{{strings.parameter}}</div>
-            <form :id="`form-${option.property}`" v-bind:key="`form-${option.description}`" v-for="option in state.getContext().getOptions()">
+        </div>
+        <div v-if="$root.vp_clipboard.length > 0" :class="{'folded': folded[6]}">
+          <div class="vue-paint-menu-divider" @click="folded[6] = !folded[6]; $event.target.parentElement.classList.toggle('folded')">{{strings.clipboard}}</div>
+          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-paste" @click="pasteSelection()">{{strings.paste}}<span>cmd-v</span></a>
+          <a class="vue-paint-button vue-paint-button-shorcut vue-paint-button-clear" @click="state.clearSelection()">{{strings.clear}}</a>
+        </div>
+        <div v-if="state.getContext()" :class="{'folded': folded[7]}">
+          <div class="vue-paint-menu-divider" @click="folded[7] = !folded[7]; $event.target.parentElement.classList.toggle('folded')">{{strings.parameter}}</div>
+          <template v-for="option in state.getContext().getOptions()">
+            <form v-if="option.type != 'hidden'" :id="`form-${option.property}`" v-bind:key="`form-${option.description}`">
               <a
                   v-if="option.type == 'textarea' || option.type == 'clipart'"
-                  :class="`vue-paint-button vue-paint-button-${option.description} ${option.toggled?' active':''}`"
+                  :class="`vue-paint-button vue-paint-button-shorcut vue-paint-button-${option.description} ${option.toggled?' vue-paint-button-active':''}`"
                   v-bind:key="option.parameter"
                   @click="toggleOption(option)"
               >
@@ -122,7 +209,7 @@
               <label
                 :class="`vue-paint-label vue-paint-label-${option.description}`" 
                 v-bind:key="`option-${option.description}`"
-                v-if="option.type == 'int'">{{strings[option.description] || option.description}}: {{option.value}}
+                v-if="option.type == 'int' && option.min !== option.max">{{strings[option.description] || option.description}}: {{option.value}}
                 <input 
                   @change="state.getContext().setOption(option.property, $event.target.value)" 
                   type="range" 
@@ -133,6 +220,17 @@
                   name="input"
                 >
               </label>
+              <label
+                :class="`vue-paint-label vue-paint-label-${option.description}`" 
+                v-bind:key="`option-${option.description}`"
+                v-if="option.type == 'boolean'">{{strings[option.description] || option.description}}
+                <input 
+                  @change="state.getContext().setOption(option.property, $event.target.checked)" 
+                  type="checkbox" 
+                  :checked="option.value"
+                  name="input"
+                >
+              </label>              
               <label
                 :class="`vue-paint-label vue-paint-label-${option.description}`"
                 v-bind:key="`option-${option.property}`"
@@ -145,11 +243,11 @@
                   name="input"
                   type="text"
                 >
-              </label>                
+              </label>
             </form>
-          </div>
-        </transition>
-      </div>
+          </template>
+        </div>
+      </vue-draggable-resizable>
     </div>
 </template>
 
@@ -157,9 +255,16 @@
 
 import paper  from 'paper'
 import State  from './state.js'
+import VueDraggableResizable from 'vue-draggable-resizable'
+
+const DOUBLECLICK_TIME_MS = 450;
+const DOUBLECLICK_DELTA = 3;
 
 export default {
   name: 'VuePainter',
+  components: {
+    VueDraggableResizable
+  },
   props: {
     data: String,
     clipart: Array,
@@ -167,14 +272,77 @@ export default {
     configuration: Object,
     csscolors: Array,
     translations: Object,
-    gridX: Number,
-    gridY: Number,
-    angleStep: Number
+    grids: Object,
+    defaultGrid: String,
+    angleStep: Number,
+    gridColor: {
+      type: String,
+      default: '#CCF'
+    },
+    dotColor: {
+      type: String,
+      default: '#000'
+    },
+    mockup: {
+      type: [Boolean, Array],
+      default: false
+    },    
+    horizontalRulers: {
+      type: [Boolean, Array],
+      default: false
+    },
+    verticalRulers: {
+      type: [Boolean, Array],
+      default: false
+    },
+    rulerColor: {
+      type: String,
+      default: '#0FF'
+    },
+    gridLineColor: {
+      type: String,
+      default: '#CCC'
+    }
+  },
+  watch: {
+    activeGrid() {
+      this.state.setGrid(this.gridX, this.gridY)
+      this.drawGrid()
+    },
+    magnetic(v) {
+      try {
+        this.state.setMagnetic(v)
+      } catch (err) {
+        console.warn(err)
+      }
+    }
+  },
+  computed: {
+    gridX () {
+      try {
+        return this.grids[this.activeGrid].x
+      } catch (err) {
+        return 25
+      }
+    },
+    gridY () {
+      try {
+        return this.grids[this.activeGrid].y
+      } catch (err) {
+        return 25
+      }
+    },    
+    cssVars () {
+      return {
+        '--vue-paint-scaling-factor': `${this.scaling}`
+      }
+    }
   },
   data () {
 
     let style = document.createElement('style');
     document.head.appendChild(style);
+    this.$root.folded = this.$root.folded || [false,true,true,true,true,false,true,true]
 
     return {
       // Data
@@ -199,6 +367,7 @@ export default {
         'file': 'File',
         'preset': 'Preset',
         'selection': 'Selection',
+        'functions': 'Functions',
         'parameter': 'Parameter',
         'clipboard': 'Clipboard',
         'save': 'Save',
@@ -214,8 +383,10 @@ export default {
         'Move': 'Move',
         'Rotate': 'Rotate',
         'Resize': 'Resize',
+        'zoom': 'Zoom',
         'background': 'Send to Back',
-        'foreground': 'Bring to Front'
+        'foreground': 'Bring to Front',
+        'magnetic': 'Snap to grid'
       },
 
       // Tools
@@ -232,8 +403,26 @@ export default {
       keyHandlingActive: true, // set to false if paper should not listen to keystrokes
 
       // Style Sheet
-      sheet: style.sheet
+      sheet: style.sheet,
 
+      // Drawing Layer
+      layer: null,
+
+      // Scaling
+      scaling: 100,
+      viewSize: {},
+
+      // ContextPos
+      contextX: this.$root._vp_x ? this.$root._vp_x : (window.innerWidth - 300),
+      contextY: this.$root._vp_y ? this.$root._vp_y : 150,
+      menuX: this.$root._vp_mx ? this.$root._vp_mx : 10,
+      menuY: this.$root._vp_my ? this.$root._vp_my : 150,      
+      folded: this.$root.folded,
+
+      // Grid
+      magnetic: true,
+      activeGrid: this.defaultGrid,
+      gridLayer: false
     }
   },
   created() {
@@ -241,27 +430,19 @@ export default {
       try {
         this.json = JSON.parse(this.data);
       } catch(err) {
-        console.warn(err);
+        this.$emit('error', 'parse_json');
         this.json = false;
       }
     }
     this.clips = this.prepareClipart(this.clipart);
     this.state = new State({
-      'gridsize'  : {x: this.gridX || 25, y: this.gridY || 25}, 
+      'gridsize'  : {x: this.gridX, y: this.gridY}, 
       'anglestep' : this.angleStep || 5, 
       'fonts'     : this.fonts,
       'tools'     : this.configuration
-    });
+    }, this.$root);
   },
   mounted() {
-    this.$refs.grid.style.setProperty('--backgroundX', `${this.state.gridsize.x}px 100%`);
-    this.$refs.grid.style.setProperty('--backgroundY', `100% ${this.state.gridsize.y}px`);
-    let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x);
-    this.$refs.grid2.style.setProperty('--backgroundY', `100% ${this.state.gridsize.x * Math.sin(_rotation)}px`);
-    this.$refs.grid2.style.setProperty('--background', `${(this.state.gridsize.x * Math.sin(_rotation))}px`);
-    this.$refs.grid2.style.setProperty('--rotation', `${-1 * _rotation / Math.PI * 180}deg`);
-    
-
         // Inject Fonts into CSS HEAD
     try {
       if (this.fonts && this.fonts.length && this.fonts.length > 0) {
@@ -318,31 +499,172 @@ export default {
     this.clips = null;
   },
   methods: {
+    addFixed(t) {
+      this.state.setActive(t);
+      if (this.state.exists(t) === false) {
+        let _p = new this.paper.Point(0,0)
+        let _painting = new this.state.active(this.paper, _p, this.state, null, this.state.getActiveDefaults());
+        _painting.onPaint(_p);        
+        _painting.onFinishPaint(_p);
+      }
+      this.state.setActive(false)
+    },
+    onContextDrag(x,y) {
+      this.contextX = this.$root._vp_x = x
+      this.contextY = this.$root._vp_y = y
+    },
+    onMenuDrag(x,y) {
+      this.menuX = this.$root._vp_mx = x
+      this.menuY = this.$root._vp_my = y
+    },    
+    longestWord(string) {
+      var str = string.split("\n");
+      var longest = 0;
+      for (var i = 0; i < str.length - 1; i++) {
+          if (longest < str[i].length) {
+              longest = str[i].length;
+          }
+      }
+      return longest;
+    },
+    drawGrid() {
+      if (this.gridLayer === false) {
+        this.gridLayer = new this.paper.Layer();
+      } else {
+        this.gridLayer.removeChildren()
+      }
+      this.gridLayer.activate()
+      let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x) * -(180/Math.PI);
+      this.paper.Path.Line({
+          from: [this.paper.project.view.bounds.width / 2, 0],
+          to: [this.paper.project.view.bounds.width / 2, this.paper.project.view.bounds.height],
+          strokeColor: this.gridLineColor,
+      });
+      this.paper.Path.Line({
+          from: [0, this.paper.project.view.bounds.height / 2],
+          to: [this.paper.project.view.bounds.width, this.paper.project.view.bounds.height / 2],
+          strokeColor: this.gridLineColor,
+      });
+      if (this.horizontalRulers && this.horizontalRulers.length) {
+        this.horizontalRulers.forEach(h => {
+          this.paper.Path.Line({
+            from: [0, h],
+            to: [this.paper.project.view.bounds.width, h],
+            strokeColor: this.rulerColor,
+          });
+        })
+      }
+
+      if (this.verticalRulers && this.verticalRulers.length) {
+        this.verticalRulers.forEach(v => {
+          this.paper.Path.Line({
+              from: [v, 0],
+              to: [v, this.paper.project.view.bounds.height],
+              strokeColor: this.rulerColor,
+          });
+        })
+      }
+
+      if (this.state.gridsize.y != this.state.gridsize.x) {
+        for (let _y = 0; _y < this.paper.project.view.bounds.height * 2; _y+=this.state.gridsize.y) {
+          let _l = this.paper.Path.Line({
+              from: [0, _y],
+              to: [this.paper.project.view.bounds.width * 2, _y],
+              strokeColor: this.gridColor,
+              dashArray: [1, 2]
+          });
+          _l.rotate(_rotation, [0,_y]);
+          _l = this.paper.Path.Line({
+              from: [this.paper.project.view.bounds.width * -2, _y],
+              to: [this.paper.project.view.bounds.width, _y],
+              strokeColor: this.gridColor,
+              dashArray: [1, 2]
+          });
+          _l.rotate(_rotation * -1, [Math.floor(this.paper.project.view.bounds.width / this.state.gridsize.x) * this.state.gridsize.x,_y]);        
+        }      
+      } else {
+        for (let _y = 0; _y < this.paper.project.view.bounds.height; _y+=this.state.gridsize.y) {
+          this.paper.Path.Line({
+              from: [0, _y],
+              to: [this.paper.project.view.bounds.width, _y],
+              strokeColor: this.gridColor,
+              dashArray: [1, 2]
+          });
+        }
+        for (let _x = 0; _x < this.paper.project.view.bounds.width; _x+=this.state.gridsize.x) {
+          this.paper.Path.Line({
+              from: [_x, 0],
+              to: [_x, this.paper.project.view.bounds.height],
+              strokeColor: this.gridColor,
+              dashArray: [1, 2]
+          });
+        }        
+      }
+      for (let _y = 0; _y < this.paper.project.view.bounds.height; _y+=this.state.gridsize.y) {
+        for (let _x = 0; _x < this.paper.project.view.bounds.width; _x+=this.state.gridsize.x) {
+          new this.paper.Path.Circle({
+              center: [_x, _y],
+              radius: 1,
+              fillColor: this.dotColor,
+          });
+        }
+      }
+      if (this.layer !== null) {
+        this.layer.activate()
+      }
+    },
+    setScaling(value) {
+      this.scaling = value * 1.0;
+      if (this.$refs.painter) {
+        this.paper.view.scale(1 / this.paper.view.zoom, [0,0])
+        this.paper.view.scale(this.scaling / 100, [0,0])
+        this.paper.view.viewSize = this.viewSize.multiply(this.scaling / 100)
+      }
+    },
     initialize () {
       console.log('initializing vue-paint…')
       this.tools = this.state.getTools();
       this.paper = paper.setup(this.$refs.painter);
-      this.paper.settings.hitTolerance = 10;
+      this.paper.settings.hitTolerance = 20;
       this.tool = new paper.Tool();
       this.state.paper = this.paper;
       let _painting;
+      this.viewSize = this.paper.view.viewSize.clone()
+      this.drawGrid();
+
+      this.layer = new this.paper.Layer();
+
+      // Double Click Stuff
+      let _lastClick = 0;
+      let _lastPoint = {
+        x: -1000,
+        y: -1000
+      }
+
+      let _disableMouseUp = false
 
       this.tool.onMouseDown = (event) => {
         this.enableKeys();
         this.state.onMouseDown()
-        if (event.item == null) {
-          this.state.unselectAll(); 
+        if (event.item == null || event.item.layer.getIndex() === 0) {
+          let _selectionLength = this.state.unselectAll();
+          // Disable MouseUp Actions for one time if we really deselected something
+          if (_selectionLength > 0) {
+            _disableMouseUp = true
+          }
           return false;
         }
       }
       this.tool.onMouseDrag = (event) => {
         if (!this.state.hasSelection()) {
-          if (_painting) {
-            _painting.onPaint(event.point);
-          }
-          else {
-            if (this.state.isActive()) {
-              _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
+          if (this.state.addOnDoubleClick(this.state.getActiveName()) === false) {
+            if (_painting) {
+              _painting.onPaint(event.point);
+            }
+            else {
+              if (this.state.isActive()) {
+                _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
+              }
             }
           }
         }
@@ -350,30 +672,96 @@ export default {
           this.state.onDrag(event.point)
         }
       }
-      
+
+      this.tool.onMouseMove = (event) => {
+        if (
+          !this.state.hasSelection() &&
+          this.state.addOnDoubleClick(this.state.getActiveName()) === true && 
+          _painting
+        ) {
+            _painting.onMove(event.point);
+        }
+      }
+
+
       this.tool.onMouseUp = (event) => {
-        this.state.addOnMouseDown(this.state.getActiveName())
+        if (_disableMouseUp === true) {
+          _disableMouseUp = false
+          return
+        }
+
+        // Action for AddOnClick Itmes
+
         if (!_painting && !this.state.hasSelection() && this.state.isActive() && this.state.addOnMouseDown(this.state.getActiveName())) {
           _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
           _painting.onPaint(event.point);        
           _painting.onFinishPaint(event.point);
-          _painting = null;        
-          this.state.setActive(false);
+          _painting = null;
+          this.state.setActive(false)
+          console.log('--------')
         }
         else {
+
+          // Already drawing: Finishing Actions or Intermediate Actions
+
           if (_painting) {
-            _painting.onFinishPaint(event.point);
-            _painting = null;  
-            this.state.setActive(false);      
+
+            // Action for addOnDoubleClick (intermediate action)
+
+            if (this.state.addOnDoubleClick(this.state.getActiveName())) {
+                _painting.onClick(event.point);
+            } 
+            
+            // Action for single-dragging items (i.e. circles)
+            
+            else {
+              _painting.onFinishPaint(event.point);
+              _painting = null;
+            }
           }
+
+          // Not drawing: Starting Actions
+
+          else {
+
+            // Double Click Items: Start here
+            // All others started on mousedown (due to dragging functionality)
+
+            if (this.state.addOnDoubleClick(this.state.getActiveName()) && !this.state.hasSelection()) {
+              _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
+              _painting.onPaint(event.point);        
+            }
+          }
+
+          // General finish drag event
+
           if (this.state.dragged) {
             this.state.onFinishDrag(event.point)
           }
         }
+
+        // Double Click Trigger (timeout and delta)
+
+        if (
+          event.timeStamp - _lastClick <= DOUBLECLICK_TIME_MS &&
+          Math.sqrt((_lastPoint.x - event.point.x) ** 2 + (_lastPoint.y - event.point.y) ** 2) <= DOUBLECLICK_DELTA 
+        ) {
+          this.tool.onDoubleClick(event);
+        }
+        _lastClick = event.timeStamp
+        _lastPoint = event.point
         return false;
       } 
+
+      this.tool.onDoubleClick = (event) => {
+        if (_painting && this.state.addOnDoubleClick(this.state.getActiveName())) {
+          _painting.onFinishPaint(event.point);
+          _painting = null;
+        }
+      }
       
       this.tool.onKeyDown = (event) => {
+        console.log(event)
         if (this.keyHandlingActive === true) {
           if (event.key == 'delete' || event.key == 'backspace') {
               this.state.deleteSelection()
@@ -397,7 +785,7 @@ export default {
             return false;
           }      
           if (event.key == 'v' && event.modifiers.meta) {
-            this.state.pasteSelection()
+            this.pasteSelection()
             return false;
           }
           this.transformations.forEach(t => {
@@ -422,32 +810,36 @@ export default {
       // Import json data to stage if passed as a prop
 
       this.$nextTick(()=>{
-        if (this.json) {
-          this.state.importStack(this.json)
+        try {
+          if (this.json) {
+            this.state.importStack(this.json)
+          }
+        } catch (err) {
+          this.$emit('error', 'loading_json');
         }
-        /*if (this.json) {
-          this.json.forEach(o => {
-            let _primitive = this.paper.project.activeLayer.importJSON(Base64.decode(o.data))
-            this.state.setActive(o.prototype)
-            new this.state.active(this.paper, false, this.state, _primitive, this.state.getActiveDefaults());
-          })
-          this.state.setActive('')
-        }*/
       });
 
+    },
+    pasteSelection() {
+      try {
+        this.state.pasteSelection()
+      } catch (err) {
+        this.$emit('error', 'paste_selection');
+      }
     },
     saveJSON() {
       this.$emit('save', this.state.exportStack());
     },
     exportSVG() {
-      let svg = this.paper.project.exportSVG({
+      let svg = this.paper.project.activeLayer.exportSVG({
         asString: true,
+        embedImages: false,
         onExport: (item, node) => {
             if (item._class === 'PointText') {
                 node.textContent = null;
                 for (let i = 0; i < item._lines.length; i++) {
                     let tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-                    tspan.textContent = item._lines[i] ? item._lines[i] : ' ';
+                    tspan.textContent = item._lines[i] ? item._lines[i] : "\u00A0";
                     let dy = item.leading;
                     if (i === 0) {
                         dy = 0;
@@ -469,23 +861,21 @@ export default {
         .map(rule => stringifyRule(rule))
         .join('\n')
 
-      svg = svg.replace(/<svg(.*?)>/, (e) => {
-        return (`${e}
-        <defs>
-          <style>
-            ${_str}
-          </style>
-        </defs>`)
-      })
+      svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${this.paper.project.view.bounds.width}" height="${this.paper.project.view.bounds.height}" viewBox="0,0,${this.paper.project.view.bounds.width},${this.paper.project.view.bounds.height}">
+      <defs>
+        <style>
+          ${_str}
+        </style>
+      </defs>
+      ${svg}
+      </svg>`
 
       this.$emit('export', svg);
     },
     disableKeys() {
-      console.log('disabling keys')
       this.keyHandlingActive = false
     },
     enableKeys() {
-      console.log('enabling keys')
       this.keyHandlingActive = true
     },
     // needed to ensure reactivity ($set)
@@ -497,6 +887,7 @@ export default {
       }
       else {
         this.disableKeys();
+        this.state.disableTransformation()
         this.$nextTick(() => {
           try {
             this.$refs[option.property][0].focus()
@@ -532,6 +923,22 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="scss">
   .vue-paint {
+    .folded {
+      label, a, form, .vue-paint-arrowbuttons {
+        display: none;
+      }
+      .vue-paint-menu-divider {
+        &:after {
+          content: "+"
+        }
+      }
+    }
+    height: 100vh;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    overflow: hidden;
     &-wrapper {
       position: absolute;
       left: 20%;
@@ -540,58 +947,34 @@ export default {
       height: 100%;
       overflow: auto;
     }
-    &-grid, &-canvas, &-grid-rotated {
+    &-mockup {
+      position: absolute;
+      bottom: 0px;
+      width: 100%;
+      border: 1px solid green;
+      height: 2em;
+    }
+    &-canvas {
       position: absolute;
       left: 0px;
       top: 0px;
       width: 750px;
       height: 1500px;
-    }
-    &-grid {
-      background: #FFF;
-      &:after,
-      &:before {
-          content: "";
-          position: absolute;
-          height: 100%;
-          width: 100%;
-      }    
-      &:before {
-          background-size: var(--backgroundX);
-          background-image: linear-gradient(to right, #d2d2eeb6 1px, transparent 1px);
-      }
-      &:after {
-          background-size: var(--backgroundY);
-          background-image: linear-gradient(to bottom, #d2d2eeb6 1px, transparent 1px);
-      }
-    }
-    &-grid-rotated {
       background: transparent;
-      overflow: hidden;
-      &:after {
-        content: "";
-        position: absolute;
-        height: 400%;
-        width: 400%;
-        transform: rotate(var(--rotation)) translateX(-50%);
-        transform-origin: 0% 0%;
-        background-size: var(--backgroundY);
-        background-image: linear-gradient(to bottom, #ffd2eeb6 1px, transparent 1px);
+      z-index: 3;
+      cursor: crosshair;
+      &-select {
+        cursor: pointer;
       }
-    }
-    &-canvas {
-      background: transparent;
     }
     &-menu {
       position: absolute;
       left: 0px;
       top: 0px;
-      width: 20%;
-      height: 100%;
+      width: 20% !important;
+      height: auto;
+      max-height: 100%;
       background: #CCC;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
     }
     &-clipart {
       &-wrapper {
@@ -664,14 +1047,15 @@ export default {
       input,
       textarea {
         resize: none;
-        border: none;
+        border: 1px solid transparent;
         appearance: none;
-        font-family: Helvetica;
-        background: transparent;
+        background: rgba(0,0,0,0.1);
         padding: 0;
         overflow: hidden;
         color: transparent;
         caret-color: black;
+        margin: -1px;
+        box-sizing: border-box;
         &:focus {
           outline: none;
         }
@@ -679,16 +1063,35 @@ export default {
     }
     &-context {
       position: absolute;
-      right: 0px;
+      left: 0px;
       top: 0px;
-      width: 10%;
-      height: 100%;
+      width: 10% !important;
+      height: auto;
+      max-height: 100%;
       background: #CCC;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;    
     }
-
+    &-hint {
+      bottom: 10px;
+      width: 50% !important;
+      left: 25%;
+      background: #CCC;
+    }
+    &-menu, &-context {
+      overflow-y: auto;
+      .drag {
+        position: absolute;
+        left: 0.5em;
+        top: 0px;
+        width: 2em;
+        height: 2em;
+        z-index: 10;
+        cursor: grab;
+        &:after {
+          content: "⇱";
+          font-size: 150%;
+        }
+      }
+    }
     &-menu-divider {
       font: inherit;
       padding: 0.5rem;
@@ -696,6 +1099,16 @@ export default {
       background: #EEE;
       margin: 0;
       text-align: center;
+      cursor: pointer;
+      position: relative;
+      &:after {
+        content: "-";
+        display: block;
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        line-height: 0;
+      }
     }
 
     &-label {
@@ -725,17 +1138,29 @@ export default {
     &-button {
       padding: 0.5em;
       display: block;
-      span {
-        font-size: 60%;
-        padding: 2px 3px 3px 3px;
-        float: right;
-        width: 2rem;
-        text-align: center;
-        box-shadow: 2px 2px 2px rgba(0,0,0,0.2);
-        background: #FFF;
+      &-shorcut {
+        span {
+          font-size: 60%;
+          padding: 2px 3px 3px 3px;
+          float: right;
+          width: 2rem;
+          text-align: center;
+          box-shadow: 2px 2px 2px rgba(0,0,0,0.2);
+          background: #FFF;
+        }
       }
-      &.active {
+      &-active {
         background: #999;
+      }
+      &-check {
+        &:before {
+          content: "☐ ";
+        }
+        &-active {
+          &:before {
+            content: "☒ ";
+          }
+        }        
       }
     }
     

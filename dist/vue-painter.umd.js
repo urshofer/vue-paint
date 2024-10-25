@@ -1,11 +1,12 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('paper'), require('uuid'), require('wordwrapjs'), require('js-base64')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'paper', 'uuid', 'wordwrapjs', 'js-base64'], factory) :
-  (global = global || self, factory(global.VuePainter = {}, global.paper, global.uuid, global.wordwrap, global.jsBase64));
-}(this, (function (exports, paper, uuid, wordwrap, jsBase64) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('paper'), require('uuid'), require('wordwrapjs'), require('js-base64'), require('vue-draggable-resizable')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'paper', 'uuid', 'wordwrapjs', 'js-base64', 'vue-draggable-resizable'], factory) :
+  (global = global || self, factory(global.VuePainter = {}, global.paper, global.uuid, global.wordwrap, global.jsBase64, global.VueDraggableResizable));
+}(this, (function (exports, paper, uuid, wordwrap, jsBase64, VueDraggableResizable) { 'use strict';
 
   paper = paper && Object.prototype.hasOwnProperty.call(paper, 'default') ? paper['default'] : paper;
   wordwrap = wordwrap && Object.prototype.hasOwnProperty.call(wordwrap, 'default') ? wordwrap['default'] : wordwrap;
+  VueDraggableResizable = VueDraggableResizable && Object.prototype.hasOwnProperty.call(VueDraggableResizable, 'default') ? VueDraggableResizable['default'] : VueDraggableResizable;
 
   /**
    *  Tool Class
@@ -27,12 +28,14 @@
       }
 
 
+
       this.startPoint  = startPoint || false;
       this.mousedown = false;
       this.alreadySelected = false;
       this.painted = false;
       this.dragging = false;
       this.draggingLastPoint = false;
+
       this.registerOptions(options);
       if (primitive) {
         this.init(primitive);
@@ -40,6 +43,26 @@
       else {
         this.draw(startPoint);
       }
+    }
+
+    showHint() {
+      try {
+        if (this.getOptionByType('textarea').length && this.getOptionByType('textarea')[0].toggled) return "edittext"
+        if (this.getOptionByType('clipart').length && this.getOptionByType('clipart')[0].toggled) return "editimage"
+        if (this.fixedposition !== false) return "fixed"      
+      } catch (err) {
+        console.warn(err);
+        return false
+      }
+      return false
+    }
+
+    isTransformationAllowed(transformation) {
+      // Currently, transformations for fixed elements are not allowed.
+      if (transformation) {
+        return this.fixedposition === false;
+      }
+      return true
     }
 
     registerOptions(options) {
@@ -79,13 +102,40 @@
       this.primitive.selectedColor = color;
     }
 
+    applyDash(name, value) {
+      if (name === 'dash' && this.primitive) {
+        this.options.forEach(o => {
+          if (o.property == name) {
+            o.value = value;            
+          }
+        });
+        if (value === true)
+          this.primitive.dashArray = [this.getOption('dashlength'), this.getOption('gaplength')];
+        else 
+          this.primitive.dashArray = [];
+      }    
+      if (this.getOption('dash') === true) {
+        this.primitive.dashArray = [this.getOption('dashlength'), this.getOption('gaplength')];
+      }
+      console.log(this.primitive.dashArray);
+    }
 
     setOption(name, value) {
       let redraw = false;
+      this.applyDash(name, value);
       this.options.forEach(o => {
         if (o.property == name) {
           try {
-            this.primitive[name] = value;
+            // Function Call
+            if (o.function === true) {
+              if (o.type === 'boolean') {
+                this.primitive[name](o.options[o.value === true ? 0 : 1]);
+              }
+            } 
+            // Parameter Call
+            else {
+              this.primitive[name] = value;
+            }
             o.value = value;            
           }
           catch (err) {
@@ -100,9 +150,15 @@
     }
 
     round(point) {
-      point.x = Math.round(point.x / this.state.gridsize.x) * this.state.gridsize.x;
-      point.y = Math.round(point.y / this.state.gridsize.y) * this.state.gridsize.y;
+      if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
+        point.x = Math.round(point.x / this.state.gridsize.x) * this.state.gridsize.x;
+        point.y = Math.round(point.y / this.state.gridsize.y) * this.state.gridsize.y;
+      }
       return point;
+    }
+
+    _delete() {
+      this.delete();
     }
 
     delete() {
@@ -150,8 +206,14 @@
       }
     }
 
+    untoggleOptions() {
+      this.options.forEach(o => o.toggled = false);
+    }
+
     unselect() {
       this.alreadySelected = this.primitive.selected = false;
+      this.selectBorderColor(null);
+      this.untoggleOptions();
       this.state.selected = this.state.selected.filter((e) => { 
         return e != this;
       });
@@ -160,6 +222,9 @@
 
     select() {
       this.primitive.selected = true;
+      if (this.fixedposition !== false) {
+        this.selectBorderColor('grey');
+      }
       this.state.context = this;
       if (this.state.selected.find((e)=>{}) == undefined) {
         this.state.selected.push(this); 
@@ -167,8 +232,9 @@
       return true;
     }
 
-    toggleSelect() {
-
+    toggleSelect(force) {
+      force = force || false;
+      if (this.state.getActiveName() !== '' && force === false) return;
       let _selected = this.primitive.selected;
 
       /* Unselect objects if shift is not pressed */
@@ -187,22 +253,24 @@
     }
 
     attachEvents() {
-      /*this.primitive.onClick = (event) => {
-        return this.onClick(event)
-      }*/
-      this.primitive.onMouseDown = (event) => {
-        this.onMouseDown(event);
-      }; 
-      this.primitive.onMouseUp = (event) => {
-        return this.onMouseUp(event)
-      };        
-      //this.primitive.onMouseDrag = (event) => {
-      //  return this.onMouseDrag(event)
-      //}     
+      try {
+        this.primitive.onMouseDown = (event) => {
+          this.onMouseDown(event);
+        }; 
+        this.primitive.onMouseUp = (event) => {
+          return this.onMouseUp(event)
+        }; 
+        this.primitive.onDoubleClick = (event) => {
+          return this.onDoubleClick(event)
+        };              
+      } catch (err) {
+        console.warn(err);
+      }
     }
 
     onMouseDown (event) {
-      console.log('init', event);
+      if (this.state.painting) return;
+      // console.log('init', this, event, this.primitive.selected)
       this.mousedown = event;
       this.originalPos = this.primitive.position;
       this.setDragging(false);
@@ -217,10 +285,11 @@
       }
     }
 
-    onMouseUp (event) {
-      console.log('mouseup', this, event);
+    onMouseUp () {
+      if (this.state.painting) return;
+      // console.log('mouseup', this, event, this.painted, this.dragging, this.alreadySelected)
       if (this.painted === true && !this.dragging && this.alreadySelected) {
-        console.log('click', event);
+       // console.log('click', event)
        try {
           this.toggleSelect();
         }
@@ -229,23 +298,25 @@
         }
       }
       this.mousedown = false;
-      return false;
     }
 
-    //onMouseDrag (event) {
-    //  console.log('mouse drag', event)
-    //  return false;
-    //}
+    onDoubleClick (event) {
+      console.log('doubleclick', event);
+    }
 
     /* Called on init */
     onPaint (point) {
+      this.state.painting = true;
       this.draw (point);
     }
 
     onFinishPaint () {
-      this.originalPos = this.primitive.position;
       this.painted = true;
-      this.state.addStack(this);
+      this.state.painting = false;
+      if (this.primitive != null) {
+        this.originalPos = this.primitive.position;
+        this.state.addStack(this);
+      }
     }
 
     /* Called if moved */
@@ -264,12 +335,16 @@
       try {
         switch (this.state.getTransformation()) {
           case 'Rotate':
-            console.log('rot');
-            this.primitive.rotation += delta.x;
+            if (typeof this.rotate == "function") {
+              this.rotate(delta, point);
+            }
+            else {
+              this.primitive.rotation += delta.x;
+            }
             break;
           case 'Resize':
             if (typeof this.resize == "function") {
-              this.resize(delta);
+              this.resize(delta, point);
             }
             else {
               let _l = this.primitive.bounds.left;
@@ -277,7 +352,7 @@
               this.primitive.size = this.primitive.size.add(
                 new this.paper.Size(
                   delta.x, 
-                  this.paper.Key.isDown('shift') ? delta.x : delta.y
+                  this.paper.Key.isDown('shift') ? (delta.x / this.primitive.bounds.width * this.primitive.bounds.height) : delta.y
                 )
               );
               this.primitive.bounds.left = _l;
@@ -285,20 +360,26 @@
             }
             break;    
           case 'Move':
-            if (this.paper.Key.isDown('shift')) {
-              if (Math.abs(delta.x) > delta.y) {
-                this.primitive.position.x += delta.x;
-              } else {
-                this.primitive.position.y += delta.y;
-              }
+            if (typeof this.translate == "function") {
+              this.translate(delta, point);
             }
             else {
-              this.primitive.position.x += delta.x;
-              this.primitive.position.y += delta.y;
+              if (this.paper.Key.isDown('shift')) {
+                if (Math.abs(delta.x) > delta.y) {
+                  this.primitive.position.x += delta.x;
+                } else {
+                  this.primitive.position.y += delta.y;
+                }
+              }
+              else {
+                this.primitive.position.x += delta.x;
+                this.primitive.position.y += delta.y;
+              }
             }
             break;           
         }
       } catch (err) {
+        console.warn(`generic transformation error'${err}'`);
         try {
           this.transformation(this.state.getTransformation(), point, delta);
         } catch (err) {
@@ -314,7 +395,7 @@
       if (this.fixedposition !== false) {
         return;
       }    
-      console.log('drag finish', point);
+      // console.log('drag finish', point)
       this.setDragging(false);
 
       let delta = {
@@ -324,25 +405,36 @@
       try {
         switch (this.state.getTransformation()) {
           case 'Rotate':
-            this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
-            this.state.setTransformation('Move');
+            if (typeof this.endRotate == "function") {
+              this.endRotate(delta, point);
+            }
+            else {
+              if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
+                this.primitive.rotation = Math.round(this.primitive.rotation / this.state.anglestep) * this.state.anglestep;
+              }
+            }
             break;
           case 'Resize':
             if (typeof this.endResize == "function") {
-              this.endResize();
+              this.endResize(delta, point);
             }
-            else {            
-              this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize.x) * this.state.gridsize.x;
-              this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize.y) * this.state.gridsize.y;
-              this.primitive.bounds.left = Math.round(this.primitive.bounds.left / this.state.gridsize.x) * this.state.gridsize.x;
-              this.primitive.bounds.top = Math.round(this.primitive.bounds.top / this.state.gridsize.y) * this.state.gridsize.y;
-
+            else {
+              if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
+                this.primitive.size.width = Math.round(this.primitive.size.width / this.state.gridsize.x) * this.state.gridsize.x;
+                this.primitive.size.height = Math.round(this.primitive.size.height / this.state.gridsize.y) * this.state.gridsize.y;
+                this.primitive.bounds.left = Math.round(this.primitive.bounds.left / this.state.gridsize.x) * this.state.gridsize.x;
+                this.primitive.bounds.top = Math.round(this.primitive.bounds.top / this.state.gridsize.y) * this.state.gridsize.y;
+              }
             }
-            this.state.setTransformation('Move');
             break;    
           case 'Move':
-            this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
-            this.originalPos = this.primitive.position;
+            if (typeof this.endTranslate == "function") {
+              this.endTranslate(delta, point);
+            }
+            else {
+              this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
+              this.originalPos = this.primitive.position;
+            }
             break;           
         }
       } catch (err) {
@@ -360,7 +452,11 @@
     draw (point) {
       point = point || this.startPoint;
       if (this.primitive) {
-        this.primitive.remove();
+        try {
+          this.primitive.remove();
+        } catch(err) {
+          console.warn(`remove is not callable: ${err}`);
+        }
       }
       if (this.fixedposition !== false && this.fixedposition.width && this.fixedposition.height) {
         this.primitive = this.createPrimitive({x: this.startPoint.x + this.fixedposition.width,y: this.startPoint.y + this.fixedposition.height});
@@ -421,7 +517,31 @@
           min     : defaults.radiusMin,
           max     : defaults.radiusMax,
           step    : defaults.radiusStep
-        }
+        },
+        {
+          property: "dashlength",
+          description: "Dash",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "gaplength",
+          description: "Gap",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "dash",
+          description: "Dashed",
+          type    : "boolean",
+          value   : false
+        }      
       ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
     }
@@ -432,7 +552,10 @@
       if (this.paper.Key.isDown('shift')) {
         _toPoint.y = this.startPoint.y + _toPoint.x - this.startPoint.x;
       }
-      return new this.paper.Shape.Rectangle(this.startPoint, _toPoint);
+      if (Math.abs(this.startPoint.x - _toPoint.x) >= this.state.gridsize.x / 2 && Math.abs(this.startPoint.y - _toPoint.y) >= this.state.gridsize.y / 2) {
+        return new this.paper.Shape.Rectangle(this.startPoint, _toPoint);
+      }
+      return null
     }
   }
 
@@ -442,7 +565,32 @@
       defaults.fixed = defaults.fixed || false;
       defaults.toolName = defaults.toolName || 'Circle';
 
-      let options = [];
+      let options = [
+        {
+          property: "dashlength",
+          description: "Dash",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "gaplength",
+          description: "Gap",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "dash",
+          description: "Dashed",
+          type    : "boolean",
+          value   : false
+        }             
+      ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
     }
 
@@ -451,8 +599,12 @@
       if (this.paper.Key.isDown('shift')) {
         _toPoint.y = this.startPoint.y + _toPoint.x - this.startPoint.x;
       }
-      var rectangle = new this.paper.Rectangle(this.startPoint, _toPoint);
-      return new this.paper.Shape.Ellipse(rectangle);
+      
+      if (Math.abs(this.startPoint.x - _toPoint.x) >= this.state.gridsize.x / 2 && Math.abs(this.startPoint.y - _toPoint.y) >= this.state.gridsize.y / 2) {
+        var rectangle = new this.paper.Rectangle(this.startPoint, _toPoint);
+        return new this.paper.Shape.Ellipse(rectangle);
+      }
+      return null
     }
   }
 
@@ -462,14 +614,192 @@
       defaults.fixed = defaults.fixed || false;
       defaults.toolName = defaults.toolName || 'Line';
       
-      let options = [];
+      let options = [
+        {
+          property: "dashlength",
+          description: "Dash",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "gaplength",
+          description: "Gap",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "dash",
+          description: "Dashed",
+          type    : "boolean",
+          value   : false
+        }       
+      ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
     }
 
-
     createPrimitive(point) {
       let _toPoint  = this.round(point);
-      return new this.paper.Path.Line(this.startPoint, _toPoint);
+      if (Math.abs(this.startPoint.x - _toPoint.x) >= this.state.gridsize.x / 2 || Math.abs(this.startPoint.y - _toPoint.y) >= this.state.gridsize.y / 2) {
+        return new this.paper.Path.Line(this.startPoint, _toPoint);
+      }
+      return null
+    }
+  }
+
+  class Polyline extends Tool {
+    constructor (paper, startPoint, state, primitive, defaults) {
+      defaults = defaults || {};
+      defaults.fixed = defaults.fixed || false;
+      defaults.toolName = defaults.toolName || 'Polyline';
+
+      defaults.closed = defaults.closed || false;
+      defaults.smooth = defaults.smooth || false;
+      let options = [
+        {
+            property: "closed",
+            description: "Close Line",
+            type    : "boolean",
+            value   : defaults.closed
+        },
+        {
+          property: "smooth",
+          description: "Smooth Line",
+          type    : "boolean",
+          value   : defaults.smooth,
+          function: true,
+          options: [
+            {type: 'geometric', factor: 0},
+            {type: 'geometric', factor: 1}
+          ]
+        },
+        {
+          property: "dashlength",
+          description: "Dash",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "gaplength",
+          description: "Gap",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "dash",
+          description: "Dashed",
+          type    : "boolean",
+          value   : false
+        }                
+      ];
+      
+      super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
+      this._points = [];
+      this._currentline = null;
+      this._lastPoint = null;
+      this._movePoint = null;
+    }
+
+    createPrimitive() {
+      var myPath = new this.paper.Path();
+      myPath.strokeJoin = 'round';
+      if (this._points && this._points.length > 0) {
+        for (let index = 0; index < this._points.length; index++) {
+          myPath.add(new this.paper.Point(this._points[index]));
+        }
+        myPath.closed = true;
+      }
+      if (this.getOption('smooth', true).value === true) {
+        myPath.smooth();
+      }
+      return myPath;
+    }
+
+    createIntermediateDrawing(point) {
+      var myPath = new this.paper.Path();
+      myPath.strokeJoin = 'round';
+      if (this._points && this._points.length > 0) {
+        for (let index = 0; index < this._points.length; index++) {
+          myPath.add(new this.paper.Point(this._points[index]));
+        }
+        myPath.add(new this.paper.Point(point));
+      }
+      if (this.getOption('smooth', true).value === true) {
+        myPath.smooth();
+      }
+      return myPath;
+    }  
+
+    onFinishPaint(point) {
+        if (point !== undefined) {
+          try {
+            if (this._currentline !== null && this._currentline.remove) {
+              this._currentline.remove();
+              this._currentline = null;
+            }
+          }
+          catch (err) {
+            console.warn(err);
+          }
+          //this._lastPoint = this.round(point)
+          //this._points.push(this._lastPoint)
+          this._points.pop();
+          this.draw(point);
+        }
+        this.painted = true;
+        this.state.painting = false;
+        if (this.primitive != null) {
+          this.originalPos = this.primitive.position;
+          this.state.addStack(this);
+        }
+    }
+
+    onPaint(point) {
+      this._lastPoint = this.round(point);
+      this._points.push(this._lastPoint);
+      this.state.painting = true;
+    }
+
+    onMove(point) {
+      this._movePoint = this.round(point);
+      if (this._currentline !== null && this._currentline.remove) {
+        this._currentline.remove();
+        this._currentline = null;
+      }
+      if (this._lastPoint !== null) {
+        this._currentline = this.createIntermediateDrawing(this._movePoint);
+        this._currentline.strokeColor = '#CCF';
+        this._currentline.fillColor = '#CCCCFF30';
+        this._currentline.strokeWidth = 1;
+      }
+    }
+
+    onClick() {
+      this._points.push(this._movePoint);
+      this._lastPoint = this._movePoint;
+    }
+
+
+    resize(delta) {
+      this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? (delta.x / this.primitive.bounds.width * this.primitive.bounds.height) : delta.y));
+    }
+
+    endResize() {
+      if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
+        this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
+        this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
+      }
     }
   }
 
@@ -478,35 +808,318 @@
       defaults = defaults || {};
       defaults.fixed = defaults.fixed || false;
       defaults.toolName = defaults.toolName || 'Star';
+      defaults.starpoints = defaults.starpoints || 5;
+      defaults.starpointsMin = defaults.starpointsMin || 3;
+      defaults.starpointsMax = defaults.starpointsMax || 20;
+      defaults.starpointsStep = defaults.starpointsStep || 1;
 
-      let options = [];
+      defaults.starsize = defaults.starsize || 0.8;
+      defaults.starsizeMin = defaults.starsizeMin || 0.25;
+      defaults.starsizeMax = defaults.starsizeMax || 0.95;
+      defaults.starsizeStep = defaults.starsizeStep || 0.05;
+
+
+      let options = [
+        {
+            property: "starpoints",
+            description: "Points",
+            type    : "int",
+            value   : defaults.starpoints,
+            min     : defaults.starpointsMin,
+            max     : defaults.starpointsMax,
+            step    : defaults.starpointsStep,
+            redraw  : true
+        },
+        {
+          property: "starsize",
+          description: "Size",
+          type    : "int",
+          value   : defaults.starsize,
+          min     : defaults.starsizeMin,
+          max     : defaults.starsizeMax,
+          step    : defaults.starsizeStep,
+          redraw  : true
+        },
+        {
+          property: "dashlength",
+          description: "Dash",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "gaplength",
+          description: "Gap",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "dash",
+          description: "Dashed",
+          type    : "boolean",
+          value   : false
+        }             
+    ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
+
+      // Backup parameters, applied after options change
+
+      this._pos = {
+        center: false,
+        radius1: false,
+        radius2: false,
+        bounds: false,
+        rotation: false,
+        previousSibling: false
+      };
     }
 
+    setOption(name, value) {
+      let redraw = false;
+      this.applyDash(name, value);
+      this.options.forEach(o => {
+        if (o.property == name) {
+          try {
+            this.primitive[name] = value;
+            o.value = value;            
+          }
+          catch (err) {
+            console.warn(err);
+          }
+          if (o.redraw === true) redraw = o.redraw;
+        }
+      });
+      if (redraw === true) {
+        if (this.primitive) {
+          this._pos.bounds = this.primitive.bounds;
+          this._pos.rotation = this.primitive.rotation;
+          this._pos.previousSibling = this.primitive.previousSibling || false;
+          this.primitive.remove();
+        }
+        this._pos.radius2 = this._pos.radius1 * this.getOption('starsize', true).value * 1;
+        this.primitive = new this.paper.Path.Star(
+          this._pos.center, 
+          this.getOption('starpoints', true).value * 1, 
+          this._pos.radius1,
+          this._pos.radius2
+        );
+        if (this._pos.bounds) {
+          this.primitive.bounds = this._pos.bounds;
+        }
+        if (this._pos.rotation) {
+          this.primitive.rotation = this._pos.rotation;
+        }
+        if (this._pos.previousSibling) {
+          this.primitive.insertAbove(this._pos.previousSibling);
+        }
+        this.applyStyle();
+        this.attachEvents();
+      }
+    }
 
     createPrimitive(point) {
       let _toPoint  = this.round(point);
       if (this.paper.Key.isDown('shift')) {
         _toPoint.y = this.startPoint.y + _toPoint.x - this.startPoint.x;
       }
-      return new this.paper.Path.Star(this.startPoint, _toPoint.x - this.startPoint.x > 50 ? Math.round((_toPoint.x - this.startPoint.x) / 10) : 5, _toPoint.y - this.startPoint.y > this.state.gridsize.y * 2 ? (_toPoint.y - this.startPoint.y) - this.state.gridsize.x * 2 : 0, _toPoint.y - this.startPoint.y > 0 ? _toPoint.y - this.startPoint.y : 0);
+
+      let _distance = Math.sqrt((_toPoint.x - this.startPoint.x) ** 2 + (_toPoint.y - this.startPoint.y) ** 2);
+      _distance = _distance > this.state.gridsize.x ? _distance : this.state.gridsize.x;
+
+
+      this._pos = {
+        center: this.startPoint,
+        radius1: _distance,
+        radius2: _distance * this.getOption('starsize', true).value * 1,
+        bounds: false
+      };
+
+      console.log(this.getOption('starsize', true).value * 1);
+
+      return new this.paper.Path.Star(
+        this._pos.center, 
+        this.getOption('starpoints', true).value * 1, 
+        this._pos.radius1,
+        this._pos.radius2);
     }
 
 
     transformation(mode, point, delta) {
       switch (mode) {
         case 'Resize':
-          this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? delta.x : delta.y));
+          this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? (delta.x / this.primitive.bounds.width * this.primitive.bounds.height) : delta.y));
           break;
       }
+    }
+
+
+    endTranslate() {
+      this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
+      this.originalPos = this.primitive.position;
+      this._pos.center = this.primitive.bounds.center;
     }
 
     endtransformation(mode) {
       switch (mode) {
         case 'Resize':
-          this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
-          this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
-          this.state.setTransformation('Move');
+          if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
+            this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
+            this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
+          }
+          this._pos.center = this.primitive.bounds.center;
+          break;
+      }
+    }
+  }
+
+  class Polygon extends Tool {
+    constructor (paper, startPoint, state, primitive, defaults) {
+      defaults = defaults || {};
+      defaults.fixed = defaults.fixed || false;
+      defaults.toolName = defaults.toolName || 'polygon';
+      defaults.sides = defaults.sides || 5;
+      defaults.sidesMin = defaults.sidesMin || 3;
+      defaults.sidesMax = defaults.sidesMax || 20;
+      defaults.sidesStep = defaults.sidesStep || 1;
+
+
+      let options = [
+        {
+            property: "sides",
+            description: "Sides",
+            type    : "int",
+            value   : defaults.sides,
+            min     : defaults.sidesMin,
+            max     : defaults.sidesMax,
+            step    : defaults.sidesStep,
+            redraw  : true
+        },
+        {
+          property: "dashlength",
+          description: "Dash",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "gaplength",
+          description: "Gap",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "dash",
+          description: "Dashed",
+          type    : "boolean",
+          value   : false
+        }      
+    ];
+      super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
+
+      // Backup parameters, applied after options change
+
+      this._pos = {
+        center: false,
+        radius: false,
+        bounds: false,
+        rotation: false,
+        previousSibling: false
+      };
+    }
+
+    setOption(name, value) {
+      let redraw = false;
+      this.applyDash(name, value);
+      this.options.forEach(o => {
+        if (o.property == name) {
+          try {
+            this.primitive[name] = value;
+            o.value = value;            
+          }
+          catch (err) {
+            console.warn(err);
+          }
+          if (o.redraw === true) redraw = o.redraw;
+        }
+      });
+      if (redraw === true) {
+        if (this.primitive) {
+          this._pos.bounds = this.primitive.bounds;
+          this._pos.center = this.primitive.bounds.center;
+          this._pos.rotation = this.primitive.rotation;
+          this._pos.previousSibling = this.primitive.previousSibling || false;
+          this.primitive.remove();
+        }
+        this.primitive = new this.paper.Path.RegularPolygon(
+          this._pos.center, 
+          this.getOption('sides', true).value * 1, 
+          this._pos.radius1
+        );
+        if (this._pos.bounds) {
+          this.primitive.bounds = this._pos.bounds;
+        }
+        if (this._pos.rotation) {
+          this.primitive.rotation = this._pos.rotation;
+        }
+        if (this._pos.previousSibling) {
+          this.primitive.insertAbove(this._pos.previousSibling);
+        }
+        this.applyStyle();
+        this.attachEvents();
+      }
+    }
+
+    createPrimitive(point) {
+      let _toPoint  = this.round(point);
+
+      let _distance = Math.sqrt((_toPoint.x - this.startPoint.x) ** 2 + (_toPoint.y - this.startPoint.y) ** 2);
+      _distance = _distance > this.state.gridsize.x ? _distance : this.state.gridsize.x;
+
+
+      this._pos = {
+        center: this.startPoint,
+        radius1: _distance,
+        bounds: false
+      };
+
+      return new this.paper.Path.RegularPolygon(
+        this._pos.center, 
+        this.getOption('sides', true).value * 1, 
+        this._pos.radius1);
+    }
+
+
+    transformation(mode, point, delta) {
+      switch (mode) {
+        case 'Resize':
+          this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? (delta.x / this.primitive.bounds.width * this.primitive.bounds.height) : delta.y));
+          break;
+      }
+    }
+
+
+    endTranslate() {
+      this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
+      this.originalPos = this.primitive.position;
+    }
+
+    endtransformation(mode) {
+      switch (mode) {
+        case 'Resize':
+          if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
+            this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
+            this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
+          }
           break;
       }
     }
@@ -515,10 +1128,12 @@
   class Raster extends Tool {
     constructor (paper, startPoint, state, primitive, defaults) {
       defaults = defaults || {};
-      defaults.source = defaults.source || "/vue-paint/img/default.png";
+      defaults.source = false;
       defaults.fixed = defaults.fixed || false;
       defaults.toolName = defaults.toolName || 'Raster';
-
+      defaults.defaultWidth = defaults.defaultWidth || 300;
+      defaults.defaultHeight = defaults.defaultHeight || 300;
+      defaults.keepAspect = defaults.keepAspect || true;
 
       let options = [
         {
@@ -526,9 +1141,26 @@
             description: "Clipart",
             type    : "clipart",
             value   : defaults.source,
-            redraw  : true,
             toggled : true
-        }
+        },
+        {
+          property: "keepAspect",
+          description: "Keep Aspect",
+          type    : "boolean",
+          value   : defaults.keepAspect
+        },
+        {
+          property: "defaultWidth",
+          description: "defaultWidth",
+          type    : "hidden",
+          value   : defaults.defaultWidth
+        },
+        {
+          property: "defaultHeight",
+          description: "defaultHeight",
+          type    : "hidden",
+          value   : defaults.defaultHeight
+        }      
       ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
     }
@@ -539,24 +1171,30 @@
      */
 
     resize(delta) {
-      if (this.paper.Key.isDown('shift')) {
-        this.primitive.scale(
-          1 / this.primitive.bounds.width * (this.primitive.bounds.width + delta.x),
-          {
-            x: this.primitive.bounds.left,
-            y: this.primitive.bounds.top
-          }
-        );
+      let _scaleX = 1 / this.primitive.bounds.width * (this.primitive.bounds.width + delta.x);
+      let _scaleY = 1 / this.primitive.bounds.height * (this.primitive.bounds.height + delta.y);
+      if (this.paper.Key.isDown('shift') || this.getOption('keepAspect') === true) {
+        if (_scaleX > 0.1) {
+          this.primitive.scale(
+            _scaleX,
+            {
+              x: this.primitive.bounds.left,
+              y: this.primitive.bounds.top
+            }
+          );
+        }
       }
       else {
-        this.primitive.scale(
-          1 / this.primitive.bounds.width * (this.primitive.bounds.width + delta.x),
-          1 / this.primitive.bounds.height * (this.primitive.bounds.height + delta.y),
-          {
-            x: this.primitive.bounds.left,
-            y: this.primitive.bounds.top
-          }
-        );
+        if (_scaleX > 0.1 && _scaleY > 0.1) {
+          this.primitive.scale(
+            _scaleX,
+            _scaleY,
+            {
+              x: this.primitive.bounds.left,
+              y: this.primitive.bounds.top
+            }
+          );
+        }
       }
     }
 
@@ -565,39 +1203,75 @@
      */
 
     endResize() {
+      let _fX = 1 / this.primitive.bounds.width * (Math.round(this.primitive.bounds.width / this.state.gridsize.x) * this.state.gridsize.x);
+      let _fY = 1 / this.primitive.bounds.height * (Math.round(this.primitive.bounds.height / this.state.gridsize.y) * this.state.gridsize.y);
+      if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
+        _fX = 1;
+        _fY = 1;
+      }
+      if (this.paper.Key.isDown('shift') || this.getOption('keepAspect') === true) {
+        _fY = _fX;
+      }
+      let _pos = this.round({
+        x: this.primitive.bounds.left,
+        y: this.primitive.bounds.top
+      });
       this.primitive.scale(
-        1 / this.primitive.bounds.width * (Math.round(this.primitive.bounds.width / this.state.gridsize.x) * this.state.gridsize.x),
-        1 / this.primitive.bounds.height * (Math.round(this.primitive.bounds.height / this.state.gridsize.y) * this.state.gridsize.y),
-        {
-          x: this.primitive.bounds.left,
-          y: this.primitive.bounds.top
-        }
+        _fX,
+        _fY,
+        _pos
       );
       //let _b = this.primitive.bounds.clone();
       //this.primitive.scaling = [1,1]
       //this.primitive.fitBounds(_b);
   }
 
+    /* Called on init */
+    onPaint () {
+      this.state.painting = true;
+    }
+
+    onDoubleClick () {
+      this.state.unselectAll();
+      this.select();
+      let _e = {
+        key: 'i',
+        modifiers: {
+          meta: true
+        }
+      };
+      console.log(this.paper.tool.emit('keydown', _e));
+      return false;
+    }
 
     createPrimitive() {
       let _toPoint  = this.round(this.startPoint);
-      let _r = new this.paper.Raster({crossOrigin: 'anonymous', position: _toPoint, smoothing: 'high'});
-      _r.source = this.getOption('source');
+      let _r = this.primitive || new this.paper.Raster({
+        crossOrigin: 'anonymous', 
+        position: _toPoint, 
+        smoothing: 'high'
+      });
       let _initialize = () => {
+        console.log('createPrimitive!');
+        /*if (this.getOption('source') !== false) {
+          _r.source = this.getOption('source');
+        }*/
         if (this.initialized !== true) {
           this.initialized = true;
-          this.toggleSelect();
-          this.selectBorderColor('red');
-          console.log('init toggle');
+          let _b = new this.paper.Rectangle(_toPoint.x, _toPoint.y, this.getOption('defaultWidth'), this.getOption('defaultHeight'));
+          _r.fitBounds(_b);
         }
-      };
+      };    
+
       _r.onLoad = () => {
-        console.log(this.aspect);
         _initialize();
       };
       _r.onError = () => {
         _initialize();
       };
+
+      this.primitive = _r;
+      this.toggleSelect(true);
       return _r;
     }
   }
@@ -616,6 +1290,10 @@
       defaults.leadingMax = defaults.leadingMax || 20;
       defaults.rows = defaults.rows || 40;
       defaults.cols = defaults.cols || 10;
+      defaults.width = defaults.width || 250;
+      defaults.height = defaults.height || 100;
+      defaults.mode = defaults.mode || 'char';
+      defaults.justification = defaults.justification || 'left';
       defaults.fixed = defaults.fixed || false;
       
       let options = [
@@ -623,9 +1301,12 @@
             property: "content",
             description: "Edit Text",
             type    : "textarea",
-            value   : `${defaults.toolName} ${defaults.cols}x${defaults.rows}`,
+            value   : defaults.mode == 'char' ? `${defaults.toolName} ${defaults.cols} x ${defaults.rows}` : `${defaults.toolName} ${defaults.width}x${defaults.height} Pixel`,
             rows    : defaults.rows,
-            cols    : defaults.cols
+            cols    : defaults.cols,
+            width   : defaults.width,
+            height  : defaults.height,
+            mode    : defaults.mode
         },
         {
           property: "fontSize",
@@ -656,24 +1337,41 @@
           description: "Font Weight",
           type    : "string",
           value   : defaults.fontWeight
+        },
+        {
+          property: "justification",
+          description: "Justification",
+          type    : "string",
+          value   : defaults.justification
         }
       ];
       super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
     }
 
-    setOption(name, value) {
+    setOption(name, value, target, form) {
       this.options.forEach(o => {
           if (o.property == name) {
             // Set Content Property, check size & do wordwrap
             if (o.property == 'content') {
-              let _v = wordwrap.wrap(value, { width: o.cols, break: true, noTrim: true });
-              let numberOfLines = (_v.match(/\n/g) || []).length + 1;
-              if (numberOfLines <= o.rows) {
-                this.primitive[name] = _v;
-                o.value = _v;
-              }
-              else {
-                o.value = this.primitive[name];
+              if (o.mode === 'char') {
+                let _v = wordwrap.wrap(value, { width: o.cols, break: true, noTrim: true });
+                let numberOfLines = (_v.match(/\n/g) || []).length + 1;
+                if (numberOfLines <= o.rows) {
+                  this.primitive[name] = _v;
+                  o.value = _v;
+                }
+                else {
+                  o.value = this.primitive[name];
+                }
+              } else {
+                if (target.scrollHeight <= o.height) {
+                  let _f = new FormData(form[0]);
+                  //console.log(_f.get('input'))
+                  this.primitive[name] = _f.get('input');
+                  o.value = _f.get('input');  
+                } else {
+                  o.value = this.primitive[name];
+                }
               }
             }
             // All other properties are stored directly
@@ -686,12 +1384,29 @@
     }
     
     
-    
+    onDoubleClick () {
+      this.state.unselectAll();
+      this.select();
+      let _e = {
+        key: 'e',
+        modifiers: {
+          meta: true
+        }
+      };
+      console.log(this.paper.tool.emit('keydown', _e));
+      return false;
+    }
 
     createPrimitive() {
       console.log(this);
       let _t = new this.paper.PointText(this.round(this.startPoint));
+      _t.applyMatrix = false;
       return _t;
+    }
+
+    /* Called on init */
+    onPaint () {
+      this.state.painting = true;
     }
 
     applyStyle() {
@@ -707,6 +1422,7 @@
         this.primitive.strokeWidth        = 0;
         this.primitive.strokeColor.alpha  = this.state.getAlpha();
         this.primitive.fillColor.alpha    = this.state.getAlpha();
+        this.primitive.justification      = this.getOption('justification');
       }
       catch (err) {
         console.warn(`${err} Primitive not defined`);
@@ -714,8 +1430,297 @@
     }
   }
 
+  class Grid extends Tool {
+    constructor (paper, startPoint, state, primitive, defaults) {
+      defaults = defaults || {};
+      defaults.gridSquare = defaults.gridSquare || false;
+      defaults.gridX = defaults.gridX || 5;
+      defaults.gridY = defaults.gridY || 5;
+      defaults.gridXMax = defaults.gridXMax || 5;
+      defaults.gridYMax = defaults.gridYMax || 5;
+      defaults.gridXMin = defaults.gridXMin || 5;
+      defaults.gridYMin = defaults.gridYMin || 5;
+      defaults.gridXStep = defaults.gridXStep || 5;
+      defaults.gridYStep = defaults.gridYStep || 5;
+      defaults.fixed = defaults.fixed || false;
+      defaults.toolName = defaults.toolName || 'Grid';
+      let options = [
+          {
+              property: "gridX",
+              description: "Raster X",
+              type    : "int",
+              value   : defaults.gridX,
+              min     : defaults.gridXMin,
+              max     : defaults.gridXMax,
+              step    : defaults.gridXStep,
+              redraw  : true
+          },
+          {
+              property: "gridY",
+              description: "Raster Y",
+              type    : "int",
+              value   : defaults.gridY,
+              min     : defaults.gridYMin,
+              max     : defaults.gridYMax,
+              step    : defaults.gridYStep,
+              redraw  : true
+          },
+          {
+              property: "gridSquare",
+              description: "Square Raster",
+              type    : "boolean",
+              value   : defaults.gridSquare,
+              redraw  : true
+          },
+          {
+            property: "dashlength",
+            description: "Dash",
+            type    : "int",
+            value   : 2,
+            min     : 0,
+            max     : 10,
+            step    : 1
+          },
+          {
+            property: "gaplength",
+            description: "Gap",
+            type    : "int",
+            value   : 2,
+            min     : 0,
+            max     : 10,
+            step    : 1
+          },
+          {
+            property: "dash",
+            description: "Dashed",
+            type    : "boolean",
+            value   : false
+          }                  
+      ];
+
+      super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
+    }
+
+
+    createPrimitive(point) {
+      this.endPoint  = point;
+      // console.log(this.getOption('gridX', true).value * 1, this.startPoint.x, this.endPoint.x)
+
+      let _lines = [];
+      if (this.paper.Key.isDown('shift')) {
+        this.endPoint.y = this.startPoint.y + this.endPoint.x - this.startPoint.x;
+      }
+
+      this.endPoint.x = Math.round(this.endPoint.x / (this.getOption('gridX', true).value * 1)) * (this.getOption('gridX', true).value * 1);
+      this.endPoint.y = Math.round(this.endPoint.y / (this.getOption('gridY', true).value * 1)) * (this.getOption('gridY', true).value * 1);
+
+      if (this.getOption('gridSquare', true).value === true) {
+        let _xStart = this.startPoint.x;
+        while (_xStart <= this.endPoint.x) {
+            _lines.push(new this.paper.Path.Line({x: _xStart, y: this.startPoint.y}, {x: _xStart, y: this.endPoint.y}));
+            _xStart += this.getOption('gridX', true).value * 1;
+        }
+      }
+      let _yStart = this.startPoint.y;
+      while (_yStart <= this.endPoint.y) {
+          _lines.push(new this.paper.Path.Line({x: this.startPoint.x, y: _yStart}, {x: this.endPoint.x, y: _yStart}));
+          _yStart += this.getOption('gridY', true).value * 1;
+      }    
+      return new this.paper.CompoundPath({
+          children: _lines,
+          applyMatrix: false
+      });
+    }
+
+
+    resize(delta, point) {
+      if (point.x > this.startPoint.x && point.y > this.startPoint.y) {
+        this.endPoint.x = point.x;
+        this.endPoint.y = this.paper.Key.isDown('shift') 
+                          ? this.endPoint.y + (point.x - this.startPoint.x)
+                          : point.y;
+        this.draw(this.round(this.endPoint));
+      } else {
+        console.log('no negative resize');
+      }
+    }
+
+    endResize () {
+    }
+
+    setOption(name, value) {
+      let redraw = false;
+      this.applyDash(name, value);
+      this.options.forEach(o => {
+        if (o.property == name) {
+          try {
+            this.primitive[name] = value;
+            o.value = value;            
+          }
+          catch (err) {
+            console.warn(err);
+          }
+          if (o.redraw === true) redraw = o.redraw;
+        }
+      });
+      if (redraw === true) {
+        this.draw(this.endPoint);
+      }
+    }  
+  }
+
+  class Arc extends Tool {
+    constructor (paper, startPoint, state, primitive, defaults) {
+      defaults = defaults || {};
+      defaults.fixed = defaults.fixed || false;
+      defaults.toolName = defaults.toolName || 'arc';
+      defaults.angle = defaults.angle || 2;
+      defaults.angleMin = defaults.angleMin || 0.1;
+      defaults.angleMax = defaults.angleMax || 5;
+      defaults.angleStep = defaults.angleStep || 0.01;
+
+
+      let options = [
+        {
+            property: "angle",
+            description: "Angle",
+            type    : "int",
+            value   : defaults.angle,
+            min     : defaults.angleMin,
+            max     : defaults.angleMax,
+            step    : defaults.angleStep,
+            redraw  : true
+        },
+        {
+          property: "dashlength",
+          description: "Dash",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "gaplength",
+          description: "Gap",
+          type    : "int",
+          value   : 2,
+          min     : 0,
+          max     : 10,
+          step    : 1
+        },
+        {
+          property: "dash",
+          description: "Dashed",
+          type    : "boolean",
+          value   : false
+        }             
+    ];
+      super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed);
+
+      // Backup parameters, applied after options change
+
+      this._pos = {
+        startPoint: false,
+        toPoint: false,
+        bounds: false,
+        rotation: false,
+        previousSibling: false
+      };
+    }
+
+    setOption(name, value) {
+      let redraw = false;
+      this.applyDash(name, value);
+      this.options.forEach(o => {
+        if (o.property == name) {
+          try {
+            this.primitive[name] = value;
+            o.value = value;            
+          }
+          catch (err) {
+            console.warn(err);
+          }
+          if (o.redraw === true) redraw = o.redraw;
+        }
+      });
+      if (redraw === true) {
+          
+        if (this.primitive) {
+          this._pos.bounds = this.primitive.bounds;
+          this._pos.rotation = this.primitive.rotation;
+          this._pos.previousSibling = this.primitive.previousSibling || false;
+          this.primitive.remove();
+        }
+        this.primitive = this.drawAngle(this._pos.startPoint, this._pos.toPoint);
+  /*      if (this._pos.bounds) {
+          this.primitive.bounds = this._pos.bounds
+        }*/
+        if (this._pos.rotation) {
+          this.primitive.rotation = this._pos.rotation;
+        }
+        if (this._pos.previousSibling) {
+          this.primitive.insertAbove(this._pos.previousSibling);
+        }
+        this.applyStyle();
+        this.attachEvents();
+      }
+    }
+
+    drawAngle(from, to) {
+      let x1 = new this.paper.Point(from.x + ((to.y - from.y) / 2), from.y + ((to.x - from.x) / 2));
+      let x2 = to.subtract(from).divide(2).add(from);
+      let through = x1.subtract(x2).divide(this.getOption('angle', true).value * 1).add(x2);
+  	return (new this.paper.Path.Arc(from, through, to));
+    }
+
+    createPrimitive(point) {
+      let _toPoint  = this.round(point);
+      this._pos = {
+        startPoint: this.startPoint,
+        toPoint: _toPoint,
+      };
+      return this.drawAngle(this._pos.startPoint, this._pos.toPoint)
+    }
+
+
+    transformation(mode, point, delta) {
+      switch (mode) {
+        case 'Resize':
+          this.primitive.bounds.size = this.primitive.bounds.size.add(new this.paper.Size(delta.x, this.paper.Key.isDown('shift') ? (delta.x / this.primitive.bounds.width * this.primitive.bounds.height) : delta.y));
+          break;
+      }
+    }
+
+    translate(delta) {
+      this._pos.startPoint.x += delta.x;
+      this._pos.startPoint.y += delta.y;
+      this._pos.toPoint.x += delta.x;
+      this._pos.toPoint.y += delta.y;
+      this.primitive.position.x += delta.x;
+      this.primitive.position.y += delta.y;
+    }
+
+
+    endTranslate() {
+      this.startPoint = this.primitive.bounds.topLeft = this.round(this.primitive.bounds.topLeft);
+      this.originalPos = this.primitive.position;
+    }
+
+    endtransformation(mode) {
+      switch (mode) {
+        case 'Resize':
+          if (!this.paper.Key.isDown('meta') && this.state.magnetic === true) {
+            this.primitive.bounds.width = Math.round(this.primitive.bounds.width / (this.state.gridsize.x * 2)) * (this.state.gridsize.x * 2);
+            this.primitive.bounds.height = Math.round(this.primitive.bounds.height / (this.state.gridsize.y * 2)) * (this.state.gridsize.y * 2);
+          }
+          break;
+      }
+    }
+  }
+
   class State {
-      constructor (options) {
+      constructor (options, root) {
           options = options || {};
           this.active     = null;
           this.actveByName = "";
@@ -728,10 +1733,14 @@
           this.fonts      = options.fonts || [];
           this.selected   = [];
           this.context = false;
-          this.copy   = [];
+          // Clipboard
+          this.root = root;
+          this.root.vp_clipboard = this.root.vp_clipboard || [];        
           this.stack  = [];
           this.clips  = [];
           this.paper  = null;
+          this.painting = true;
+          this.magnetic = true;
           // Register Transformation Modes
           this.allowedTransformations = ['Move', 'Resize', 'Rotate'];
           this.transformation = 'Move';
@@ -742,8 +1751,12 @@
               'Circle': Circle,
               'Line'  : Line,
               'Star'  : Star,
+              'Polygon': Polygon,
               'Raster': Raster,
               'Text'  : Text,
+              'Grid'  : Grid,
+              'Polyline': Polyline,
+              'Arc': Arc
           };
 
           // Register Tools
@@ -760,23 +1773,52 @@
               'Star': {
                   class: 'Star'
               },
+              'Polygon': {
+                  class: 'Polygon'
+              },
               'Raster': {
                   class: 'Raster'
               },
               'Text': {
                   class: 'Text'
+              },
+              'Grid': {
+                  class: 'Grid'
+              },
+              'Polyline': {
+                  class: 'Polyline'
+              },
+              'Arc': {
+                  class: 'Arc'
               }
           };
           // Convert String to Classes
-          // addOnMouseDown true for Text and Raster Object. Others need to be dragged.
+
           for (let _t in this.tools) if (Object.hasOwnProperty.call(this.tools, _t)) {
+              // addOnMouseDown true for Text and Raster Object. Others need to be dragged.
               this.tools[_t].addOnMouseDown = this.tools[_t].class == 'Text' || this.tools[_t].class == 'Raster';
-              this.tools[_t].class = _toolClasses[this.tools[_t].class];
+
+              // addOnDoubleClick true for Polyline
+              this.tools[_t].addOnDoubleClick = this.tools[_t].class == 'Polyline';
+
               this.tools[_t].defaults = this.tools[_t].defaults || {};
               this.tools[_t].defaults.toolName = _t;
+
+              // Overload Class
+              this.tools[_t].className = this.tools[_t].class;            
+              this.tools[_t].class = _toolClasses[this.tools[_t].class];
           }
       }
 
+      setGrid(x, y) {
+          this.gridsize.x = x;
+          this.gridsize.y = y;
+      }
+
+      setMagnetic(value) {
+          this.magnetic = value;
+      }
+      
       addClipart(clips) {
           this.clips = clips;
       }
@@ -789,6 +1831,14 @@
               }
           }
           return _tools;
+      }
+
+      isFixed(_tool) {
+          return (this.tools[_tool].defaults.fixed && this.tools[_tool].defaults.fixed.x !== undefined && this.tools[_tool].defaults.fixed.y != undefined ? true : false)
+      }
+
+      exists(_element) {
+          return (this.stack.filter(_e => _e.toolname === _element).length > 0)
       }
 
       addStack(e) {
@@ -804,6 +1854,7 @@
       }
 
       exportStack() {
+          this.unselectAll();
           let _json = [];
 
           this.stack.sort((a,b) => a.primitive.index > b.primitive.index);
@@ -820,9 +1871,18 @@
       importStack(json) {
           if (json) {
               json.forEach(o => {
-                let _primitive = this.paper.project.activeLayer.importJSON(jsBase64.Base64.decode(o.data));
-                this.setActive(o.prototype);
-                new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
+                  this.setActive(o.prototype);
+                  let _doinsert = true;
+                  let _decoded = jsBase64.Base64.decode(o.data);
+                  let _parsed = JSON.parse(_decoded);
+                  if (_parsed[0] === 'Raster' && _parsed[1].matrix[4] === null && _parsed[1].matrix[5] === null) {
+                      _doinsert = false;
+                      console.warn('not inserting image. wrong matrix');
+                  } 
+                  if (this.active !== null && _parsed && _doinsert === true) {
+                      let _primitive = this.paper.project.activeLayer.importJSON(_decoded);
+                      new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
+                  }
               });
               this.setActive('');
           }
@@ -846,18 +1906,40 @@
           return this.selected.length > 0;
       }
 
+      hasSelectionBoundingBox() {
+          let _r = false;
+          let _t = false;
+          if (this.selected.length > 0) {
+              this.selected.forEach(s => {
+                  if (s.primitive.bounds.top < _t || _t === false) {
+                      _t = s.primitive.bounds.top;
+                  }
+                  if (s.primitive.bounds.right > _r || _r === false) {
+                      _r = s.primitive.bounds.right;
+                  }
+              });
+          }
+          return {
+              x: _r || 0,
+              y: _t || 0
+          }
+      }
+
       hasClipboard() {
-          return this.copy.length > 0;
+          console.log(this.root.vp_clipboard);
+          return this.root.vp_clipboard.length > 0;
       }
 
       unselectAll() {
-          if (this.selected.length > 0) {
+          let _selectionLength = this.selected.length;
+          if (_selectionLength > 0) {
               this.selected.forEach(s => {
                   s.unselect();
               });
               this.selected = [];
               this.context = false;
           }
+          return _selectionLength
       }
 
       deleteSelection() {
@@ -886,23 +1968,43 @@
       }
 
       copySelection() {
-          this.copy = this.selected;
+          this.selected.forEach(s => {
+              s._json = s.primitive.exportJSON();
+          });
+          this.root.$set(this.root, 'vp_clipboard', this.selected);        
       }
 
       clearSelection() {
-          this.copy = [];
+          this.root.$set(this.root, 'vp_clipboard', []);
       }
 
       pasteSelection() {
-          if (this.copy.length > 0) {
+          if (this.root.vp_clipboard.length > 0) {
               this.unselectAll();
-              this.copy.forEach(s => {
-                  console.log(this, s);
-                  let _clone = new this.tools[s.toolname].class(s.paper, s.startPoint, this, s.primitive.clone(), this.tools[s.toolname].defaults);
-                  _clone.move('right');
-                  _clone.move('down');
-                  _clone.shift('front');
-                  _clone.select();
+              this.root.vp_clipboard.forEach(s => {
+                  if (this.tools[s.toolname]) {
+                      try {
+                          let _primitive = this.paper.project.activeLayer.importJSON(s._json);
+                          let _clone = new this.tools[s.toolname].class(this.paper, s.startPoint, this, _primitive, this.tools[s.toolname].defaults);
+                          if (_clone) {
+                              _clone._pos = s._pos;
+                              _clone.move('right');
+                              _clone.move('down');
+                              _clone.shift('front');
+                              _clone.select();
+                          }
+                      } catch (err) {
+                          throw {
+                              name: "PasteException",
+                              message: err.message
+                          }
+                      }
+                  } else {
+                      throw {
+                          name: "PasteException",
+                          message: 'unknown tool'
+                      }
+                  }
               });
               this.copySelection();
           }
@@ -911,6 +2013,7 @@
 
       setActive(toolname) {
           if (toolname && this.tools[toolname]) {
+              this.unselectAll();
               this.active = this.tools[toolname].class;
               this.actveByName = toolname;
           }
@@ -928,6 +2031,18 @@
           return this.actveByName;
       }
 
+      getActiveClassName() {
+          if (this.active) {
+              return this.tools[this.actveByName].className
+          }
+          else
+              return ""
+      }
+
+      getClassName(toolname) {
+          return this.tools[toolname].className
+      }
+
       getActiveDefaults() {
           return this.tools[this.actveByName].defaults || null;
       }
@@ -940,11 +2055,24 @@
           }
       }
 
+      addOnDoubleClick() {
+          try {
+              return this.tools[this.actveByName].addOnDoubleClick;
+          } catch (err) {
+              return false
+          }
+      }
+
       getContext() {
           if (this.context && this.selected.length == 1) {
               return this.context;
           }
           else return false;
+      }
+
+      isTransformationAllowed(transformation) {
+          if (this.getContext() === false) return true;
+          else return this.getContext().isTransformationAllowed(transformation)
       }
 
       getOptionByType(option, toggled) {
@@ -1006,8 +2134,14 @@
 
       setTransformation(t) {
           if (this.allowedTransformations.indexOf(t) !== -1) {
-              this.transformation = t;
+              this.transformation == t
+                  ? this.transformation = false
+                  : this.transformation = t;
           }
+      }
+
+      disableTransformation() {
+          this.transformation = false;
       }
 
       applyStyle() {
@@ -1021,8 +2155,14 @@
 
   //
 
+  const DOUBLECLICK_TIME_MS = 450;
+  const DOUBLECLICK_DELTA = 3;
+
   var script = {
     name: 'VuePainter',
+    components: {
+      VueDraggableResizable
+    },
     props: {
       data: String,
       clipart: Array,
@@ -1030,14 +2170,77 @@
       configuration: Object,
       csscolors: Array,
       translations: Object,
-      gridX: Number,
-      gridY: Number,
-      angleStep: Number
+      grids: Object,
+      defaultGrid: String,
+      angleStep: Number,
+      gridColor: {
+        type: String,
+        default: '#CCF'
+      },
+      dotColor: {
+        type: String,
+        default: '#000'
+      },
+      mockup: {
+        type: [Boolean, Array],
+        default: false
+      },    
+      horizontalRulers: {
+        type: [Boolean, Array],
+        default: false
+      },
+      verticalRulers: {
+        type: [Boolean, Array],
+        default: false
+      },
+      rulerColor: {
+        type: String,
+        default: '#0FF'
+      },
+      gridLineColor: {
+        type: String,
+        default: '#CCC'
+      }
+    },
+    watch: {
+      activeGrid() {
+        this.state.setGrid(this.gridX, this.gridY);
+        this.drawGrid();
+      },
+      magnetic(v) {
+        try {
+          this.state.setMagnetic(v);
+        } catch (err) {
+          console.warn(err);
+        }
+      }
+    },
+    computed: {
+      gridX () {
+        try {
+          return this.grids[this.activeGrid].x
+        } catch (err) {
+          return 25
+        }
+      },
+      gridY () {
+        try {
+          return this.grids[this.activeGrid].y
+        } catch (err) {
+          return 25
+        }
+      },    
+      cssVars () {
+        return {
+          '--vue-paint-scaling-factor': `${this.scaling}`
+        }
+      }
     },
     data () {
 
       let style = document.createElement('style');
       document.head.appendChild(style);
+      this.$root.folded = this.$root.folded || [false,true,true,true,true,false,true,true];
 
       return {
         // Data
@@ -1062,6 +2265,7 @@
           'file': 'File',
           'preset': 'Preset',
           'selection': 'Selection',
+          'functions': 'Functions',
           'parameter': 'Parameter',
           'clipboard': 'Clipboard',
           'save': 'Save',
@@ -1077,8 +2281,10 @@
           'Move': 'Move',
           'Rotate': 'Rotate',
           'Resize': 'Resize',
+          'zoom': 'Zoom',
           'background': 'Send to Back',
-          'foreground': 'Bring to Front'
+          'foreground': 'Bring to Front',
+          'magnetic': 'Snap to grid'
         },
 
         // Tools
@@ -1095,8 +2301,26 @@
         keyHandlingActive: true, // set to false if paper should not listen to keystrokes
 
         // Style Sheet
-        sheet: style.sheet
+        sheet: style.sheet,
 
+        // Drawing Layer
+        layer: null,
+
+        // Scaling
+        scaling: 100,
+        viewSize: {},
+
+        // ContextPos
+        contextX: this.$root._vp_x ? this.$root._vp_x : (window.innerWidth - 300),
+        contextY: this.$root._vp_y ? this.$root._vp_y : 150,
+        menuX: this.$root._vp_mx ? this.$root._vp_mx : 10,
+        menuY: this.$root._vp_my ? this.$root._vp_my : 150,      
+        folded: this.$root.folded,
+
+        // Grid
+        magnetic: true,
+        activeGrid: this.defaultGrid,
+        gridLayer: false
       }
     },
     created() {
@@ -1104,27 +2328,19 @@
         try {
           this.json = JSON.parse(this.data);
         } catch(err) {
-          console.warn(err);
+          this.$emit('error', 'parse_json');
           this.json = false;
         }
       }
       this.clips = this.prepareClipart(this.clipart);
       this.state = new State({
-        'gridsize'  : {x: this.gridX || 25, y: this.gridY || 25}, 
+        'gridsize'  : {x: this.gridX, y: this.gridY}, 
         'anglestep' : this.angleStep || 5, 
         'fonts'     : this.fonts,
         'tools'     : this.configuration
-      });
+      }, this.$root);
     },
     mounted() {
-      this.$refs.grid.style.setProperty('--backgroundX', `${this.state.gridsize.x}px 100%`);
-      this.$refs.grid.style.setProperty('--backgroundY', `100% ${this.state.gridsize.y}px`);
-      let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x);
-      this.$refs.grid2.style.setProperty('--backgroundY', `100% ${this.state.gridsize.x * Math.sin(_rotation)}px`);
-      this.$refs.grid2.style.setProperty('--background', `${(this.state.gridsize.x * Math.sin(_rotation))}px`);
-      this.$refs.grid2.style.setProperty('--rotation', `${-1 * _rotation / Math.PI * 180}deg`);
-      
-
           // Inject Fonts into CSS HEAD
       try {
         if (this.fonts && this.fonts.length && this.fonts.length > 0) {
@@ -1181,31 +2397,172 @@
       this.clips = null;
     },
     methods: {
+      addFixed(t) {
+        this.state.setActive(t);
+        if (this.state.exists(t) === false) {
+          let _p = new this.paper.Point(0,0);
+          let _painting = new this.state.active(this.paper, _p, this.state, null, this.state.getActiveDefaults());
+          _painting.onPaint(_p);        
+          _painting.onFinishPaint(_p);
+        }
+        this.state.setActive(false);
+      },
+      onContextDrag(x,y) {
+        this.contextX = this.$root._vp_x = x;
+        this.contextY = this.$root._vp_y = y;
+      },
+      onMenuDrag(x,y) {
+        this.menuX = this.$root._vp_mx = x;
+        this.menuY = this.$root._vp_my = y;
+      },    
+      longestWord(string) {
+        var str = string.split("\n");
+        var longest = 0;
+        for (var i = 0; i < str.length - 1; i++) {
+            if (longest < str[i].length) {
+                longest = str[i].length;
+            }
+        }
+        return longest;
+      },
+      drawGrid() {
+        if (this.gridLayer === false) {
+          this.gridLayer = new this.paper.Layer();
+        } else {
+          this.gridLayer.removeChildren();
+        }
+        this.gridLayer.activate();
+        let _rotation  = Math.atan(this.state.gridsize.y / this.state.gridsize.x) * -(180/Math.PI);
+        this.paper.Path.Line({
+            from: [this.paper.project.view.bounds.width / 2, 0],
+            to: [this.paper.project.view.bounds.width / 2, this.paper.project.view.bounds.height],
+            strokeColor: this.gridLineColor,
+        });
+        this.paper.Path.Line({
+            from: [0, this.paper.project.view.bounds.height / 2],
+            to: [this.paper.project.view.bounds.width, this.paper.project.view.bounds.height / 2],
+            strokeColor: this.gridLineColor,
+        });
+        if (this.horizontalRulers && this.horizontalRulers.length) {
+          this.horizontalRulers.forEach(h => {
+            this.paper.Path.Line({
+              from: [0, h],
+              to: [this.paper.project.view.bounds.width, h],
+              strokeColor: this.rulerColor,
+            });
+          });
+        }
+
+        if (this.verticalRulers && this.verticalRulers.length) {
+          this.verticalRulers.forEach(v => {
+            this.paper.Path.Line({
+                from: [v, 0],
+                to: [v, this.paper.project.view.bounds.height],
+                strokeColor: this.rulerColor,
+            });
+          });
+        }
+
+        if (this.state.gridsize.y != this.state.gridsize.x) {
+          for (let _y = 0; _y < this.paper.project.view.bounds.height * 2; _y+=this.state.gridsize.y) {
+            let _l = this.paper.Path.Line({
+                from: [0, _y],
+                to: [this.paper.project.view.bounds.width * 2, _y],
+                strokeColor: this.gridColor,
+                dashArray: [1, 2]
+            });
+            _l.rotate(_rotation, [0,_y]);
+            _l = this.paper.Path.Line({
+                from: [this.paper.project.view.bounds.width * -2, _y],
+                to: [this.paper.project.view.bounds.width, _y],
+                strokeColor: this.gridColor,
+                dashArray: [1, 2]
+            });
+            _l.rotate(_rotation * -1, [Math.floor(this.paper.project.view.bounds.width / this.state.gridsize.x) * this.state.gridsize.x,_y]);        
+          }      
+        } else {
+          for (let _y = 0; _y < this.paper.project.view.bounds.height; _y+=this.state.gridsize.y) {
+            this.paper.Path.Line({
+                from: [0, _y],
+                to: [this.paper.project.view.bounds.width, _y],
+                strokeColor: this.gridColor,
+                dashArray: [1, 2]
+            });
+          }
+          for (let _x = 0; _x < this.paper.project.view.bounds.width; _x+=this.state.gridsize.x) {
+            this.paper.Path.Line({
+                from: [_x, 0],
+                to: [_x, this.paper.project.view.bounds.height],
+                strokeColor: this.gridColor,
+                dashArray: [1, 2]
+            });
+          }        
+        }
+        for (let _y = 0; _y < this.paper.project.view.bounds.height; _y+=this.state.gridsize.y) {
+          for (let _x = 0; _x < this.paper.project.view.bounds.width; _x+=this.state.gridsize.x) {
+            new this.paper.Path.Circle({
+                center: [_x, _y],
+                radius: 1,
+                fillColor: this.dotColor,
+            });
+          }
+        }
+        if (this.layer !== null) {
+          this.layer.activate();
+        }
+      },
+      setScaling(value) {
+        this.scaling = value * 1.0;
+        if (this.$refs.painter) {
+          this.paper.view.scale(1 / this.paper.view.zoom, [0,0]);
+          this.paper.view.scale(this.scaling / 100, [0,0]);
+          this.paper.view.viewSize = this.viewSize.multiply(this.scaling / 100);
+        }
+      },
       initialize () {
         console.log('initializing vue-paint…');
         this.tools = this.state.getTools();
         this.paper = paper.setup(this.$refs.painter);
-        this.paper.settings.hitTolerance = 10;
+        this.paper.settings.hitTolerance = 20;
         this.tool = new paper.Tool();
         this.state.paper = this.paper;
         let _painting;
+        this.viewSize = this.paper.view.viewSize.clone();
+        this.drawGrid();
+
+        this.layer = new this.paper.Layer();
+
+        // Double Click Stuff
+        let _lastClick = 0;
+        let _lastPoint = {
+          x: -1000,
+          y: -1000
+        };
+
+        let _disableMouseUp = false;
 
         this.tool.onMouseDown = (event) => {
           this.enableKeys();
           this.state.onMouseDown();
-          if (event.item == null) {
-            this.state.unselectAll(); 
+          if (event.item == null || event.item.layer.getIndex() === 0) {
+            let _selectionLength = this.state.unselectAll();
+            // Disable MouseUp Actions for one time if we really deselected something
+            if (_selectionLength > 0) {
+              _disableMouseUp = true;
+            }
             return false;
           }
         };
         this.tool.onMouseDrag = (event) => {
           if (!this.state.hasSelection()) {
-            if (_painting) {
-              _painting.onPaint(event.point);
-            }
-            else {
-              if (this.state.isActive()) {
-                _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
+            if (this.state.addOnDoubleClick(this.state.getActiveName()) === false) {
+              if (_painting) {
+                _painting.onPaint(event.point);
+              }
+              else {
+                if (this.state.isActive()) {
+                  _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
+                }
               }
             }
           }
@@ -1213,30 +2570,96 @@
             this.state.onDrag(event.point);
           }
         };
-        
+
+        this.tool.onMouseMove = (event) => {
+          if (
+            !this.state.hasSelection() &&
+            this.state.addOnDoubleClick(this.state.getActiveName()) === true && 
+            _painting
+          ) {
+              _painting.onMove(event.point);
+          }
+        };
+
+
         this.tool.onMouseUp = (event) => {
-          this.state.addOnMouseDown(this.state.getActiveName());
+          if (_disableMouseUp === true) {
+            _disableMouseUp = false;
+            return
+          }
+
+          // Action for AddOnClick Itmes
+
           if (!_painting && !this.state.hasSelection() && this.state.isActive() && this.state.addOnMouseDown(this.state.getActiveName())) {
             _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
             _painting.onPaint(event.point);        
             _painting.onFinishPaint(event.point);
-            _painting = null;        
+            _painting = null;
             this.state.setActive(false);
+            console.log('--------');
           }
           else {
+
+            // Already drawing: Finishing Actions or Intermediate Actions
+
             if (_painting) {
-              _painting.onFinishPaint(event.point);
-              _painting = null;  
-              this.state.setActive(false);      
+
+              // Action for addOnDoubleClick (intermediate action)
+
+              if (this.state.addOnDoubleClick(this.state.getActiveName())) {
+                  _painting.onClick(event.point);
+              } 
+              
+              // Action for single-dragging items (i.e. circles)
+              
+              else {
+                _painting.onFinishPaint(event.point);
+                _painting = null;
+              }
             }
+
+            // Not drawing: Starting Actions
+
+            else {
+
+              // Double Click Items: Start here
+              // All others started on mousedown (due to dragging functionality)
+
+              if (this.state.addOnDoubleClick(this.state.getActiveName()) && !this.state.hasSelection()) {
+                _painting = new this.state.active(this.paper, event.point, this.state, null, this.state.getActiveDefaults());
+                _painting.onPaint(event.point);        
+              }
+            }
+
+            // General finish drag event
+
             if (this.state.dragged) {
               this.state.onFinishDrag(event.point);
             }
           }
+
+          // Double Click Trigger (timeout and delta)
+
+          if (
+            event.timeStamp - _lastClick <= DOUBLECLICK_TIME_MS &&
+            Math.sqrt((_lastPoint.x - event.point.x) ** 2 + (_lastPoint.y - event.point.y) ** 2) <= DOUBLECLICK_DELTA 
+          ) {
+            this.tool.onDoubleClick(event);
+          }
+          _lastClick = event.timeStamp;
+          _lastPoint = event.point;
           return false;
         }; 
+
+        this.tool.onDoubleClick = (event) => {
+          if (_painting && this.state.addOnDoubleClick(this.state.getActiveName())) {
+            _painting.onFinishPaint(event.point);
+            _painting = null;
+          }
+        };
         
         this.tool.onKeyDown = (event) => {
+          console.log(event);
           if (this.keyHandlingActive === true) {
             if (event.key == 'delete' || event.key == 'backspace') {
                 this.state.deleteSelection();
@@ -1260,7 +2683,7 @@
               return false;
             }      
             if (event.key == 'v' && event.modifiers.meta) {
-              this.state.pasteSelection();
+              this.pasteSelection();
               return false;
             }
             this.transformations.forEach(t => {
@@ -1285,32 +2708,36 @@
         // Import json data to stage if passed as a prop
 
         this.$nextTick(()=>{
-          if (this.json) {
-            this.state.importStack(this.json);
+          try {
+            if (this.json) {
+              this.state.importStack(this.json);
+            }
+          } catch (err) {
+            this.$emit('error', 'loading_json');
           }
-          /*if (this.json) {
-            this.json.forEach(o => {
-              let _primitive = this.paper.project.activeLayer.importJSON(Base64.decode(o.data))
-              this.state.setActive(o.prototype)
-              new this.state.active(this.paper, false, this.state, _primitive, this.state.getActiveDefaults());
-            })
-            this.state.setActive('')
-          }*/
         });
 
+      },
+      pasteSelection() {
+        try {
+          this.state.pasteSelection();
+        } catch (err) {
+          this.$emit('error', 'paste_selection');
+        }
       },
       saveJSON() {
         this.$emit('save', this.state.exportStack());
       },
       exportSVG() {
-        let svg = this.paper.project.exportSVG({
+        let svg = this.paper.project.activeLayer.exportSVG({
           asString: true,
+          embedImages: false,
           onExport: (item, node) => {
               if (item._class === 'PointText') {
                   node.textContent = null;
                   for (let i = 0; i < item._lines.length; i++) {
                       let tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-                      tspan.textContent = item._lines[i] ? item._lines[i] : ' ';
+                      tspan.textContent = item._lines[i] ? item._lines[i] : "\u00A0";
                       let dy = item.leading;
                       if (i === 0) {
                           dy = 0;
@@ -1332,23 +2759,21 @@
           .map(rule => stringifyRule(rule))
           .join('\n');
 
-        svg = svg.replace(/<svg(.*?)>/, (e) => {
-          return (`${e}
-        <defs>
-          <style>
-            ${_str}
-          </style>
-        </defs>`)
-        });
+        svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${this.paper.project.view.bounds.width}" height="${this.paper.project.view.bounds.height}" viewBox="0,0,${this.paper.project.view.bounds.width},${this.paper.project.view.bounds.height}">
+      <defs>
+        <style>
+          ${_str}
+        </style>
+      </defs>
+      ${svg}
+      </svg>`;
 
         this.$emit('export', svg);
       },
       disableKeys() {
-        console.log('disabling keys');
         this.keyHandlingActive = false;
       },
       enableKeys() {
-        console.log('enabling keys');
         this.keyHandlingActive = true;
       },
       // needed to ensure reactivity ($set)
@@ -1360,6 +2785,7 @@
         }
         else {
           this.disableKeys();
+          this.state.disableTransformation();
           this.$nextTick(() => {
             try {
               this.$refs[option.property][0].focus();
@@ -1475,7 +2901,7 @@
     var _c = _vm._self._c || _h;
     return _c(
       "div",
-      { staticClass: "vue-paint" },
+      { staticClass: "vue-paint", style: _vm.cssVars },
       [
         _c(
           "transition",
@@ -1488,7 +2914,11 @@
                 staticClass: "vue-paint-clipart-wrapper",
                 on: {
                   click: function($event) {
-                    return _vm.toggleOption(option)
+                    $event.stopPropagation();
+                    _vm.state.getContext().getOption(option.property) === false
+                      ? _vm.state.getContext()._delete()
+                      : "";
+                    _vm.toggleOption(option);
                   }
                 }
               },
@@ -1562,7 +2992,11 @@
         _vm._v(" "),
         _c(
           "div",
-          { staticClass: "vue-paint-wrapper", attrs: { id: "wrapper" } },
+          {
+            ref: "wrapper",
+            staticClass: "vue-paint-wrapper",
+            attrs: { id: "wrapper" }
+          },
           [
             _vm._l(_vm.state.getOptionByType("textarea", true), function(option) {
               return _c(
@@ -1572,611 +3006,1084 @@
                   staticClass: "vue-paint-editor",
                   style: {
                     left:
-                      _vm.state.getContext().primitive.position.x -
-                      _vm.state.getContext().primitive.bounds.width / 2 +
+                      (_vm.state.getContext().primitive.position.x *
+                        _vm.scaling) /
+                        100 +
                       "px",
                     top:
-                      _vm.state.getContext().primitive.position.y -
-                      _vm.state.getContext().primitive.bounds.height / 2 +
-                      "px"
+                      (_vm.state.getContext().primitive.position.y *
+                        _vm.scaling) /
+                        100 +
+                      "px",
+                    transform:
+                      "scale(" +
+                      _vm.scaling / 100 +
+                      ") rotate(" +
+                      _vm.state.getContext().primitive.rotation +
+                      "deg)",
+                    "transform-origin": "0px 0px"
                   },
                   attrs: { id: "fitpopup" }
                 },
                 [
-                  _c("textarea", {
+                  _c("form", { ref: "textareaform", refInFor: true }, [
+                    option.mode == "char"
+                      ? _c("textarea", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: option.value,
+                              expression: "option.value"
+                            }
+                          ],
+                          ref: option.property,
+                          refInFor: true,
+                          style: {
+                            width: option.cols + 1 + "ch",
+                            "font-size":
+                              _vm.state.getContext().primitive.fontSize + "px",
+                            "line-height":
+                              _vm.state.getContext().primitive.leading + "px",
+                            "font-family":
+                              "" + _vm.state.getContext().primitive.fontFamily,
+                            transform:
+                              "translateX(-" +
+                              _vm.state.getContext().primitive.internalBounds
+                                .width /
+                                2 +
+                              "px) translateY(-" +
+                              _vm.state.getContext().primitive.internalBounds
+                                .height /
+                                2 +
+                              "px)",
+                            "text-align":
+                              _vm.state.getContext().primitive.justification ||
+                              "left"
+                          },
+                          attrs: {
+                            rows: option.rows,
+                            cols: option.cols,
+                            name: "input",
+                            wrap: "hard"
+                          },
+                          domProps: { value: option.value },
+                          on: {
+                            keyup: function($event) {
+                              _vm.state
+                                .getContext()
+                                .setOption(option.property, $event.target.value);
+                            },
+                            focus: _vm.disableKeys,
+                            blur: _vm.enableKeys,
+                            input: function($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.$set(option, "value", $event.target.value);
+                            }
+                          }
+                        })
+                      : _c("textarea", {
+                          directives: [
+                            {
+                              name: "model",
+                              rawName: "v-model",
+                              value: option.value,
+                              expression: "option.value"
+                            }
+                          ],
+                          ref: option.property,
+                          refInFor: true,
+                          style: {
+                            width: option.width + "px",
+                            height: option.height + "px",
+                            resize: "none",
+                            "white-space": "pre-wrap",
+                            "word-wrap": "break-word",
+                            "font-size":
+                              _vm.state.getContext().primitive.fontSize + "px",
+                            "line-height":
+                              _vm.state.getContext().primitive.leading + "px",
+                            "font-family":
+                              "" + _vm.state.getContext().primitive.fontFamily,
+                            transform:
+                              "translateX(-" +
+                              _vm.state.getContext().primitive.internalBounds
+                                .width /
+                                2 +
+                              "px) translateY(-" +
+                              _vm.state.getContext().primitive.internalBounds
+                                .height /
+                                2 +
+                              "px)",
+                            "text-align":
+                              _vm.state.getContext().primitive.justification ||
+                              "left"
+                          },
+                          attrs: { name: "input", wrap: "hard" },
+                          domProps: { value: option.value },
+                          on: {
+                            keyup: function($event) {
+                              _vm.state
+                                .getContext()
+                                .setOption(
+                                  option.property,
+                                  $event.target.value,
+                                  $event.target,
+                                  _vm.$refs.textareaform
+                                );
+                            },
+                            focus: _vm.disableKeys,
+                            blur: _vm.enableKeys,
+                            input: function($event) {
+                              if ($event.target.composing) {
+                                return
+                              }
+                              _vm.$set(option, "value", $event.target.value);
+                            }
+                          }
+                        })
+                  ])
+                ]
+              )
+            }),
+            _vm._v(" "),
+            _c("canvas", {
+              ref: "painter",
+              class:
+                "vue-paint-canvas vue-paint-canvas-" +
+                _vm.state.getActiveClassName() +
+                " vue-paint-canvas-" +
+                _vm.state.getActiveName().replace(/ /g, "_"),
+              attrs: { id: "painter" }
+            }),
+            _vm._v(" "),
+            _vm.mockup && _vm.mockup.length
+              ? _c(
+                  "div",
+                  {
+                    class:
+                      "vue-paint-mockup vue-paint-mockup-" + _vm.mockup.length
+                  },
+                  _vm._l(_vm.mockup, function(m, m_id) {
+                    return _c("div", {
+                      key: "mock-" + m_id,
+                      class:
+                        "vue-paint-mockup-item vue-paint-mockup-item-" + m_id,
+                      domProps: { innerHTML: _vm._s(m) }
+                    })
+                  }),
+                  0
+                )
+              : _vm._e()
+          ],
+          2
+        ),
+        _vm._v(" "),
+        _vm.state.getContext() && _vm.state.getContext().showHint()
+          ? _c("div", { staticClass: "vue-paint-hint" }, [
+              _c("div", [
+                _vm._v(
+                  "\n      " +
+                    _vm._s(
+                      _vm.strings[_vm.state.getContext().showHint()] ||
+                        _vm.state.getContext().showHint()
+                    ) +
+                    "\n    "
+                )
+              ])
+            ])
+          : [
+              _vm.state.getActiveName() !== "" &&
+              _vm.strings[
+                "hint:" + _vm.state.getClassName(_vm.state.getActiveName())
+              ]
+                ? _c("div", { staticClass: "vue-paint-hint" }, [
+                    _c("div", [
+                      _vm._v(
+                        "\n        " +
+                          _vm._s(
+                            _vm.strings[
+                              "hint:" +
+                                _vm.state.getClassName(_vm.state.getActiveName())
+                            ]
+                          ) +
+                          "\n      "
+                      )
+                    ])
+                  ])
+                : _vm._e()
+            ],
+        _vm._v(" "),
+        _c(
+          "vue-draggable-resizable",
+          {
+            staticClass: "vue-paint-menu",
+            attrs: {
+              x: _vm.menuX,
+              y: _vm.menuY,
+              w: "auto",
+              h: "auto",
+              "drag-handle": ".drag",
+              id: "menu",
+              z: 10
+            },
+            on: { dragging: _vm.onMenuDrag }
+          },
+          [
+            _c("div", { staticClass: "drag" }),
+            _vm._v(" "),
+            _c(
+              "div",
+              { class: { folded: _vm.folded[0] } },
+              [
+                _c(
+                  "div",
+                  {
+                    staticClass: "vue-paint-menu-divider",
+                    on: {
+                      click: function($event) {
+                        _vm.folded[0] = !_vm.folded[0];
+                        $event.target.parentElement.classList.toggle("folded");
+                      }
+                    }
+                  },
+                  [_vm._v(_vm._s(_vm.strings.tools))]
+                ),
+                _vm._v(" "),
+                _c(
+                  "a",
+                  {
+                    class:
+                      "vue-paint-button vue-paint-button-tooltip vue-paint-button-selection" +
+                      (_vm.state.getActiveName() === ""
+                        ? " vue-paint-button-active"
+                        : ""),
+                    on: {
+                      click: function($event) {
+                        return _vm.state.setActive(false)
+                      }
+                    }
+                  },
+                  [_c("span", [_vm._v(_vm._s(_vm.strings.selection))])]
+                ),
+                _vm._v(" "),
+                _vm._l(_vm.tools, function(t) {
+                  return [
+                    _vm.state.isFixed(t) === false
+                      ? _c(
+                          "a",
+                          {
+                            key: "tool-" + t,
+                            class:
+                              "vue-paint-button vue-paint-button-tooltip vue-paint-button-" +
+                              _vm.state.getClassName(t) +
+                              " vue-paint-button-" +
+                              t.replace(/ /g, "_") +
+                              (_vm.state.getActiveName() == t
+                                ? " vue-paint-button-active"
+                                : ""),
+                            on: {
+                              click: function($event) {
+                                _vm.state.setActive(
+                                  _vm.state.getActiveName() == t ? false : t
+                                );
+                              }
+                            }
+                          },
+                          [_c("span", [_vm._v(_vm._s(t))])]
+                        )
+                      : _vm._e()
+                  ]
+                })
+              ],
+              2
+            ),
+            _vm._v(" "),
+            _c(
+              "div",
+              { class: { folded: _vm.folded[1] } },
+              [
+                _c(
+                  "div",
+                  {
+                    staticClass: "vue-paint-menu-divider",
+                    on: {
+                      click: function($event) {
+                        _vm.folded[1] = !_vm.folded[1];
+                        $event.target.parentElement.classList.toggle("folded");
+                      }
+                    }
+                  },
+                  [_vm._v(_vm._s(_vm.strings.fixedtools))]
+                ),
+                _vm._v(" "),
+                _vm._l(_vm.tools, function(t) {
+                  return [
+                    _vm.state.isFixed(t) === true
+                      ? _c(
+                          "a",
+                          {
+                            key: "tool-" + t,
+                            class:
+                              "vue-paint-button vue-paint-button-check vue-paint-button-" +
+                              _vm.state.getClassName(t) +
+                              " vue-paint-button-" +
+                              t.replace(/ /g, "_") +
+                              (_vm.state.exists(t)
+                                ? " vue-paint-button-check-active"
+                                : ""),
+                            on: {
+                              click: function($event) {
+                                return _vm.addFixed(t)
+                              }
+                            }
+                          },
+                          [_c("span", [_vm._v(_vm._s(t))])]
+                        )
+                      : _vm._e()
+                  ]
+                })
+              ],
+              2
+            ),
+            _vm._v(" "),
+            _c("div", { class: { folded: _vm.folded[2] } }, [
+              _c(
+                "div",
+                {
+                  staticClass: "vue-paint-menu-divider",
+                  on: {
+                    click: function($event) {
+                      _vm.folded[2] = !_vm.folded[2];
+                      $event.target.parentElement.classList.toggle("folded");
+                    }
+                  }
+                },
+                [_vm._v(_vm._s(_vm.strings.file))]
+              ),
+              _vm._v(" "),
+              _c(
+                "a",
+                {
+                  staticClass: "vue-paint-button vue-paint-button-save",
+                  on: {
+                    click: function($event) {
+                      return _vm.saveJSON()
+                    }
+                  }
+                },
+                [_vm._v(_vm._s(_vm.strings.save))]
+              ),
+              _vm._v(" "),
+              _c(
+                "a",
+                {
+                  staticClass: "vue-paint-button vue-paint-button-export",
+                  on: {
+                    click: function($event) {
+                      return _vm.exportSVG()
+                    }
+                  }
+                },
+                [_vm._v(_vm._s(_vm.strings.export))]
+              )
+            ]),
+            _vm._v(" "),
+            _c("div", { class: { folded: _vm.folded[3] } }, [
+              _c(
+                "div",
+                {
+                  staticClass: "vue-paint-menu-divider",
+                  on: {
+                    click: function($event) {
+                      _vm.folded[3] = !_vm.folded[3];
+                      $event.target.parentElement.classList.toggle("folded");
+                    }
+                  }
+                },
+                [_vm._v(_vm._s(_vm.strings.preset))]
+              ),
+              _vm._v(" "),
+              _c(
+                "label",
+                { staticClass: "vue-paint-label vue-paint-label-stroke" },
+                [
+                  _vm._v(
+                    _vm._s(_vm.strings.stroke) +
+                      " " +
+                      _vm._s(_vm.state.getStrokeWidth()) +
+                      " Px\n        "
+                  ),
+                  _c("input", {
+                    attrs: { type: "range", min: "0", max: "10" },
+                    domProps: { value: _vm.state.getStrokeWidth() },
+                    on: {
+                      change: function($event) {
+                        return _vm.state.setStrokeWidth($event.target.value)
+                      }
+                    }
+                  })
+                ]
+              ),
+              _vm._v(" "),
+              _c(
+                "label",
+                { staticClass: "vue-paint-label vue-paint-label-alpha" },
+                [
+                  _vm._v(
+                    _vm._s(_vm.strings.alpha) +
+                      " " +
+                      _vm._s(_vm.state.getAlpha() * 100) +
+                      "%\n        "
+                  ),
+                  _c("input", {
+                    attrs: { type: "range", min: "0", max: "4" },
+                    domProps: { value: _vm.state.getAlpha() * 4 },
+                    on: {
+                      change: function($event) {
+                        return _vm.state.setAlpha($event.target.value / 4)
+                      }
+                    }
+                  })
+                ]
+              ),
+              _vm._v(" "),
+              _c(
+                "label",
+                { staticClass: "vue-paint-label vue-paint-label-fillcolor" },
+                [
+                  _vm._v(_vm._s(_vm.strings.fillcolor) + "\n        "),
+                  _c(
+                    "div",
+                    { staticClass: "vue-paint-colorlist" },
+                    _vm._l(_vm.colors, function(c) {
+                      return _c("a", {
+                        key: "bgcolor-" + c,
+                        staticClass: "color",
+                        class: { "color-active": _vm.state.getFillColor() == c },
+                        style: { "background-color": c },
+                        on: {
+                          click: function($event) {
+                            return _vm.state.setFillColor(c)
+                          }
+                        }
+                      })
+                    }),
+                    0
+                  )
+                ]
+              ),
+              _vm._v(" "),
+              _c(
+                "label",
+                { staticClass: "vue-paint-label vue-paint-label-strokecolor" },
+                [
+                  _vm._v(_vm._s(_vm.strings.strokecolor) + "\n        "),
+                  _c(
+                    "div",
+                    { staticClass: "vue-paint-colorlist" },
+                    _vm._l(_vm.colors, function(c) {
+                      return _c("a", {
+                        key: "bgcolor-" + c,
+                        staticClass: "color",
+                        class: {
+                          "color-active": _vm.state.getStrokeColor() == c
+                        },
+                        style: { "background-color": c },
+                        on: {
+                          click: function($event) {
+                            return _vm.state.setStrokeColor(c)
+                          }
+                        }
+                      })
+                    }),
+                    0
+                  )
+                ]
+              ),
+              _vm._v(" "),
+              _c(
+                "label",
+                { staticClass: "vue-paint-label vue-paint-label-stroke" },
+                [
+                  _vm._v(
+                    _vm._s(_vm.strings.zoom) +
+                      " " +
+                      _vm._s(_vm.scaling) +
+                      "%\n        "
+                  ),
+                  _c("input", {
+                    attrs: { type: "range", min: "25", step: "25", max: "200" },
+                    domProps: { value: _vm.scaling },
+                    on: {
+                      change: function($event) {
+                        return _vm.setScaling($event.target.value)
+                      }
+                    }
+                  })
+                ]
+              ),
+              _vm._v(" "),
+              _c(
+                "label",
+                { staticClass: "vue-paint-label vue-paint-label-stroke" },
+                [
+                  _vm._v(_vm._s(_vm.strings.magnetic) + "\n        "),
+                  _c("input", {
                     directives: [
                       {
                         name: "model",
                         rawName: "v-model",
-                        value: option.value,
-                        expression: "option.value"
+                        value: _vm.magnetic,
+                        expression: "magnetic"
                       }
                     ],
-                    ref: option.property,
-                    refInFor: true,
-                    style: {
-                      "font-size":
-                        _vm.state.getContext().primitive.fontSize + "px",
-                      "line-height":
-                        _vm.state.getContext().primitive.leading + "px"
+                    attrs: { name: "magnetic", type: "checkbox" },
+                    domProps: {
+                      checked: Array.isArray(_vm.magnetic)
+                        ? _vm._i(_vm.magnetic, null) > -1
+                        : _vm.magnetic
                     },
-                    attrs: {
-                      rows: option.rows,
-                      cols: Math.round(option.cols * 1.75),
-                      name: "input",
-                      wrap: "hard"
-                    },
-                    domProps: { value: option.value },
                     on: {
-                      keyup: function($event) {
-                        _vm.state
-                          .getContext()
-                          .setOption(option.property, $event.target.value);
-                      },
-                      focus: _vm.disableKeys,
-                      blur: _vm.enableKeys,
-                      input: function($event) {
-                        if ($event.target.composing) {
-                          return
+                      change: function($event) {
+                        var $$a = _vm.magnetic,
+                          $$el = $event.target,
+                          $$c = $$el.checked ? true : false;
+                        if (Array.isArray($$a)) {
+                          var $$v = null,
+                            $$i = _vm._i($$a, $$v);
+                          if ($$el.checked) {
+                            $$i < 0 && (_vm.magnetic = $$a.concat([$$v]));
+                          } else {
+                            $$i > -1 &&
+                              (_vm.magnetic = $$a
+                                .slice(0, $$i)
+                                .concat($$a.slice($$i + 1)));
+                          }
+                        } else {
+                          _vm.magnetic = $$c;
                         }
-                        _vm.$set(option, "value", $event.target.value);
                       }
                     }
                   })
                 ]
               )
-            }),
+            ]),
             _vm._v(" "),
-            _c("div", {
-              ref: "grid",
-              staticClass: "vue-paint-grid",
-              attrs: { id: "grid" }
-            }),
-            _vm._v(" "),
-            _c("div", {
-              ref: "grid2",
-              staticClass: "vue-paint-grid-rotated",
-              attrs: { id: "grid" }
-            }),
-            _vm._v(" "),
-            _c("canvas", {
-              ref: "painter",
-              staticClass: "vue-paint-canvas",
-              attrs: { id: "painter", resize: "" }
-            })
-          ],
-          2
-        ),
-        _vm._v(" "),
-        _c("div", { staticClass: "vue-paint-menu", attrs: { id: "menu" } }, [
-          _c(
-            "div",
-            [
-              _c("div", { staticClass: "vue-paint-menu-divider" }, [
-                _vm._v(_vm._s(_vm.strings.tools))
-              ]),
-              _vm._v(" "),
-              _vm._l(_vm.tools, function(t) {
-                return _c(
-                  "a",
+            _c(
+              "div",
+              { class: { folded: _vm.folded[4] } },
+              [
+                _c(
+                  "div",
                   {
-                    key: "tool-" + t,
-                    class:
-                      "vue-paint-button vue-paint-button-" +
-                      t +
-                      (_vm.state.getActiveName() == t ? " active" : ""),
+                    staticClass: "vue-paint-menu-divider",
                     on: {
                       click: function($event) {
-                        _vm.state.setActive(
-                          _vm.state.getActiveName() == t ? false : t
-                        );
+                        _vm.folded[4] = !_vm.folded[4];
+                        $event.target.parentElement.classList.toggle("folded");
                       }
                     }
                   },
-                  [_vm._v(_vm._s(t))]
-                )
-              })
-            ],
-            2
-          ),
-          _vm._v(" "),
-          _c("div", [
-            _c("div", { staticClass: "vue-paint-menu-divider" }, [
-              _vm._v(_vm._s(_vm.strings.file))
-            ]),
-            _vm._v(" "),
-            _c(
-              "a",
-              {
-                staticClass: "vue-paint-button vue-paint-button-save",
-                on: {
-                  click: function($event) {
-                    return _vm.saveJSON()
-                  }
-                }
-              },
-              [_vm._v(_vm._s(_vm.strings.save))]
-            ),
-            _vm._v(" "),
-            _c(
-              "a",
-              {
-                staticClass: "vue-paint-button vue-paint-button-export",
-                on: {
-                  click: function($event) {
-                    return _vm.exportSVG()
-                  }
-                }
-              },
-              [_vm._v(_vm._s(_vm.strings.export))]
-            )
-          ]),
-          _vm._v(" "),
-          _c("div", [
-            _c("div", { staticClass: "vue-paint-menu-divider" }, [
-              _vm._v(_vm._s(_vm.strings.preset))
-            ]),
-            _vm._v(" "),
-            _c(
-              "label",
-              { staticClass: "vue-paint-label vue-paint-label-stroke" },
-              [
-                _vm._v(
-                  _vm._s(_vm.strings.stroke) +
-                    " " +
-                    _vm._s(_vm.state.getStrokeWidth()) +
-                    " Px\n        "
+                  [_vm._v(_vm._s(_vm.strings.grids))]
                 ),
-                _c("input", {
-                  attrs: { type: "range", min: "0", max: "10" },
-                  domProps: { value: _vm.state.getStrokeWidth() },
-                  on: {
-                    change: function($event) {
-                      return _vm.state.setStrokeWidth($event.target.value)
-                    }
-                  }
-                })
-              ]
-            ),
-            _vm._v(" "),
-            _c(
-              "label",
-              { staticClass: "vue-paint-label vue-paint-label-alpha" },
-              [
-                _vm._v(
-                  _vm._s(_vm.strings.alpha) +
-                    " " +
-                    _vm._s(_vm.state.getAlpha() * 100) +
-                    "%\n        "
-                ),
-                _c("input", {
-                  attrs: { type: "range", min: "0", max: "4" },
-                  domProps: { value: _vm.state.getAlpha() * 4 },
-                  on: {
-                    change: function($event) {
-                      return _vm.state.setAlpha($event.target.value / 4)
-                    }
-                  }
-                })
-              ]
-            ),
-            _vm._v(" "),
-            _c(
-              "label",
-              { staticClass: "vue-paint-label vue-paint-label-fillcolor" },
-              [
-                _vm._v(_vm._s(_vm.strings.fillcolor) + "\n        "),
-                _c(
-                  "div",
-                  { staticClass: "vue-paint-colorlist" },
-                  _vm._l(_vm.colors, function(c) {
-                    return _c("a", {
-                      key: "bgcolor-" + c,
-                      staticClass: "color",
-                      class: { "color-active": _vm.state.getFillColor() == c },
-                      style: { "background-color": c },
+                _vm._v(" "),
+                _vm._l(_vm.grids, function(_gc, _g) {
+                  return _c(
+                    "a",
+                    {
+                      key: "g_" + _g,
+                      class:
+                        "vue-paint-button " +
+                        (_vm.activeGrid == _g ? " vue-paint-button-active" : ""),
                       on: {
                         click: function($event) {
-                          return _vm.state.setFillColor(c)
+                          _vm.activeGrid = _g;
                         }
                       }
-                    })
-                  }),
-                  0
-                )
-              ]
-            ),
-            _vm._v(" "),
-            _c(
-              "label",
-              { staticClass: "vue-paint-label vue-paint-label-strokecolor" },
-              [
-                _vm._v(_vm._s(_vm.strings.strokecolor) + "\n        "),
-                _c(
-                  "div",
-                  { staticClass: "vue-paint-colorlist" },
-                  _vm._l(_vm.colors, function(c) {
-                    return _c("a", {
-                      key: "bgcolor-" + c,
-                      staticClass: "color",
-                      class: { "color-active": _vm.state.getStrokeColor() == c },
-                      style: { "background-color": c },
-                      on: {
-                        click: function($event) {
-                          return _vm.state.setStrokeColor(c)
-                        }
-                      }
-                    })
-                  }),
-                  0
-                )
-              ]
-            )
-          ])
-        ]),
-        _vm._v(" "),
-        _c(
-          "div",
-          { staticClass: "vue-paint-context", attrs: { id: "context" } },
-          [
-            _c("transition", { attrs: { name: "flipin" } }, [
-              _vm.state.hasSelection()
-                ? _c(
-                    "div",
-                    [
-                      _c("div", { staticClass: "vue-paint-menu-divider" }, [
-                        _vm._v(_vm._s(_vm.strings.selection))
-                      ]),
-                      _vm._v(" "),
-                      _c(
-                        "a",
-                        {
-                          staticClass: "vue-paint-button vue-paint-button-delete",
-                          on: {
-                            click: function($event) {
-                              return _vm.state.deleteSelection()
-                            }
-                          }
-                        },
-                        [
-                          _vm._v(_vm._s(_vm.strings.delete) + "  "),
-                          _c("span", [_vm._v("🔙")])
-                        ]
-                      ),
-                      _vm._v(" "),
-                      _c(
-                        "a",
-                        {
-                          staticClass: "vue-paint-button vue-paint-button-copy",
-                          on: {
-                            click: function($event) {
-                              return _vm.state.copySelection()
-                            }
-                          }
-                        },
-                        [
-                          _vm._v(_vm._s(_vm.strings.copy) + " "),
-                          _c("span", [_vm._v("cmd-c")])
-                        ]
-                      ),
-                      _vm._v(" "),
-                      _vm._l(_vm.transformations, function(t) {
-                        return _c(
-                          "a",
-                          {
-                            key: "transformation-" + t[0],
-                            class:
-                              "vue-paint-button vue-paint-button-" +
-                              t[0] +
-                              (_vm.state.getTransformation() == t[0]
-                                ? " active"
-                                : ""),
-                            on: {
-                              click: function($event) {
-                                return _vm.state.setTransformation(t[0])
-                              }
-                            }
-                          },
-                          [
-                            _vm._v(_vm._s(_vm.translations[t[0]]) + " "),
-                            _c("span", [_vm._v(_vm._s(t[1]))])
-                          ]
-                        )
-                      }),
-                      _vm._v(" "),
-                      _c(
-                        "a",
-                        {
-                          staticClass:
-                            "vue-paint-button vue-paint-button-background",
-                          on: {
-                            click: function($event) {
-                              return _vm.state.shiftSelection("back")
-                            }
-                          }
-                        },
-                        [
-                          _vm._v(_vm._s(_vm.strings.background)),
-                          _c("span", [_vm._v("⇞")])
-                        ]
-                      ),
-                      _vm._v(" "),
-                      _c(
-                        "a",
-                        {
-                          staticClass:
-                            "vue-paint-button vue-paint-button-foreground",
-                          on: {
-                            click: function($event) {
-                              return _vm.state.shiftSelection("front")
-                            }
-                          }
-                        },
-                        [
-                          _vm._v(_vm._s(_vm.strings.foreground)),
-                          _c("span", [_vm._v("⇟")])
-                        ]
-                      ),
-                      _vm._v(" "),
-                      _c("div", { staticClass: "vue-paint-arrowbuttons" }, [
-                        _c(
-                          "a",
-                          {
-                            on: {
-                              click: function($event) {
-                                return _vm.state.moveSelection("left")
-                              }
-                            }
-                          },
-                          [_c("span", [_vm._v("←")])]
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "a",
-                          {
-                            on: {
-                              click: function($event) {
-                                return _vm.state.moveSelection("up")
-                              }
-                            }
-                          },
-                          [_c("span", [_vm._v("↑")])]
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "a",
-                          {
-                            on: {
-                              click: function($event) {
-                                return _vm.state.moveSelection("down")
-                              }
-                            }
-                          },
-                          [_c("span", [_vm._v("↓")])]
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "a",
-                          {
-                            on: {
-                              click: function($event) {
-                                return _vm.state.moveSelection("right")
-                              }
-                            }
-                          },
-                          [_c("span", [_vm._v("→")])]
-                        )
-                      ])
-                    ],
-                    2
+                    },
+                    [_c("span", [_vm._v(_vm._s(_g))])]
                   )
-                : _vm._e()
-            ]),
-            _vm._v(" "),
-            _c("transition", { attrs: { name: "flipin" } }, [
-              _vm.state.hasClipboard()
-                ? _c("div", [
-                    _c("div", { staticClass: "vue-paint-menu-divider" }, [
-                      _vm._v(_vm._s(_vm.strings.clipboard))
-                    ]),
-                    _vm._v(" "),
-                    _c(
-                      "a",
-                      {
-                        staticClass: "vue-paint-button vue-paint-button-paste",
-                        on: {
-                          click: function($event) {
-                            return _vm.state.pasteSelection()
-                          }
-                        }
-                      },
+                })
+              ],
+              2
+            )
+          ]
+        ),
+        _vm._v(" "),
+        _vm.state.hasSelection() ||
+        _vm.$root.vp_clipboard.length > 0 ||
+        _vm.state.getContext()
+          ? _c(
+              "vue-draggable-resizable",
+              {
+                ref: "context",
+                staticClass: "vue-paint-context",
+                attrs: {
+                  x: _vm.contextX,
+                  y: _vm.contextY,
+                  w: "auto",
+                  h: "auto",
+                  "drag-handle": ".drag",
+                  id: "context",
+                  z: 10
+                },
+                on: { dragging: _vm.onContextDrag }
+              },
+              [
+                _c("div", { staticClass: "drag" }),
+                _vm._v(" "),
+                _vm.state.hasSelection()
+                  ? _c(
+                      "div",
+                      { class: { folded: _vm.folded[5] } },
                       [
-                        _vm._v(_vm._s(_vm.strings.paste)),
-                        _c("span", [_vm._v("cmd-v")])
-                      ]
-                    ),
-                    _vm._v(" "),
-                    _c(
-                      "a",
-                      {
-                        staticClass: "vue-paint-button vue-paint-button-clear",
-                        on: {
-                          click: function($event) {
-                            return _vm.state.clearSelection()
-                          }
-                        }
-                      },
-                      [_vm._v(_vm._s(_vm.strings.clear))]
-                    )
-                  ])
-                : _vm._e()
-            ]),
-            _vm._v(" "),
-            _c("transition", { attrs: { name: "flipin" } }, [
-              _vm.state.getContext()
-                ? _c(
-                    "div",
-                    [
-                      _c("div", { staticClass: "vue-paint-menu-divider" }, [
-                        _vm._v(_vm._s(_vm.strings.parameter))
-                      ]),
-                      _vm._v(" "),
-                      _vm._l(_vm.state.getContext().getOptions(), function(
-                        option
-                      ) {
-                        return _c(
-                          "form",
+                        _c(
+                          "div",
                           {
-                            key: "form-" + option.description,
-                            attrs: { id: "form-" + option.property }
+                            staticClass: "vue-paint-menu-divider",
+                            on: {
+                              click: function($event) {
+                                _vm.folded[5] = !_vm.folded[5];
+                                $event.target.parentElement.classList.toggle(
+                                  "folded"
+                                );
+                              }
+                            }
+                          },
+                          [_vm._v(_vm._s(_vm.strings.functions))]
+                        ),
+                        _vm._v(" "),
+                        _c(
+                          "a",
+                          {
+                            staticClass:
+                              "vue-paint-button vue-paint-button-shorcut vue-paint-button-delete",
+                            on: {
+                              click: function($event) {
+                                return _vm.state.deleteSelection()
+                              }
+                            }
                           },
                           [
-                            option.type == "textarea" || option.type == "clipart"
+                            _vm._v(_vm._s(_vm.strings.delete) + "  "),
+                            _c("span", [_vm._v("🔙")])
+                          ]
+                        ),
+                        _vm._v(" "),
+                        _c(
+                          "a",
+                          {
+                            staticClass:
+                              "vue-paint-button vue-paint-button-shorcut vue-paint-button-copy",
+                            on: {
+                              click: function($event) {
+                                return _vm.state.copySelection()
+                              }
+                            }
+                          },
+                          [
+                            _vm._v(_vm._s(_vm.strings.copy) + " "),
+                            _c("span", [_vm._v("cmd-c")])
+                          ]
+                        ),
+                        _vm._v(" "),
+                        _vm._l(_vm.transformations, function(t) {
+                          return [
+                            _vm.state.isTransformationAllowed(t[0])
                               ? _c(
                                   "a",
                                   {
-                                    key: option.parameter,
+                                    key: "transformation-" + t[0],
                                     class:
-                                      "vue-paint-button vue-paint-button-" +
-                                      option.description +
-                                      " " +
-                                      (option.toggled ? " active" : ""),
+                                      "vue-paint-button vue-paint-button-shorcut vue-paint-button-" +
+                                      t[0] +
+                                      (_vm.state.getTransformation() == t[0]
+                                        ? " vue-paint-button-active"
+                                        : ""),
                                     on: {
                                       click: function($event) {
-                                        return _vm.toggleOption(option)
+                                        return _vm.state.setTransformation(t[0])
                                       }
                                     }
                                   },
                                   [
-                                    _vm._v(
-                                      "\n            " +
-                                        _vm._s(
-                                          _vm.strings[option.description] ||
-                                            option.description
-                                        )
-                                    ),
-                                    _c("span", [
-                                      _vm._v(
-                                        _vm._s(
-                                          option.type == "textarea"
-                                            ? "cmd-e"
-                                            : "cmd-i"
-                                        )
-                                      )
-                                    ])
-                                  ]
-                                )
-                              : _vm._e(),
-                            _vm._v(" "),
-                            option.type == "int"
-                              ? _c(
-                                  "label",
-                                  {
-                                    key: "option-" + option.description,
-                                    class:
-                                      "vue-paint-label vue-paint-label-" +
-                                      option.description
-                                  },
-                                  [
-                                    _vm._v(
-                                      _vm._s(
-                                        _vm.strings[option.description] ||
-                                          option.description
-                                      ) +
-                                        ": " +
-                                        _vm._s(option.value) +
-                                        "\n            "
-                                    ),
-                                    _c("input", {
-                                      attrs: {
-                                        type: "range",
-                                        min: option.min,
-                                        max: option.max,
-                                        step: option.step,
-                                        name: "input"
-                                      },
-                                      domProps: { value: option.value },
-                                      on: {
-                                        change: function($event) {
-                                          _vm.state
-                                            .getContext()
-                                            .setOption(
-                                              option.property,
-                                              $event.target.value
-                                            );
-                                        }
-                                      }
-                                    })
-                                  ]
-                                )
-                              : _vm._e(),
-                            _vm._v(" "),
-                            option.type == "text"
-                              ? _c(
-                                  "label",
-                                  {
-                                    key: "option-" + option.property,
-                                    class:
-                                      "vue-paint-label vue-paint-label-" +
-                                      option.description
-                                  },
-                                  [
-                                    _vm._v(
-                                      _vm._s(
-                                        _vm.strings[option.description] ||
-                                          option.description
-                                      ) + "\n            "
-                                    ),
-                                    _c("input", {
-                                      directives: [
-                                        {
-                                          name: "model",
-                                          rawName: "v-model",
-                                          value: option.value,
-                                          expression: "option.value"
-                                        }
-                                      ],
-                                      attrs: { name: "input", type: "text" },
-                                      domProps: { value: option.value },
-                                      on: {
-                                        keyup: function($event) {
-                                          _vm.state
-                                            .getContext()
-                                            .setOption(
-                                              option.property,
-                                              $event.target.value
-                                            );
-                                        },
-                                        focus: _vm.disableKeys,
-                                        blur: _vm.enableKeys,
-                                        input: function($event) {
-                                          if ($event.target.composing) {
-                                            return
-                                          }
-                                          _vm.$set(
-                                            option,
-                                            "value",
-                                            $event.target.value
-                                          );
-                                        }
-                                      }
-                                    })
+                                    _vm._v(_vm._s(_vm.strings[t[0]]) + " "),
+                                    _c("span", [_vm._v(_vm._s(t[1]))])
                                   ]
                                 )
                               : _vm._e()
                           ]
-                        )
-                      })
-                    ],
-                    2
-                  )
-                : _vm._e()
-            ])
-          ],
-          1
-        )
+                        }),
+                        _vm._v(" "),
+                        _c(
+                          "a",
+                          {
+                            staticClass:
+                              "vue-paint-button vue-paint-button-shorcut vue-paint-button-background",
+                            on: {
+                              click: function($event) {
+                                return _vm.state.shiftSelection("back")
+                              }
+                            }
+                          },
+                          [
+                            _vm._v(_vm._s(_vm.strings.background)),
+                            _c("span", [_vm._v("⇞")])
+                          ]
+                        ),
+                        _vm._v(" "),
+                        _c(
+                          "a",
+                          {
+                            staticClass:
+                              "vue-paint-button vue-paint-button-shorcut vue-paint-button-foreground",
+                            on: {
+                              click: function($event) {
+                                return _vm.state.shiftSelection("front")
+                              }
+                            }
+                          },
+                          [
+                            _vm._v(_vm._s(_vm.strings.foreground)),
+                            _c("span", [_vm._v("⇟")])
+                          ]
+                        ),
+                        _vm._v(" "),
+                        _vm.state.isTransformationAllowed("Move")
+                          ? _c("div", { staticClass: "vue-paint-arrowbuttons" }, [
+                              _c(
+                                "a",
+                                {
+                                  on: {
+                                    click: function($event) {
+                                      return _vm.state.moveSelection("left")
+                                    }
+                                  }
+                                },
+                                [_c("span", [_vm._v("←")])]
+                              ),
+                              _vm._v(" "),
+                              _c(
+                                "a",
+                                {
+                                  on: {
+                                    click: function($event) {
+                                      return _vm.state.moveSelection("up")
+                                    }
+                                  }
+                                },
+                                [_c("span", [_vm._v("↑")])]
+                              ),
+                              _vm._v(" "),
+                              _c(
+                                "a",
+                                {
+                                  on: {
+                                    click: function($event) {
+                                      return _vm.state.moveSelection("down")
+                                    }
+                                  }
+                                },
+                                [_c("span", [_vm._v("↓")])]
+                              ),
+                              _vm._v(" "),
+                              _c(
+                                "a",
+                                {
+                                  on: {
+                                    click: function($event) {
+                                      return _vm.state.moveSelection("right")
+                                    }
+                                  }
+                                },
+                                [_c("span", [_vm._v("→")])]
+                              )
+                            ])
+                          : _vm._e()
+                      ],
+                      2
+                    )
+                  : _vm._e(),
+                _vm._v(" "),
+                _vm.$root.vp_clipboard.length > 0
+                  ? _c("div", { class: { folded: _vm.folded[6] } }, [
+                      _c(
+                        "div",
+                        {
+                          staticClass: "vue-paint-menu-divider",
+                          on: {
+                            click: function($event) {
+                              _vm.folded[6] = !_vm.folded[6];
+                              $event.target.parentElement.classList.toggle(
+                                "folded"
+                              );
+                            }
+                          }
+                        },
+                        [_vm._v(_vm._s(_vm.strings.clipboard))]
+                      ),
+                      _vm._v(" "),
+                      _c(
+                        "a",
+                        {
+                          staticClass:
+                            "vue-paint-button vue-paint-button-shorcut vue-paint-button-paste",
+                          on: {
+                            click: function($event) {
+                              return _vm.pasteSelection()
+                            }
+                          }
+                        },
+                        [
+                          _vm._v(_vm._s(_vm.strings.paste)),
+                          _c("span", [_vm._v("cmd-v")])
+                        ]
+                      ),
+                      _vm._v(" "),
+                      _c(
+                        "a",
+                        {
+                          staticClass:
+                            "vue-paint-button vue-paint-button-shorcut vue-paint-button-clear",
+                          on: {
+                            click: function($event) {
+                              return _vm.state.clearSelection()
+                            }
+                          }
+                        },
+                        [_vm._v(_vm._s(_vm.strings.clear))]
+                      )
+                    ])
+                  : _vm._e(),
+                _vm._v(" "),
+                _vm.state.getContext()
+                  ? _c(
+                      "div",
+                      { class: { folded: _vm.folded[7] } },
+                      [
+                        _c(
+                          "div",
+                          {
+                            staticClass: "vue-paint-menu-divider",
+                            on: {
+                              click: function($event) {
+                                _vm.folded[7] = !_vm.folded[7];
+                                $event.target.parentElement.classList.toggle(
+                                  "folded"
+                                );
+                              }
+                            }
+                          },
+                          [_vm._v(_vm._s(_vm.strings.parameter))]
+                        ),
+                        _vm._v(" "),
+                        _vm._l(_vm.state.getContext().getOptions(), function(
+                          option
+                        ) {
+                          return [
+                            option.type != "hidden"
+                              ? _c(
+                                  "form",
+                                  {
+                                    key: "form-" + option.description,
+                                    attrs: { id: "form-" + option.property }
+                                  },
+                                  [
+                                    option.type == "textarea" ||
+                                    option.type == "clipart"
+                                      ? _c(
+                                          "a",
+                                          {
+                                            key: option.parameter,
+                                            class:
+                                              "vue-paint-button vue-paint-button-shorcut vue-paint-button-" +
+                                              option.description +
+                                              " " +
+                                              (option.toggled
+                                                ? " vue-paint-button-active"
+                                                : ""),
+                                            on: {
+                                              click: function($event) {
+                                                return _vm.toggleOption(option)
+                                              }
+                                            }
+                                          },
+                                          [
+                                            _vm._v(
+                                              "\n            " +
+                                                _vm._s(
+                                                  _vm.strings[
+                                                    option.description
+                                                  ] || option.description
+                                                )
+                                            ),
+                                            _c("span", [
+                                              _vm._v(
+                                                _vm._s(
+                                                  option.type == "textarea"
+                                                    ? "cmd-e"
+                                                    : "cmd-i"
+                                                )
+                                              )
+                                            ])
+                                          ]
+                                        )
+                                      : _vm._e(),
+                                    _vm._v(" "),
+                                    option.type == "int" &&
+                                    option.min !== option.max
+                                      ? _c(
+                                          "label",
+                                          {
+                                            key: "option-" + option.description,
+                                            class:
+                                              "vue-paint-label vue-paint-label-" +
+                                              option.description
+                                          },
+                                          [
+                                            _vm._v(
+                                              _vm._s(
+                                                _vm.strings[option.description] ||
+                                                  option.description
+                                              ) +
+                                                ": " +
+                                                _vm._s(option.value) +
+                                                "\n            "
+                                            ),
+                                            _c("input", {
+                                              attrs: {
+                                                type: "range",
+                                                min: option.min,
+                                                max: option.max,
+                                                step: option.step,
+                                                name: "input"
+                                              },
+                                              domProps: { value: option.value },
+                                              on: {
+                                                change: function($event) {
+                                                  _vm.state
+                                                    .getContext()
+                                                    .setOption(
+                                                      option.property,
+                                                      $event.target.value
+                                                    );
+                                                }
+                                              }
+                                            })
+                                          ]
+                                        )
+                                      : _vm._e(),
+                                    _vm._v(" "),
+                                    option.type == "boolean"
+                                      ? _c(
+                                          "label",
+                                          {
+                                            key: "option-" + option.description,
+                                            class:
+                                              "vue-paint-label vue-paint-label-" +
+                                              option.description
+                                          },
+                                          [
+                                            _vm._v(
+                                              _vm._s(
+                                                _vm.strings[option.description] ||
+                                                  option.description
+                                              ) + "\n            "
+                                            ),
+                                            _c("input", {
+                                              attrs: {
+                                                type: "checkbox",
+                                                name: "input"
+                                              },
+                                              domProps: { checked: option.value },
+                                              on: {
+                                                change: function($event) {
+                                                  _vm.state
+                                                    .getContext()
+                                                    .setOption(
+                                                      option.property,
+                                                      $event.target.checked
+                                                    );
+                                                }
+                                              }
+                                            })
+                                          ]
+                                        )
+                                      : _vm._e(),
+                                    _vm._v(" "),
+                                    option.type == "text"
+                                      ? _c(
+                                          "label",
+                                          {
+                                            key: "option-" + option.property,
+                                            class:
+                                              "vue-paint-label vue-paint-label-" +
+                                              option.description
+                                          },
+                                          [
+                                            _vm._v(
+                                              _vm._s(
+                                                _vm.strings[option.description] ||
+                                                  option.description
+                                              ) + "\n            "
+                                            ),
+                                            _c("input", {
+                                              directives: [
+                                                {
+                                                  name: "model",
+                                                  rawName: "v-model",
+                                                  value: option.value,
+                                                  expression: "option.value"
+                                                }
+                                              ],
+                                              attrs: {
+                                                name: "input",
+                                                type: "text"
+                                              },
+                                              domProps: { value: option.value },
+                                              on: {
+                                                keyup: function($event) {
+                                                  _vm.state
+                                                    .getContext()
+                                                    .setOption(
+                                                      option.property,
+                                                      $event.target.value
+                                                    );
+                                                },
+                                                focus: _vm.disableKeys,
+                                                blur: _vm.enableKeys,
+                                                input: function($event) {
+                                                  if ($event.target.composing) {
+                                                    return
+                                                  }
+                                                  _vm.$set(
+                                                    option,
+                                                    "value",
+                                                    $event.target.value
+                                                  );
+                                                }
+                                              }
+                                            })
+                                          ]
+                                        )
+                                      : _vm._e()
+                                  ]
+                                )
+                              : _vm._e()
+                          ]
+                        })
+                      ],
+                      2
+                    )
+                  : _vm._e()
+              ]
+            )
+          : _vm._e()
       ],
-      1
+      2
     )
   };
   var __vue_staticRenderFns__ = [];

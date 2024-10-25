@@ -1,13 +1,17 @@
 import Square from './tools/square.js'
 import Circle from './tools/circle.js'
 import Line   from './tools/line.js'
+import Polyline   from './tools/polyline.js'
 import Star   from './tools/star.js'
+import Polygon from './tools/polygon.js'
 import Raster from './tools/raster.js'
 import Text   from './tools/text.js'
+import Grid   from './tools/grid.js'
+import Arc  from './tools/arc.js'
 import { Base64 } from 'js-base64'
 
 export default class State {
-    constructor (options) {
+    constructor (options, root) {
         options = options || {};
         this.active     = null;
         this.actveByName = "";
@@ -20,10 +24,14 @@ export default class State {
         this.fonts      = options.fonts || [];
         this.selected   = [];
         this.context = false;
-        this.copy   = [];
+        // Clipboard
+        this.root = root
+        this.root.vp_clipboard = this.root.vp_clipboard || [];        
         this.stack  = [];
         this.clips  = [];
         this.paper  = null;
+        this.painting = true;
+        this.magnetic = true;
         // Register Transformation Modes
         this.allowedTransformations = ['Move', 'Resize', 'Rotate'];
         this.transformation = 'Move';
@@ -34,8 +42,12 @@ export default class State {
             'Circle': Circle,
             'Line'  : Line,
             'Star'  : Star,
+            'Polygon': Polygon,
             'Raster': Raster,
             'Text'  : Text,
+            'Grid'  : Grid,
+            'Polyline': Polyline,
+            'Arc': Arc
         }
 
         // Register Tools
@@ -52,23 +64,52 @@ export default class State {
             'Star': {
                 class: 'Star'
             },
+            'Polygon': {
+                class: 'Polygon'
+            },
             'Raster': {
                 class: 'Raster'
             },
             'Text': {
                 class: 'Text'
+            },
+            'Grid': {
+                class: 'Grid'
+            },
+            'Polyline': {
+                class: 'Polyline'
+            },
+            'Arc': {
+                class: 'Arc'
             }
         }
         // Convert String to Classes
-        // addOnMouseDown true for Text and Raster Object. Others need to be dragged.
+
         for (let _t in this.tools) if (Object.hasOwnProperty.call(this.tools, _t)) {
+            // addOnMouseDown true for Text and Raster Object. Others need to be dragged.
             this.tools[_t].addOnMouseDown = this.tools[_t].class == 'Text' || this.tools[_t].class == 'Raster';
-            this.tools[_t].class = _toolClasses[this.tools[_t].class];
+
+            // addOnDoubleClick true for Polyline
+            this.tools[_t].addOnDoubleClick = this.tools[_t].class == 'Polyline';
+
             this.tools[_t].defaults = this.tools[_t].defaults || {};
             this.tools[_t].defaults.toolName = _t;
+
+            // Overload Class
+            this.tools[_t].className = this.tools[_t].class;            
+            this.tools[_t].class = _toolClasses[this.tools[_t].class];
         }
     }
 
+    setGrid(x, y) {
+        this.gridsize.x = x
+        this.gridsize.y = y
+    }
+
+    setMagnetic(value) {
+        this.magnetic = value
+    }
+    
     addClipart(clips) {
         this.clips = clips;
     }
@@ -81,6 +122,14 @@ export default class State {
             }
         }
         return _tools;
+    }
+
+    isFixed(_tool) {
+        return (this.tools[_tool].defaults.fixed && this.tools[_tool].defaults.fixed.x !== undefined && this.tools[_tool].defaults.fixed.y != undefined ? true : false)
+    }
+
+    exists(_element) {
+        return (this.stack.filter(_e => _e.toolname === _element).length > 0)
     }
 
     addStack(e) {
@@ -96,6 +145,7 @@ export default class State {
     }
 
     exportStack() {
+        this.unselectAll();
         let _json = [];
 
         this.stack.sort((a,b) => a.primitive.index > b.primitive.index)
@@ -112,9 +162,18 @@ export default class State {
     importStack(json) {
         if (json) {
             json.forEach(o => {
-              let _primitive = this.paper.project.activeLayer.importJSON(Base64.decode(o.data))
-              this.setActive(o.prototype)
-              new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
+                this.setActive(o.prototype)
+                let _doinsert = true
+                let _decoded = Base64.decode(o.data);
+                let _parsed = JSON.parse(_decoded);
+                if (_parsed[0] === 'Raster' && _parsed[1].matrix[4] === null && _parsed[1].matrix[5] === null) {
+                    _doinsert = false
+                    console.warn('not inserting image. wrong matrix')
+                } 
+                if (this.active !== null && _parsed && _doinsert === true) {
+                    let _primitive = this.paper.project.activeLayer.importJSON(_decoded)
+                    new this.active(this.paper, false, this, _primitive, this.getActiveDefaults());
+                }
             })
             this.setActive('')
         }
@@ -138,18 +197,40 @@ export default class State {
         return this.selected.length > 0;
     }
 
+    hasSelectionBoundingBox() {
+        let _r = false
+        let _t = false
+        if (this.selected.length > 0) {
+            this.selected.forEach(s => {
+                if (s.primitive.bounds.top < _t || _t === false) {
+                    _t = s.primitive.bounds.top
+                }
+                if (s.primitive.bounds.right > _r || _r === false) {
+                    _r = s.primitive.bounds.right
+                }
+            })
+        }
+        return {
+            x: _r || 0,
+            y: _t || 0
+        }
+    }
+
     hasClipboard() {
-        return this.copy.length > 0;
+        console.log(this.root.vp_clipboard)
+        return this.root.vp_clipboard.length > 0;
     }
 
     unselectAll() {
-        if (this.selected.length > 0) {
+        let _selectionLength = this.selected.length
+        if (_selectionLength > 0) {
             this.selected.forEach(s => {
                 s.unselect();
             })
             this.selected = [];
             this.context = false;
         }
+        return _selectionLength
     }
 
     deleteSelection() {
@@ -178,23 +259,43 @@ export default class State {
     }
 
     copySelection() {
-        this.copy = this.selected;
+        this.selected.forEach(s => {
+            s._json = s.primitive.exportJSON()
+        })
+        this.root.$set(this.root, 'vp_clipboard', this.selected)        
     }
 
     clearSelection() {
-        this.copy = [];
+        this.root.$set(this.root, 'vp_clipboard', [])
     }
 
     pasteSelection() {
-        if (this.copy.length > 0) {
+        if (this.root.vp_clipboard.length > 0) {
             this.unselectAll();
-            this.copy.forEach(s => {
-                console.log(this, s);
-                let _clone = new this.tools[s.toolname].class(s.paper, s.startPoint, this, s.primitive.clone(), this.tools[s.toolname].defaults);
-                _clone.move('right');
-                _clone.move('down');
-                _clone.shift('front');
-                _clone.select();
+            this.root.vp_clipboard.forEach(s => {
+                if (this.tools[s.toolname]) {
+                    try {
+                        let _primitive = this.paper.project.activeLayer.importJSON(s._json)
+                        let _clone = new this.tools[s.toolname].class(this.paper, s.startPoint, this, _primitive, this.tools[s.toolname].defaults);
+                        if (_clone) {
+                            _clone._pos = s._pos
+                            _clone.move('right');
+                            _clone.move('down');
+                            _clone.shift('front');
+                            _clone.select();
+                        }
+                    } catch (err) {
+                        throw {
+                            name: "PasteException",
+                            message: err.message
+                        }
+                    }
+                } else {
+                    throw {
+                        name: "PasteException",
+                        message: 'unknown tool'
+                    }
+                }
             });
             this.copySelection();
         }
@@ -203,6 +304,7 @@ export default class State {
 
     setActive(toolname) {
         if (toolname && this.tools[toolname]) {
+            this.unselectAll();
             this.active = this.tools[toolname].class;
             this.actveByName = toolname;
         }
@@ -220,6 +322,18 @@ export default class State {
         return this.actveByName;
     }
 
+    getActiveClassName() {
+        if (this.active) {
+            return this.tools[this.actveByName].className
+        }
+        else
+            return ""
+    }
+
+    getClassName(toolname) {
+        return this.tools[toolname].className
+    }
+
     getActiveDefaults() {
         return this.tools[this.actveByName].defaults || null;
     }
@@ -232,11 +346,24 @@ export default class State {
         }
     }
 
+    addOnDoubleClick() {
+        try {
+            return this.tools[this.actveByName].addOnDoubleClick;
+        } catch (err) {
+            return false
+        }
+    }
+
     getContext() {
         if (this.context && this.selected.length == 1) {
             return this.context;
         }
         else return false;
+    }
+
+    isTransformationAllowed(transformation) {
+        if (this.getContext() === false) return true;
+        else return this.getContext().isTransformationAllowed(transformation)
     }
 
     getOptionByType(option, toggled) {
@@ -298,8 +425,14 @@ export default class State {
 
     setTransformation(t) {
         if (this.allowedTransformations.indexOf(t) !== -1) {
-            this.transformation = t;
+            this.transformation == t
+                ? this.transformation = false
+                : this.transformation = t
         }
+    }
+
+    disableTransformation() {
+        this.transformation = false
     }
 
     applyStyle() {

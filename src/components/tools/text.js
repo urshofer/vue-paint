@@ -15,6 +15,10 @@ export default class Text extends Tool {
     defaults.leadingMax = defaults.leadingMax || 20
     defaults.rows = defaults.rows || 40
     defaults.cols = defaults.cols || 10
+    defaults.width = defaults.width || 250
+    defaults.height = defaults.height || 100
+    defaults.mode = defaults.mode || 'char'
+    defaults.justification = defaults.justification || 'left'
     defaults.fixed = defaults.fixed || false
     
     let options = [
@@ -22,9 +26,12 @@ export default class Text extends Tool {
           property: "content",
           description: "Edit Text",
           type    : "textarea",
-          value   : `${defaults.toolName} ${defaults.cols}x${defaults.rows}`,
+          value   : defaults.mode == 'char' ? `${defaults.toolName} ${defaults.cols} x ${defaults.rows}` : `${defaults.toolName} ${defaults.width}x${defaults.height} Pixel`,
           rows    : defaults.rows,
-          cols    : defaults.cols
+          cols    : defaults.cols,
+          width   : defaults.width,
+          height  : defaults.height,
+          mode    : defaults.mode
       },
       {
         property: "fontSize",
@@ -55,24 +62,41 @@ export default class Text extends Tool {
         description: "Font Weight",
         type    : "string",
         value   : defaults.fontWeight
+      },
+      {
+        property: "justification",
+        description: "Justification",
+        type    : "string",
+        value   : defaults.justification
       }
     ]
     super(paper, startPoint, state, primitive, options, defaults.toolName, defaults.fixed)
   }
 
-  setOption(name, value) {
+  setOption(name, value, target, form) {
     this.options.forEach(o => {
         if (o.property == name) {
           // Set Content Property, check size & do wordwrap
           if (o.property == 'content') {
-            let _v = wordwrap.wrap(value, { width: o.cols, break: true, noTrim: true })
-            let numberOfLines = (_v.match(/\n/g) || []).length + 1
-            if (numberOfLines <= o.rows) {
-              this.primitive[name] = _v;
-              o.value = _v
-            }
-            else {
-              o.value = this.primitive[name]
+            if (o.mode === 'char') {
+              let _v = wordwrap.wrap(value, { width: o.cols, break: true, noTrim: true })
+              let numberOfLines = (_v.match(/\n/g) || []).length + 1
+              if (numberOfLines <= o.rows) {
+                this.primitive[name] = _v;
+                o.value = _v
+              }
+              else {
+                o.value = this.primitive[name]
+              }
+            } else {
+              if (target.scrollHeight <= o.height) {
+                let _f = new FormData(form[0])
+                //console.log(_f.get('input'))
+                this.primitive[name] = _f.get('input');
+                o.value = _f.get('input')  
+              } else {
+                o.value = this.primitive[name]
+              }
             }
           }
           // All other properties are stored directly
@@ -85,12 +109,29 @@ export default class Text extends Tool {
   }
   
   
-  
+  onDoubleClick () {
+    this.state.unselectAll();
+    this.select();
+    let _e = {
+      key: 'e',
+      modifiers: {
+        meta: true
+      }
+    }
+    console.log(this.paper.tool.emit('keydown', _e))
+    return false;
+  }
 
   createPrimitive() {
     console.log(this)
     let _t = new this.paper.PointText(this.round(this.startPoint));
+    _t.applyMatrix = false
     return _t;
+  }
+
+  /* Called on init */
+  onPaint () {
+    this.state.painting = true;
   }
 
   applyStyle() {
@@ -106,6 +147,7 @@ export default class Text extends Tool {
       this.primitive.strokeWidth        = 0;
       this.primitive.strokeColor.alpha  = this.state.getAlpha();
       this.primitive.fillColor.alpha    = this.state.getAlpha();
+      this.primitive.justification      = this.getOption('justification')
     }
     catch (err) {
       console.warn(`${err} Primitive not defined`)
